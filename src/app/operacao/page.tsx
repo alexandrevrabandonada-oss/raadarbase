@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
@@ -17,7 +16,7 @@ import {
 import { formatDateTime } from "@/lib/mock-data";
 import { countRecentMetaErrors, listMetaSyncRuns } from "@/lib/data/operation";
 import { getStuckSyncRuns } from "@/lib/operation/stuck-runs";
-import { getInternalSession } from "@/lib/supabase/auth";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +27,7 @@ function statusVariant(status: string) {
 }
 
 export default async function OperacaoPage() {
-  const user = await getInternalSession();
-  if (!user) redirect("/login?next=/operacao");
+  await requireInternalPageSession("/operacao");
 
   let runs;
   let stuckRuns;

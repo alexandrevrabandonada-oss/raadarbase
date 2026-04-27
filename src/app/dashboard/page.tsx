@@ -9,10 +9,13 @@ import { listPeople } from "@/lib/data/people";
 import { listPosts } from "@/lib/data/posts";
 import { isMetaConfigured } from "@/lib/meta/client";
 import { getMetaDashboardStats } from "@/lib/meta/sync";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  await requireInternalPageSession("/dashboard");
+
   let people;
   let posts;
   let metaStats = null;

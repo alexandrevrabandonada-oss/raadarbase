@@ -2,11 +2,14 @@ import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { listMessageTemplates } from "@/lib/data/messages";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { MessagesClient } from "./messages-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function MensagensPage() {
+  await requireInternalPageSession("/mensagens");
+
   let messageTemplates;
   try {
     messageTemplates = await listMessageTemplates();

@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import {
   E2E_BYPASS_AUTH_ACTIVE,
@@ -67,6 +68,14 @@ export async function requireInternalSession() {
   const user = await getInternalSession();
   if (!user) {
     throw new Error("Usuário interno não autenticado.");
+  }
+  return user;
+}
+
+export async function requireInternalPageSession(nextPath: string) {
+  const user = await getInternalSession();
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
   return user;
 }

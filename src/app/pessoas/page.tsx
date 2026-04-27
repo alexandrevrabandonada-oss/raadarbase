@@ -2,11 +2,14 @@ import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { listPeople } from "@/lib/data/people";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { PeopleClient } from "./people-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function PessoasPage() {
+  await requireInternalPageSession("/pessoas");
+
   let people;
   try {
     people = await listPeople();

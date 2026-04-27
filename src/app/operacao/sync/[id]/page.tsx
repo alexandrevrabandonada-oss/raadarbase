@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
@@ -10,15 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/mock-data";
 import { getMetaSyncRunById, listAuditLogsForSync, listRetriesForSync } from "@/lib/data/operation";
 import { isSyncRunStuck } from "@/lib/operation/stuck-runs";
-import { getInternalSession } from "@/lib/supabase/auth";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { SyncActionsClient } from "./sync-actions-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function SyncDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await getInternalSession();
-  if (!user) redirect(`/login?next=/operacao/sync/${id}`);
+  await requireInternalPageSession(`/operacao/sync/${id}`);
 
   let run;
   let auditLogs;

@@ -7,12 +7,15 @@ import { formatDateTime } from "@/lib/mock-data";
 import { getPersonById } from "@/lib/data/people";
 import { listInteractions } from "@/lib/data/interactions";
 import { getLatestAuditLogForEntity } from "@/lib/data/audit";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { PersonActions } from "./person-actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireInternalPageSession(`/pessoas/${id}`);
+
   let person;
   try {
     person = await getPersonById(id);

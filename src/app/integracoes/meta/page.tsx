@@ -3,11 +3,14 @@ import { PageHeader } from "@/components/page-header";
 import { getMetaConfigStatus } from "@/lib/meta/client";
 import { getLatestMetaSyncRuns } from "@/lib/meta/sync";
 import type { TableRow } from "@/lib/supabase/database.types";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { MetaSyncClient } from "./meta-sync-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function MetaIntegrationPage() {
+  await requireInternalPageSession("/integracoes/meta");
+
   let runs: TableRow<"meta_sync_runs">[] = [];
   try {
     runs = await getLatestMetaSyncRuns();

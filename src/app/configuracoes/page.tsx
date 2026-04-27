@@ -1,7 +1,7 @@
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
-import { getInternalSession } from "@/lib/supabase/auth";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
 import {
   E2E_BYPASS_AUTH_ACTIVE,
   E2E_BYPASS_AUTH_MISCONFIGURED,
@@ -20,7 +20,7 @@ import { SettingsClient } from "./settings-client";
 export const dynamic = "force-dynamic";
 
 export default async function ConfiguracoesPage() {
-  const user = await getInternalSession();
+  const user = await requireInternalPageSession("/configuracoes");
   let latestAuditTest = null;
   let latestMetaError = null;
   let latestMetaRun = null;
