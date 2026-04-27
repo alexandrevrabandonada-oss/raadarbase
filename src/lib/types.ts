@@ -3,6 +3,7 @@ import type { Database, TableRow } from "@/lib/supabase/database.types";
 export type PersonStatus = Database["public"]["Enums"]["person_status"];
 export type InteractionType = Database["public"]["Enums"]["interaction_type"];
 export type ConsentStatus = Database["public"]["Enums"]["consent_status"];
+export type InternalUserStatus = Database["public"]["Enums"]["internal_user_status"];
 
 export type KanbanColumnId =
   | "novo"
@@ -40,6 +41,7 @@ export type IgInteractionRow = TableRow<"ig_interactions">;
 export type OutreachTaskRow = TableRow<"outreach_tasks">;
 export type MessageTemplateRow = TableRow<"message_templates">;
 export type AuditLogRow = TableRow<"audit_logs">;
+export type InternalUserRow = TableRow<"internal_users">;
 
 export type PersonWithContact = {
   id: string;

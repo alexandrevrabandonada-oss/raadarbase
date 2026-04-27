@@ -4,7 +4,7 @@ import { LoginForm } from "./login-form";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ next?: string }>;
+  searchParams?: Promise<{ next?: string; reason?: string }>;
 }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -18,8 +18,8 @@ export default function LoginPage({
 async function LoginSection({
   searchParams,
 }: {
-  searchParams?: Promise<{ next?: string }>;
+  searchParams?: Promise<{ next?: string; reason?: string }>;
 }) {
   const params = (await searchParams) ?? {};
-  return <LoginForm nextPath={params.next ?? "/dashboard"} />;
+  return <LoginForm nextPath={params.next ?? "/dashboard"} reason={params.reason ?? null} />;
 }

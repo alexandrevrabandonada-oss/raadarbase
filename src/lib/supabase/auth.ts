@@ -1,17 +1,52 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { E2E_BYPASS_AUTH_ACTIVE } from "@/lib/config";
+import { isInternalUserActive, type InternalUserProfile } from "@/lib/supabase/internal-users";
+
+export type InternalSession = {
+  id: string;
+  email: string | null;
+  internalUser: InternalUserProfile;
+};
 
 export async function getInternalSession() {
   if (E2E_BYPASS_AUTH_ACTIVE) {
     return {
       id: "e2e-internal-user",
       email: "e2e@radardebase.local",
+      internalUser: {
+        id: "e2e-internal-user",
+        email: "e2e@radardebase.local",
+        full_name: "E2E User",
+        role: "admin",
+        status: "active",
+        approved_at: new Date(0).toISOString(),
+        approved_by: null,
+        created_at: new Date(0).toISOString(),
+        updated_at: new Date(0).toISOString(),
+      },
     };
   }
   try {
     const supabase = await getSupabaseServerClient();
     const { data } = await supabase.auth.getUser();
-    return data.user ?? null;
+    const user = data.user;
+    if (!user) return null;
+
+    const { data: internalUser, error } = await supabase
+      .from("internal_users")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error || !internalUser || !isInternalUserActive(internalUser.status)) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      internalUser,
+    };
   } catch {
     return null;
   }

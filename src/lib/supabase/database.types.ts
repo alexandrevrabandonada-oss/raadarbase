@@ -263,6 +263,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      internal_users: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          role: string;
+          status: Database["public"]["Enums"]["internal_user_status"];
+          updated_at: string;
+        };
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id: string;
+          role?: string;
+          status?: Database["public"]["Enums"]["internal_user_status"];
+          updated_at?: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          role?: string;
+          status?: Database["public"]["Enums"]["internal_user_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       meta_account_snapshots: {
         Row: {
           captured_at: string;
@@ -416,6 +452,7 @@ export type Database = {
     Functions: Record<string, never>;
     Enums: {
       consent_status: "pending" | "confirmed" | "revoked";
+      internal_user_status: "pending" | "active" | "disabled";
       interaction_type: "comentario" | "curtida" | "resposta_story" | "dm_manual";
       person_status:
         | "novo"
