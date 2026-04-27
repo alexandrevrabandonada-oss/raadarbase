@@ -30,6 +30,8 @@ npm run dev
 
 Abra `http://localhost:3000/login`.
 
+O login agora suporta cadastro interno direto pela própria tela `/login`.
+
 ## Variaveis de ambiente
 
 ```bash
@@ -65,6 +67,22 @@ npm run supabase:types
 ```
 
 O script espera `SUPABASE_ACCESS_TOKEN` e usa `SUPABASE_PROJECT_ID` ou o id padrao do projeto atual.
+
+### Liberação de acesso interno
+
+O cadastro pela tela `/login` cria o usuário no Supabase Auth e um registro em `public.internal_users` com status inicial `pending`.
+
+Para liberar acesso ao painel, marque o usuário como `active` no Supabase:
+
+```sql
+update public.internal_users
+set
+   status = 'active',
+   approved_at = now()
+where email = 'usuario@example.com';
+```
+
+Se você já tinha usuários criados antes da migration de acesso interno, aplique também a migration `005_backfill_internal_users.sql` para popular `public.internal_users` com base em `auth.users`.
 
 ## Mock e ambientes
 
