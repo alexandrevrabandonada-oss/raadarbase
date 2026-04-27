@@ -59,3 +59,11 @@ export async function requireInternalSession() {
   }
   return user;
 }
+
+export async function requireAdminSession() {
+  const user = await requireInternalSession();
+  if (user.internalUser.role !== "admin") {
+    throw new Error("Apenas administradores internos podem executar esta ação.");
+  }
+  return user;
+}

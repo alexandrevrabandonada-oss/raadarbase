@@ -10,6 +10,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/config";
 import { getLatestAuditByAction } from "@/lib/data/audit";
+import { listInternalUsers } from "@/lib/data/internal-users";
 import { getLatestMetaSyncError, getLatestMetaSyncRun } from "@/lib/data/operation";
 import { listConfirmedPeople } from "@/lib/data/people";
 import { isMetaConfigured } from "@/lib/meta/client";
@@ -25,13 +26,15 @@ export default async function ConfiguracoesPage() {
   let latestMetaRun = null;
   let stuckRuns = [];
   let confirmedPeople = [];
+  let internalUsers = [];
   try {
-    [latestAuditTest, confirmedPeople, latestMetaError, latestMetaRun, stuckRuns] = await Promise.all([
+    [latestAuditTest, confirmedPeople, latestMetaError, latestMetaRun, stuckRuns, internalUsers] = await Promise.all([
       getLatestAuditByAction("audit.tested"),
       listConfirmedPeople(),
       getLatestMetaSyncError().catch(() => null),
       getLatestMetaSyncRun().catch(() => null),
       getStuckSyncRuns().catch(() => []),
+      listInternalUsers(),
     ]);
   } catch (error) {
     return (
@@ -63,6 +66,9 @@ export default async function ConfiguracoesPage() {
         e2eBypassMisconfigured={E2E_BYPASS_AUTH_MISCONFIGURED}
         metaConfigured={isMetaConfigured()}
         confirmedPeople={confirmedPeople}
+        currentUserId={user?.id ?? null}
+        currentUserRole={user?.internalUser.role ?? null}
+        internalUsers={internalUsers}
       />
     </AppShell>
   );

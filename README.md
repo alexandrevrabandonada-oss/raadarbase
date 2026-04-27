@@ -72,6 +72,8 @@ O script espera `SUPABASE_ACCESS_TOKEN` e usa `SUPABASE_PROJECT_ID` ou o id padr
 
 O cadastro pela tela `/login` cria o usuário no Supabase Auth e um registro em `public.internal_users` com status inicial `pending`.
 
+Em ambiente novo, a migration `006_bootstrap_first_admin.sql` promove automaticamente o primeiro e único usuário interno para `admin` + `active`, mas apenas se ainda não existir nenhum administrador ativo.
+
 Para liberar acesso ao painel, marque o usuário como `active` no Supabase:
 
 ```sql

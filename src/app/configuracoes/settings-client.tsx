@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/mock-data";
-import type { PersonWithContact } from "@/lib/types";
+import type { InternalUserListItem, PersonWithContact } from "@/lib/types";
 import { anonymizeContact } from "@/app/actions";
+import { approveInternalUserAction, disableInternalUserAction } from "./actions";
 
 export function SettingsClient({
   userEmail,
@@ -26,6 +27,9 @@ export function SettingsClient({
   e2eBypassMisconfigured,
   metaConfigured,
   confirmedPeople,
+  currentUserId,
+  currentUserRole,
+  internalUsers,
 }: {
   userEmail: string | null;
   environment: string;
@@ -39,12 +43,16 @@ export function SettingsClient({
   e2eBypassMisconfigured: boolean;
   metaConfigured: boolean;
   confirmedPeople: PersonWithContact[];
+  currentUserId: string | null;
+  currentUserRole: string | null;
+  internalUsers: InternalUserListItem[];
 }) {
   const [purpose, setPurpose] = useState("Organização comunitária, escuta popular e convite manual para reuniões da VR Abandonada.");
   const [privacyUrl, setPrivacyUrl] = useState("https://vrabandonada.example/politica");
   const [consent, setConsent] = useState("Registrar somente quando a pessoa aceitar entrar em grupo, lista ou contato direto.");
   const [removed, setRemoved] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const canManageInternalUsers = currentUserRole === "admin";
 
   function exportCsv() {
     window.location.href = "/api/contacts/export";
@@ -59,6 +67,14 @@ export function SettingsClient({
     startTransition(async () => {
       const result = await anonymizeContact(personId);
       setRemoved(result.ok ? username : null);
+      setFeedback(result.ok ? result.message : result.error);
+    });
+  }
+
+  function handleInternalUserAction(userId: string, action: "approve" | "disable") {
+    startTransition(async () => {
+      const result =
+        action === "approve" ? await approveInternalUserAction(userId) : await disableInternalUserAction(userId);
       setFeedback(result.ok ? result.message : result.error);
     });
   }
@@ -186,35 +202,89 @@ export function SettingsClient({
           {feedback ? <p className="text-sm text-muted-foreground">{feedback}</p> : null}
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Contatos confirmados</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <Button type="button" onClick={exportCsv}>
-            <Download data-icon="inline-start" />
-            Exportar CSV
-          </Button>
-          {confirmedPeople.map((person) => (
-            <div key={person.id} className="rounded-md border bg-background p-3">
-              <p className="font-bold">@{person.username}</p>
-              <p className="text-sm text-muted-foreground">{person.contact?.consent_purpose ?? "Consentimento confirmado"}</p>
-              <Button
-                type="button"
-                className="mt-3"
-                variant="destructive"
-                onClick={() => handleAnonymize(person.id, person.username)}
-              >
-                <Eraser data-icon="inline-start" />
-                Anonimizar/remover contato
-              </Button>
-            </div>
-          ))}
-          {removed ? (
-            <p className="rounded-md bg-zinc-100 p-3 text-sm">Mock: @{removed} seria anonimizado após confirmação no backend.</p>
-          ) : null}
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Acesso interno</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">
+              Cadastros novos entram como <strong>pending</strong>. Administradores podem liberar ou desativar acesso sem sair do painel.
+            </p>
+            {internalUsers.map((internalUser) => (
+              <div key={internalUser.id} className="rounded-md border bg-background p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold break-all">{internalUser.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {internalUser.fullName ?? "Sem nome"} · role {internalUser.role} · status {internalUser.status}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Criado em {formatDateTime(internalUser.createdAt)}
+                      {internalUser.approvedAt ? ` · aprovado em ${formatDateTime(internalUser.approvedAt)}` : ""}
+                    </p>
+                  </div>
+                  {canManageInternalUsers ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={internalUser.status === "active"}
+                        onClick={() => handleInternalUserAction(internalUser.id, "approve")}
+                      >
+                        Aprovar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={internalUser.id === currentUserId || internalUser.status === "disabled"}
+                        onClick={() => handleInternalUserAction(internalUser.id, "disable")}
+                      >
+                        Desativar
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+            {!canManageInternalUsers ? (
+              <p className="text-sm text-muted-foreground">
+                Apenas administradores internos podem aprovar ou desativar acessos.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Contatos confirmados</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Button type="button" onClick={exportCsv}>
+              <Download data-icon="inline-start" />
+              Exportar CSV
+            </Button>
+            {confirmedPeople.map((person) => (
+              <div key={person.id} className="rounded-md border bg-background p-3">
+                <p className="font-bold">@{person.username}</p>
+                <p className="text-sm text-muted-foreground">{person.contact?.consent_purpose ?? "Consentimento confirmado"}</p>
+                <Button
+                  type="button"
+                  className="mt-3"
+                  variant="destructive"
+                  onClick={() => handleAnonymize(person.id, person.username)}
+                >
+                  <Eraser data-icon="inline-start" />
+                  Anonimizar/remover contato
+                </Button>
+              </div>
+            ))}
+            {removed ? (
+              <p className="rounded-md bg-zinc-100 p-3 text-sm">Mock: @{removed} seria anonimizado após confirmação no backend.</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

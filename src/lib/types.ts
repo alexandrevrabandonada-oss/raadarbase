@@ -32,7 +32,9 @@ export type AuditAction =
   | "meta.comments_synced"
   | "meta.account_snapshot_synced"
   | "meta.sync_marked_failed"
-  | "meta.sync_retried";
+  | "meta.sync_retried"
+  | "internal_user.approved"
+  | "internal_user.disabled";
 
 export type ContactRecord = TableRow<"contacts">;
 export type IgPeopleRow = TableRow<"ig_people">;
@@ -42,6 +44,18 @@ export type OutreachTaskRow = TableRow<"outreach_tasks">;
 export type MessageTemplateRow = TableRow<"message_templates">;
 export type AuditLogRow = TableRow<"audit_logs">;
 export type InternalUserRow = TableRow<"internal_users">;
+
+export type InternalUserListItem = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  role: string;
+  status: InternalUserStatus;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type PersonWithContact = {
   id: string;
