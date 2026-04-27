@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { shouldUseMockData } from "@/lib/config";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/auth";
+import { mockInternalUsers } from "@/lib/data/internal-users";
 import type { TableUpdate } from "@/lib/supabase/database.types";
 
 type ActionResult = { ok: true; message: string } | { ok: false; error: string };
@@ -14,6 +16,25 @@ async function updateInternalUserStatus(userId: string, nextStatus: "active" | "
     const actor = await requireAdminSession();
     if (actor.id === userId && nextStatus === "disabled") {
       throw new Error("Você não pode desativar o seu próprio acesso por esta tela.");
+    }
+
+    if (shouldUseMockData()) {
+      const target = mockInternalUsers.find((user) => user.id === userId);
+      if (!target) throw new Error("Usuário interno não encontrado.");
+      target.status = nextStatus;
+      target.role = nextStatus === "active" && target.role === "operator" ? target.role : target.role;
+      target.approvedAt = nextStatus === "active" ? new Date().toISOString() : null;
+      target.approvedBy = nextStatus === "active" ? actor.id : null;
+      target.updatedAt = new Date().toISOString();
+
+      revalidatePath("/configuracoes");
+      return {
+        ok: true,
+        message:
+          nextStatus === "active"
+            ? `Acesso liberado para ${target.email}.`
+            : `Acesso desativado para ${target.email}.`,
+      };
     }
 
     const supabase = getSupabaseAdminClient();
