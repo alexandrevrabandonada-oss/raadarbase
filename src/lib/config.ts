@@ -1,6 +1,8 @@
 export const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS === "true";
 export const IS_PRODUCTION = process.env.NODE_ENV === "production";
 export const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+export const E2E_BYPASS_AUTH_OPTOUT_COOKIE = "e2e-bypass-auth-optout";
+export const E2E_BYPASS_AUTH_OPTOUT_HEADER = "x-e2e-bypass-auth";
 export const E2E_BYPASS_AUTH_ACTIVE =
   process.env.E2E_BYPASS_AUTH === "true" &&
   process.env.NODE_ENV !== "production" &&

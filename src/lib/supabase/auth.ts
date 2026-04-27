@@ -1,5 +1,10 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { E2E_BYPASS_AUTH_ACTIVE } from "@/lib/config";
+import { cookies, headers } from "next/headers";
+import {
+  E2E_BYPASS_AUTH_ACTIVE,
+  E2E_BYPASS_AUTH_OPTOUT_COOKIE,
+  E2E_BYPASS_AUTH_OPTOUT_HEADER,
+} from "@/lib/config";
 import { isInternalUserActive, type InternalUserProfile } from "@/lib/supabase/internal-users";
 
 export type InternalSession = {
@@ -9,7 +14,13 @@ export type InternalSession = {
 };
 
 export async function getInternalSession() {
-  if (E2E_BYPASS_AUTH_ACTIVE) {
+  const requestHeaders = await headers();
+  const cookieStore = await cookies();
+  const e2eBypassOptedOut =
+    requestHeaders.get(E2E_BYPASS_AUTH_OPTOUT_HEADER) === "off" ||
+    cookieStore.get(E2E_BYPASS_AUTH_OPTOUT_COOKIE)?.value === "true";
+
+  if (E2E_BYPASS_AUTH_ACTIVE && !e2eBypassOptedOut) {
     return {
       id: "e2e-internal-user",
       email: "e2e@radardebase.local",

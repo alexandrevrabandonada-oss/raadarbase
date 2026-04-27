@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { E2E_BYPASS_AUTH_ACTIVE } from "@/lib/config";
+import {
+  E2E_BYPASS_AUTH_ACTIVE,
+  E2E_BYPASS_AUTH_OPTOUT_COOKIE,
+  E2E_BYPASS_AUTH_OPTOUT_HEADER,
+} from "@/lib/config";
 import { isInternalUserActive } from "@/lib/supabase/internal-users";
 
 const protectedPaths = [
@@ -14,7 +18,11 @@ const protectedPaths = [
 ];
 
 export async function middleware(request: NextRequest) {
-  if (E2E_BYPASS_AUTH_ACTIVE) {
+  const e2eBypassOptedOut =
+    request.headers.get(E2E_BYPASS_AUTH_OPTOUT_HEADER) === "off" ||
+    request.cookies.get(E2E_BYPASS_AUTH_OPTOUT_COOKIE)?.value === "true";
+
+  if (E2E_BYPASS_AUTH_ACTIVE && !e2eBypassOptedOut) {
     return NextResponse.next();
   }
 

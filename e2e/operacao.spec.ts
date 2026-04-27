@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("usuario nao autenticado e redirecionado ao tentar operacao", async ({ page }) => {
-  test.skip(process.env.E2E_BYPASS_AUTH === "true", "Bypass seguro ativo para E2E autenticado local.");
+  await page.setExtraHTTPHeaders({ "x-e2e-bypass-auth": "off" });
   await page.goto("/operacao");
   await expect(page).toHaveURL(/\/login/);
 });
