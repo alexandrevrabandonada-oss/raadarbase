@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/mock-data";
-import type { InternalUserListItem, PersonWithContact } from "@/lib/types";
+import type { UnsafeProductionWarning } from "@/lib/security/production-guards";
+import type { InternalUserListItem, OperationalRetentionPolicyRow, PersonWithContact } from "@/lib/types";
 import { anonymizeContact } from "@/app/actions";
 import { approveInternalUserAction, disableInternalUserAction } from "./actions";
 
@@ -25,7 +26,9 @@ export function SettingsClient({
   latestMetaStatus,
   e2eBypassActive,
   e2eBypassMisconfigured,
+  unsafeProductionWarnings,
   metaConfigured,
+  retentionPolicies,
   confirmedPeople,
   currentUserId,
   currentUserRole,
@@ -41,7 +44,9 @@ export function SettingsClient({
   latestMetaStatus: string | null;
   e2eBypassActive: boolean;
   e2eBypassMisconfigured: boolean;
+  unsafeProductionWarnings: UnsafeProductionWarning[];
   metaConfigured: boolean;
+  retentionPolicies: OperationalRetentionPolicyRow[];
   confirmedPeople: PersonWithContact[];
   currentUserId: string | null;
   currentUserRole: string | null;
@@ -170,6 +175,18 @@ export function SettingsClient({
               <p>Último sync com erro: {latestMetaError ?? "Sem erro registrado"}</p>
               {!metaConfigured ? <p className="text-red-800">Meta ainda não configurada.</p> : null}
               {mockMode === "ativo" ? <p className="text-orange-800">Modo demonstração ativo.</p> : null}
+              {unsafeProductionWarnings.length > 0 ? (
+                <div className="rounded-md border border-yellow-500/40 bg-yellow-50 p-3 text-yellow-900">
+                  <p className="font-semibold">Guardrails de produção</p>
+                  <ul className="mt-2 grid gap-1">
+                    {unsafeProductionWarnings.map((warning) => (
+                      <li key={warning.code}>
+                        {warning.severity === "error" ? "Erro" : "Aviso"}: {warning.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="rounded-md border bg-background p-4">
@@ -297,6 +314,25 @@ export function SettingsClient({
             {removed ? (
               <p className="rounded-md bg-zinc-100 p-3 text-sm">Mock: @{removed} seria anonimizado após confirmação no backend.</p>
             ) : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Retenção de dados operacionais</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground">Limpeza automática ainda não ativada.</p>
+            <p className="text-sm text-muted-foreground">
+              Logs de auditoria devem ser preservados com cuidado para rastreabilidade e conformidade.
+            </p>
+            {retentionPolicies.map((policy) => (
+              <div key={policy.entity} className="rounded-md border bg-background p-3">
+                <p className="font-semibold">{policy.entity}</p>
+                <p className="text-sm text-muted-foreground">
+                  Retenção: {policy.retention_days} dias · {policy.enabled ? "ativa" : "inativa"}
+                </p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

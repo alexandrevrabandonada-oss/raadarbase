@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/mock-data";
 import { countRecentMetaErrors, listMetaSyncRuns } from "@/lib/data/operation";
+import { getRepeatedFailureSummary } from "@/lib/operation/repeated-failures";
 import { getStuckSyncRuns } from "@/lib/operation/stuck-runs";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 
@@ -32,11 +33,13 @@ export default async function OperacaoPage() {
   let runs;
   let stuckRuns;
   let recentErrorCount;
+  let repeatedFailures;
   try {
-    [runs, stuckRuns, recentErrorCount] = await Promise.all([
+    [runs, stuckRuns, recentErrorCount, repeatedFailures] = await Promise.all([
       listMetaSyncRuns(),
       getStuckSyncRuns(),
       countRecentMetaErrors(24),
+      getRepeatedFailureSummary(),
     ]);
   } catch (error) {
     return (
@@ -78,6 +81,32 @@ export default async function OperacaoPage() {
             <Button variant="outline" nativeButton={false} render={<Link href={`/operacao/sync/${stuckRuns[0].id}`} />}>
               Ver detalhes
             </Button>
+          ) : null}
+        </CardContent>
+      </Card>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Falhas recorrentes</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {repeatedFailures.repeatedFailures.length > 0 ? (
+            repeatedFailures.repeatedFailures.map((failure) => (
+              <div key={failure.kind} className="flex flex-col justify-between gap-3 rounded-md border bg-background p-4 sm:flex-row sm:items-center">
+                <div>
+                  <p className="font-semibold">{failure.kind}</p>
+                  <p className="text-sm text-muted-foreground">{failure.count} falhas nas últimas 24h</p>
+                  <p className="text-sm text-muted-foreground">Última falha em {formatDateTime(failure.latestFailureAt)}</p>
+                </div>
+                <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/operacao/sync/${failure.latestRunId}`} />}>
+                  Ver detalhes
+                </Button>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Nenhuma falha recorrente detectada nas últimas 24h.</p>
+          )}
+          {recentErrorCount >= 5 ? (
+            <p className="text-sm font-semibold text-red-800">Foram detectadas 5 ou mais falhas Meta nas últimas 24h.</p>
           ) : null}
         </CardContent>
       </Card>

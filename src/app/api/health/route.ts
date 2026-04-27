@@ -3,18 +3,25 @@ import { getEnvironmentLabel, isSupabaseConfigured, USE_MOCKS } from "@/lib/conf
 import { isMetaConfigured } from "@/lib/meta/client";
 import { getLatestMetaSyncRun } from "@/lib/data/operation";
 import { getStuckSyncRuns } from "@/lib/operation/stuck-runs";
+import { getRepeatedFailureSummary } from "@/lib/operation/repeated-failures";
+import { getUnsafeProductionWarnings } from "@/lib/security/production-guards";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const [stuckRuns, latestRun] = await Promise.all([
+  const productionWarnings = getUnsafeProductionWarnings();
+  const [stuckRuns, latestRun, repeatedFailures] = await Promise.all([
     getStuckSyncRuns().catch(() => []),
     getLatestMetaSyncRun().catch(() => null),
+    getRepeatedFailureSummary().catch(() => ({ repeatedFailureCount: 0, repeatedFailureKinds: [], repeatedFailures: [] })),
   ]);
 
   return NextResponse.json({
-    app: "ok",
+    ok: productionWarnings.every((warning) => warning.severity !== "error"),
+    unsafe_production_warnings_count: productionWarnings.length,
     stuck_sync_runs_count: stuckRuns.length,
+    repeated_failure_count: repeatedFailures.repeatedFailureCount,
+    repeated_failure_kinds: repeatedFailures.repeatedFailureKinds,
     last_meta_sync_status: latestRun?.status ?? null,
     last_meta_sync_at: latestRun?.started_at ?? null,
     supabase_configured: isSupabaseConfigured(),

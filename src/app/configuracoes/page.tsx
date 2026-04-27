@@ -13,28 +13,33 @@ import { getLatestAuditByAction } from "@/lib/data/audit";
 import { listInternalUsers } from "@/lib/data/internal-users";
 import { getLatestMetaSyncError, getLatestMetaSyncRun } from "@/lib/data/operation";
 import { listConfirmedPeople } from "@/lib/data/people";
+import { listOperationalRetentionPolicies } from "@/lib/data/retention";
 import { isMetaConfigured } from "@/lib/meta/client";
 import { getStuckSyncRuns } from "@/lib/operation/stuck-runs";
+import { getUnsafeProductionWarnings } from "@/lib/security/production-guards";
 import { SettingsClient } from "./settings-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ConfiguracoesPage() {
   const user = await requireInternalPageSession("/configuracoes");
+  const productionWarnings = getUnsafeProductionWarnings();
   let latestAuditTest = null;
   let latestMetaError = null;
   let latestMetaRun = null;
   let stuckRuns = [];
   let confirmedPeople = [];
   let internalUsers = [];
+  let retentionPolicies = [];
   try {
-    [latestAuditTest, confirmedPeople, latestMetaError, latestMetaRun, stuckRuns, internalUsers] = await Promise.all([
+    [latestAuditTest, confirmedPeople, latestMetaError, latestMetaRun, stuckRuns, internalUsers, retentionPolicies] = await Promise.all([
       getLatestAuditByAction("audit.tested"),
       listConfirmedPeople(),
       getLatestMetaSyncError().catch(() => null),
       getLatestMetaSyncRun().catch(() => null),
       getStuckSyncRuns().catch(() => []),
       listInternalUsers(),
+      listOperationalRetentionPolicies(),
     ]);
   } catch (error) {
     return (
@@ -64,7 +69,9 @@ export default async function ConfiguracoesPage() {
         latestMetaStatus={latestMetaRun?.status ?? null}
         e2eBypassActive={E2E_BYPASS_AUTH_ACTIVE}
         e2eBypassMisconfigured={E2E_BYPASS_AUTH_MISCONFIGURED}
+        unsafeProductionWarnings={productionWarnings}
         metaConfigured={isMetaConfigured()}
+        retentionPolicies={retentionPolicies}
         confirmedPeople={confirmedPeople}
         currentUserId={user?.id ?? null}
         currentUserRole={user?.internalUser.role ?? null}

@@ -44,6 +44,7 @@ export type OutreachTaskRow = TableRow<"outreach_tasks">;
 export type MessageTemplateRow = TableRow<"message_templates">;
 export type AuditLogRow = TableRow<"audit_logs">;
 export type InternalUserRow = TableRow<"internal_users">;
+export type OperationalRetentionPolicyRow = TableRow<"operational_retention_policies">;
 
 export type InternalUserListItem = {
   id: string;

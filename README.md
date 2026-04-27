@@ -230,6 +230,17 @@ Use `/operacao` para acompanhar sincronizações Meta:
 
 Use `/operacao/sync/[id]` para ver metadata formatada, audit logs relacionados, retries e link para a run original quando a execução for reprocessamento.
 
+### Falhas recorrentes
+
+O card `Falhas recorrentes` em `/operacao` destaca:
+
+- `kind` afetado com 3 ou mais runs `error` nas últimas 24h;
+- quantidade de falhas no período;
+- data/hora da última falha;
+- link para a run mais recente daquele grupo.
+
+O `/api/health` também devolve `repeated_failure_count` e `repeated_failure_kinds` sem expor dados pessoais.
+
 ### Runs presas
 
 Uma run é considerada presa quando `status = started`, `finished_at` está vazio e `started_at` é mais antigo que 15 minutos.
@@ -242,13 +253,47 @@ Em `/operacao/sync/[id]`, `Marcar como falha` só funciona para run em andamento
 
 `Reprocessar com segurança` cria uma nova `meta_sync_run`, preserva a antiga, grava `metadata.retry_of` e registra `meta.sync_retried`.
 
-Use `/api/health` para diagnóstico sem segredos. O endpoint retorna `stuck_sync_runs_count`, `last_meta_sync_status`, `last_meta_sync_at`, `supabase_configured`, `meta_configured`, `mock_mode`, `environment` e `timestamp`.
+Use `/api/health` para diagnóstico sem segredos. O endpoint retorna:
+
+- `ok`
+- `environment`
+- `mock_mode`
+- `supabase_configured`
+- `meta_configured`
+- `unsafe_production_warnings_count`
+- `stuck_sync_runs_count`
+- `repeated_failure_count`
+- `repeated_failure_kinds`
+- `last_meta_sync_status`
+- `last_meta_sync_at`
+- `timestamp`
+
+O endpoint não deve retornar emails, usernames, tokens, service role, notas internas nem dados pessoais.
 
 Para validar por script:
 
 ```bash
+npm run check:health
 HEALTHCHECK_URL=http://localhost:3000/api/health npm run check:health
 ```
+
+Sem `HEALTHCHECK_URL`, o script sobe um servidor local seguro em `NODE_ENV=test` para validar o healthcheck sem depender de Supabase real nem de token Meta real.
+
+## Política de retenção
+
+A migration `007_retention_policy.sql` cria `operational_retention_policies` com seeds iniciais:
+
+- `meta_sync_runs`: 180 dias
+- `audit_logs`: 365 dias
+- `meta_account_snapshots`: 365 dias
+
+Em `/configuracoes`, o bloco `Retenção de dados operacionais` mostra essas políticas e reforça que a limpeza automática ainda não está ativada neste tijolo.
+
+Importante:
+
+- logs de auditoria devem ser preservados com cuidado;
+- nenhuma exclusão automática foi habilitada;
+- qualquer limpeza futura deve ser manual ou assistida e auditável.
 
 ## E2E
 
@@ -260,6 +305,84 @@ E2E_RUN=true npm run e2e
 ```
 
 O modo autenticado local usa `E2E_BYPASS_AUTH=true` com `NODE_ENV=test`. Como `next dev` roda como `development`, o servidor local de E2E também exige `E2E_TEST_MODE=true`, `NEXT_PUBLIC_USE_MOCKS=true` e ambiente não-produção. Nunca habilite esse bypass em produção.
+
+### E2E no CI
+
+```bash
+npm run e2e:ci
+```
+
+O runner:
+
+- instala/verifica o navegador Chromium do Playwright;
+- executa em `NODE_ENV=test`;
+- força `E2E_BYPASS_AUTH=true`, `E2E_TEST_MODE=true` e `NEXT_PUBLIC_USE_MOCKS=true` apenas para teste;
+- falha se detectar combinação insegura de produção no próprio runner.
+
+## CI e GitHub Actions
+
+O workflow está em `.github/workflows/ci.yml` e roda em `push` para `main` e em `pull_request`.
+
+Passos executados:
+
+- `npm ci`
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+- `npm run check:health`
+- `npm run e2e:ci`
+
+O CI foi montado para não exigir:
+
+- token Meta real;
+- Supabase real;
+- segredos impressos em logs.
+
+As variáveis do workflow são placeholders de CI apenas para satisfazer o build em ambiente isolado. Secrets reais, quando necessários fora deste tijolo, devem ser cadastrados em GitHub Actions Secrets e nunca ecoados em logs.
+
+### Como rodar o pipeline localmente
+
+```bash
+npm run ci
+```
+
+Esse comando executa:
+
+- lint
+- build
+- unit tests
+- healthcheck seguro
+- E2E em modo CI
+
+## Readiness de produção
+
+```bash
+npm run readiness
+```
+
+O diagnóstico verifica:
+
+- envs obrigatórias presentes;
+- build existente ou gerável;
+- `NEXT_PUBLIC_USE_MOCKS=false` para produção;
+- `E2E_BYPASS_AUTH=false` para produção;
+- `/api/health` sem vazamento de marcadores sensíveis;
+- scripts esperados no `package.json`;
+- migrations esperadas no diretório do Supabase;
+- presença do checklist de produção no README.
+
+Warnings como ausência de `META_ACCESS_TOKEN` e `INSTAGRAM_BUSINESS_ACCOUNT_ID` aparecem sem expor valores.
+
+## Scripts úteis
+
+```bash
+npm run ci
+npm run e2e:ci
+npm run readiness
+npm run verify
+```
+
+`npm run verify` continua incluindo `check:rls`; se o ambiente externo não estiver configurado, o script avisa e pula as partes opcionais sem quebrar o desenvolvimento local.
 
 ## Como validar audit_logs
 
@@ -318,6 +441,27 @@ O modo autenticado local usa `E2E_BYPASS_AUTH=true` com `NODE_ENV=test`. Como `n
 - `/api/health` sem segredos.
 - Runs presas tratadas manualmente e auditadas.
 - Reprocessamentos com `metadata.retry_of` conferidos.
+
+## Checklist antes de produção
+
+- `npm run ci` verde.
+- `npm run readiness` verde.
+- `NEXT_PUBLIC_USE_MOCKS=false` no ambiente de produção.
+- `E2E_BYPASS_AUTH=false` no ambiente de produção.
+- `SUPABASE_SERVICE_ROLE_KEY` configurada apenas no servidor.
+- `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` configuradas.
+- `/api/health` retornando apenas status booleanos e métricas operacionais seguras.
+- Guardrails de produção sem erros em `/configuracoes`.
+- Política de retenção revisada com equipe operacional.
+
+## Checklist antes de avançar para webhooks
+
+- `npm run ci` verde.
+- `npm run readiness` verde.
+- Falhas recorrentes visíveis e interpretáveis em `/operacao`.
+- Política de retenção revisada.
+- Nenhum token aparece em HTML, logs ou healthcheck.
+- Nenhum envio automático, DM, scraping ou coleta em massa implementado.
 - E2E executado em modo de teste, se aplicável.
 - Migration `003_meta_ingestion.sql` aplicada no banco real.
 - Nenhum token apareceu em erro, audit log, console ou interface.

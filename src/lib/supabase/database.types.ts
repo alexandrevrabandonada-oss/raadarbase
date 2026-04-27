@@ -374,6 +374,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      operational_retention_policies: {
+        Row: {
+          created_at: string;
+          enabled: boolean;
+          entity: string;
+          id: string;
+          retention_days: number;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          enabled?: boolean;
+          entity: string;
+          id?: string;
+          retention_days: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          enabled?: boolean;
+          entity?: string;
+          id?: string;
+          retention_days?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       message_templates: {
         Row: {
           active: boolean;
