@@ -53,6 +53,7 @@ export function KanbanClient({ initialTasks }: { initialTasks: OutreachTask[] })
                     </div>
                     {person ? (
                       <Button
+                        nativeButton={false}
                         render={<Link href={`/pessoas/${person.id}`} />}
                         variant="link"
                         className="mt-2 h-auto p-0"

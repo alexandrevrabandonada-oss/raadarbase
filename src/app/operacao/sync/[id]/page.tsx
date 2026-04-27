@@ -109,7 +109,7 @@ export default async function SyncDetailPage({ params }: { params: Promise<{ id:
                 <p className="font-semibold">{retry.kind}</p>
                 <p className="text-sm text-muted-foreground">{retry.status} em {formatDateTime(retry.started_at)}</p>
               </div>
-              <Button variant="outline" size="sm" render={<Link href={`/operacao/sync/${retry.id}`} />}>
+              <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/operacao/sync/${retry.id}`} />}>
                 Abrir retry
               </Button>
             </div>

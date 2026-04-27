@@ -125,7 +125,7 @@ export function PeopleClient({ people }: { people: IgPerson[] }) {
                 </TableCell>
                 <TableCell><StatusBadge status={person.status} /></TableCell>
                 <TableCell className="text-right">
-                  <Button render={<Link href={`/pessoas/${person.id}`} />}>
+                  <Button nativeButton={false} render={<Link href={`/pessoas/${person.id}`} />}>
                     Abrir
                   </Button>
                 </TableCell>

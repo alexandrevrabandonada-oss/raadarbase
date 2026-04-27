@@ -96,6 +96,7 @@ export function PersonActions({ person, latestOutreach }: { person: IgPerson; la
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
+          nativeButton={false}
           render={<a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer" />}
           variant="outline"
         >

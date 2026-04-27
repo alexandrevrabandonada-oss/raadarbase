@@ -77,7 +77,7 @@ export default async function OperacaoPage() {
             ) : null}
           </div>
           {stuckRuns[0] ? (
-            <Button variant="outline" render={<Link href={`/operacao/sync/${stuckRuns[0].id}`} />}>
+            <Button variant="outline" nativeButton={false} render={<Link href={`/operacao/sync/${stuckRuns[0].id}`} />}>
               Ver detalhes
             </Button>
           ) : null}
@@ -117,7 +117,7 @@ export default async function OperacaoPage() {
                     <TableCell>{run.skipped_count}</TableCell>
                     <TableCell className="max-w-52 truncate">{run.actor_email ?? "Sem ator"}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" render={<Link href={`/operacao/sync/${run.id}`} />}>
+                      <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/operacao/sync/${run.id}`} />}>
                         Abrir
                       </Button>
                     </TableCell>

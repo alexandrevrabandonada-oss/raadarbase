@@ -50,6 +50,7 @@ export function SettingsClient({
   const [purpose, setPurpose] = useState("Organização comunitária, escuta popular e convite manual para reuniões da VR Abandonada.");
   const [privacyUrl, setPrivacyUrl] = useState("https://vrabandonada.example/politica");
   const [consent, setConsent] = useState("Registrar somente quando a pessoa aceitar entrar em grupo, lista ou contato direto.");
+  const [internalUsersState, setInternalUsersState] = useState(internalUsers);
   const [removed, setRemoved] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const canManageInternalUsers = currentUserRole === "admin";
@@ -76,6 +77,20 @@ export function SettingsClient({
       const result =
         action === "approve" ? await approveInternalUserAction(userId) : await disableInternalUserAction(userId);
       setFeedback(result.ok ? result.message : result.error);
+      if (result.ok) {
+        setInternalUsersState((current) =>
+          current.map((internalUser) => {
+            if (internalUser.id !== userId) return internalUser;
+            return {
+              ...internalUser,
+              status: action === "approve" ? "active" : "disabled",
+              approvedAt: action === "approve" ? new Date().toISOString() : null,
+              approvedBy: action === "approve" ? currentUserId : null,
+              updatedAt: new Date().toISOString(),
+            };
+          }),
+        );
+      }
     });
   }
 
@@ -144,10 +159,10 @@ export function SettingsClient({
           <div className="rounded-md border bg-background p-4">
             <p className="mb-3 text-sm font-semibold">Diagnóstico</p>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" render={<Link href="/operacao" />}>
+              <Button type="button" variant="outline" nativeButton={false} render={<Link href="/operacao" />}>
                 Abrir operação
               </Button>
-              <Button type="button" variant="outline" render={<Link href="/api/health" />}>
+              <Button type="button" variant="outline" nativeButton={false} render={<Link href="/api/health" />}>
                 Abrir healthcheck
               </Button>
             </div>
@@ -211,8 +226,8 @@ export function SettingsClient({
             <p className="text-sm text-muted-foreground">
               Cadastros novos entram como <strong>pending</strong>. Administradores podem liberar ou desativar acesso sem sair do painel.
             </p>
-            {internalUsers.map((internalUser) => (
-              <div key={internalUser.id} className="rounded-md border bg-background p-3">
+            {internalUsersState.map((internalUser) => (
+              <div key={internalUser.id} className="rounded-md border bg-background p-3" data-testid={`internal-user-${internalUser.id}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-bold break-all">{internalUser.email}</p>
