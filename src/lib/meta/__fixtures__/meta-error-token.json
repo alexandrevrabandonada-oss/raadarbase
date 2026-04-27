@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Invalid OAuth access token: fake-secret-token",
+    "type": "OAuthException",
+    "code": 190
+  }
+}

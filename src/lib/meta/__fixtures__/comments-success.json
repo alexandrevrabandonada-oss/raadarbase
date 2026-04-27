@@ -1,0 +1,16 @@
+{
+  "data": [
+    {
+      "id": "comment-1",
+      "text": "Posso ajudar na reunião.",
+      "username": "ana.vr",
+      "timestamp": "2026-04-27T11:00:00+0000"
+    },
+    {
+      "id": "comment-2",
+      "text": "A rua precisa de iluminação.",
+      "username": "joao.vr",
+      "timestamp": "2026-04-27T11:05:00+0000"
+    }
+  ]
+}

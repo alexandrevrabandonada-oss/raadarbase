@@ -1,0 +1,7 @@
+{
+  "error": {
+    "message": "Permissions error: missing instagram_basic",
+    "type": "OAuthException",
+    "code": 10
+  }
+}

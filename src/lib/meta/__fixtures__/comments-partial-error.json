@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "id": "comment-1",
+      "text": "Comentário válido.",
+      "username": "ana.vr",
+      "timestamp": "2026-04-27T11:00:00+0000"
+    },
+    {
+      "id": "comment-sem-username",
+      "text": "Comentário sem username autorizado.",
+      "timestamp": "2026-04-27T11:10:00+0000"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "ig-media-1",
+      "caption": "Mutirão pela praça",
+      "media_type": "IMAGE",
+      "media_url": "https://example.invalid/media-1.jpg",
+      "permalink": "https://www.instagram.com/p/mock1/",
+      "timestamp": "2026-04-27T10:00:00+0000",
+      "like_count": 10,
+      "comments_count": 2
+    },
+    {
+      "id": "ig-media-2",
+      "caption": "Reunião aberta",
+      "media_type": "VIDEO",
+      "media_url": "https://example.invalid/media-2.mp4",
+      "permalink": "https://www.instagram.com/p/mock2/",
+      "timestamp": "2026-04-26T10:00:00+0000",
+      "like_count": 20,
+      "comments_count": 5
+    }
+  ]
+}
