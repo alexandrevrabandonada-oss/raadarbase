@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T16:40:21.398Z",
+  "generatedAt": "2026-04-30T16:44:26.255Z",
   "status": "READY",
   "tables": [
     {
@@ -59,13 +59,13 @@
   },
   "rlsCheck": {
     "checked": true,
-    "readPolicyForAnonBlocked": false,
-    "eventsDetail": "anon read allowed",
-    "linksDetail": "anon read allowed"
+    "readPolicyForAnonBlocked": true,
+    "eventsDetail": "permission denied for table meta_webhook_events",
+    "linksDetail": "permission denied for table meta_webhook_event_links"
   },
   "webhookApiExposure": {
-    "metaWebhookEvents": "visible_to_anon",
-    "metaWebhookEventLinks": "visible_to_anon"
+    "metaWebhookEvents": "blocked_by_policy_or_auth",
+    "metaWebhookEventLinks": "blocked_by_policy_or_auth"
   },
   "guidance": {
     "schemaCacheIssue": false,

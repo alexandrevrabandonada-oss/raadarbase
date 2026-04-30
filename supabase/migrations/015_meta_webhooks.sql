@@ -66,6 +66,10 @@ CREATE INDEX idx_meta_webhook_event_links_entity ON public.meta_webhook_event_li
 ALTER TABLE public.meta_webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.meta_webhook_event_links ENABLE ROW LEVEL SECURITY;
 
+-- 5a. Revogar grants amplos default do PostgREST para evitar qualquer acesso direto
+REVOKE ALL ON public.meta_webhook_events FROM anon, authenticated;
+REVOKE ALL ON public.meta_webhook_event_links FROM anon, authenticated;
+
 -- 6. Políticas para meta_webhook_events
 -- Leitura: usuários internos autenticados
 CREATE POLICY "Internal users can read webhook events"
