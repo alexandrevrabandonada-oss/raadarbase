@@ -1,6 +1,6 @@
 # Validacao de Staging dos Webhooks Meta
 
-- Data/hora: 2026-04-30T16:51:10.052Z
+- Data/hora: 2026-04-30T16:57:25.187Z
 - APP_URL presente: sim
 - dry-run executado: sim
 - decisao go/no-go: NO_GO_STAGING
@@ -14,7 +14,7 @@
 - total failed: 0
 - total assinatura invalida: 0
 - total incidentes relacionados a webhook: 2
-- total audit_logs relacionados a webhook: 2
+- total audit_logs relacionados a webhook: 4
 
 ## Ultimos sinais (redigidos)
 
