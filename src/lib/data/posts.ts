@@ -15,12 +15,13 @@ export async function listPosts(): Promise<IgPost[]> {
       return {
         id: post.id,
         shortcode: post.shortcode ?? "",
-        caption: post.caption ?? "",
+        permalink: post.permalink ?? null,
+        caption: post.caption || "",
         publishedAt: post.published_at ?? post.created_at,
-        interactions: Number(metrics.interactions ?? 0),
-        comments: Number(metrics.comments ?? 0),
-        mobilizationScore: Number(metrics.mobilizationScore ?? 0),
-        topic: String(metrics.topic ?? ""),
+        interactions: Number(metrics.like_count ?? 0) + Number(metrics.comments_count ?? 0),
+        comments: Number(metrics.comments_count ?? 0),
+        mobilizationScore: Number(metrics.mobilization_score ?? 0),
+        topic: String(metrics.topic_category || "Geral"),
       };
     });
   } catch (error) {

@@ -104,8 +104,115 @@ Se você já tinha usuários criados antes da migration de acesso interno, apliq
 - `/configuracoes`
 - `/integracoes/meta`
 - `/operacao`
-- `/operacao/sync/[id]`
+- `/operacao/incidentes`
+- `/governanca`
+- `/temas`
+- `/temas/revisao`
+- `/temas/[slug]`
+- `/relatorios`
+- `/relatorios/novo`
+- `/relatorios/[id]`
+- `/posts`
 - `/api/health`
+
+## Governança e Papéis Internos
+...
+
+## Taxonomia de Temas e Pautas
+
+O sistema utiliza uma camada de taxonomia para organizar o conteúdo das interações (comentários, posts) por assuntos de interesse público.
+
+**Regra de Ouro**: Classificar o conteúdo, NUNCA a pessoa.
+
+- **Fila de Revisão**: Operadores revisam sugestões automáticas baseadas em palavras-chave.
+- **Não-Perfilamento**: É proibido criar scores políticos individuais ou inferir atributos sensíveis.
+- **Termos Proibidos**: `voto_certo`, `persuadivel`, `opositor`, `ideologia`, `religiao`, `renda`, `raca`.
+
+Qualquer tentativa de criar categorias com termos proibidos gera um incidente operacional automático.
+
+## Relatórios de Mobilização
+
+O sistema permite a geração de relatórios consolidados de mobilização por pauta pública.
+
+**Regra de Ouro**: O relatório descreve pautas e demandas coletivas, NUNCA pessoas ou perfis políticos individuais.
+
+- **Snapshot**: Geração de dados estáticos para um período específico.
+- **Exportação Segura**: Formatos Markdown e HTML sem dados pessoais (PII).
+- **Termos Proibidos**: `voto_certo`, `persuadivel`, `opositor`, `ideologia`, `religiao`, `renda`, `raca`.
+- **Filtros por Tema**: Disponíveis em Pessoas, Posts e Relatórios.
+
+Qualquer tentativa de criar relatórios com termos proibidos gera um incidente operacional automático.
+
+## Execução e Evidências
+
+O módulo de execução permite registrar o desdobramento prático dos planos de ação, garantindo prestação de contas e acúmulo de aprendizado organizativo.
+
+**Regra de Ouro**: Registrar a execução coletiva e o resultado público, NUNCA monitorar ou classificar pessoas individualmente.
+
+- **Evidências**: Registro de fotos, links, atas ou notas de execução.
+- **Resultados**: Síntese do impacto da ação e resposta pública dada.
+- **Aprendizados**: Lições aprendidas para futuras mobilizações.
+- **Segurança de Dados**: 
+    - Bloqueio automático de termos proibidos (voto certo, persuadível, etc).
+    - Sanitização de PII (e-mail, telefone, CPF) em textos de evidência e resultados.
+    - Auditoria total: todas as criações, edições e remoções geram logs.
+- **Exportação**: Geração de relatórios de execução em Markdown e HTML sanitizados.
+ 
+## Memória Estratégica
+ 
+O módulo de Memória Estratégica consolida aprendizados coletivos e operacionais para evitar a perda de conhecimento e guiar as próximas ações da organização.
+ 
+**Regra de Ouro**: A memória registra padrões e aprendizados organizativos, NUNCA perfis individuais, votos ou segmentações políticas sensíveis.
+ 
+- **Consolidação por Pauta**: Agrupamento de lições aprendidas por tema, território e período.
+- **Pattern Synthesis**: Sugestão automática de memórias baseada em resultados de execução (sem uso de IA externa).
+- **Segurança e Ética**:
+    - Bloqueio estrito de termos de perfilamento (voto certo, opositor, etc).
+    - Sanitização automática de PII (e-mail, telefone, CPF).
+    - Proibição de uso para microtargeting ou disparo em massa.
+- **Exportação Auditada**: Relatórios em Markdown e HTML com rodapé obrigatório de governança.
+- **Audit Log**: Toda criação, edição, arquivamento e exportação gera logs de auditoria.
+ 
+### Como utilizar
+1. Acesse `/memoria` para ver a base de conhecimento atual.
+2. Use "Sugerir a partir dos resultados" para sintetizar padrões das execuções concluídas.
+3. Crie memórias manuais em `/memoria/nova` para registrar aprendizados de plenárias ou reuniões.
+4. Vincule memórias a temas, planos ou evidências específicas para rastreabilidade.
+ 
+### Permissões
+- `admin`, `operador` e `comunicacao`: Criar e editar memórias.
+- `admin` e `operador`: Arquivar e exportar memórias.
+- `leitura`: Visualizar base de memórias.
+
+### Como registrar
+1. Acesse `/acoes` e selecione um plano ativo.
+2. No item desejado, clique em "Detalhes e Execução" ou no ícone de seta.
+3. Use o formulário para adicionar links, notas ou fotos (via link).
+4. Ao concluir, preencha o resultado e aprendizado para marcar o item como feito.
+
+### Permissões
+- `admin`, `operador` e `comunicacao`: Criar e editar evidências/resultados.
+- `admin` e `operador`: Remover evidências.
+- `leitura`: Visualiza resumo de execução e detalhes.
+
+O app utiliza uma matriz de papéis internos para garantir que cada usuário acesse apenas o necessário para sua função. Os papéis são definidos na tabela `public.internal_users`.
+
+| Papel | Permissões |
+| :--- | :--- |
+| `admin` | Tudo, incluindo exportação de contatos e anonimização. |
+| `operador` | Sincronização Meta, gestão de contatos e mensagens, resolução de incidentes. |
+| `comunicacao` | Visualização de dados e gestão de modelos de mensagens. |
+| `leitura` | Somente leitura de dashboards, pessoas e posts. |
+
+Use a página `/governanca` para revisar permissões ativas, checklists de conformidade LGPD e status de segurança RLS.
+
+## Painel de Incidentes
+
+Incidentes operacionais (runs presas, falhas recorrentes, erros de sincronização) são centralizados em `/operacao/incidentes`.
+
+- **Abertura Automática**: O sistema deriva incidentes a partir de sinais operacionais das sincronizações.
+- **Resolução Auditada**: Toda ação de reconhecer ou resolver um incidente é registrada em `audit_logs`.
+- **Severidade**: Incidentes podem ser `info`, `warning` ou `critical`. Incidentes críticos bloqueiam o status `ok` do healthcheck.
 
 ## Integração Meta/Instagram
 
@@ -126,6 +233,38 @@ META_SYNC_MAX_COMMENTS_PER_MEDIA=50
 ```
 
 O `META_ACCESS_TOKEN` nunca deve ser colocado em variável `NEXT_PUBLIC_*`, renderizado no frontend ou salvo no banco.
+
+### Operação de staging dos webhooks
+
+Use esta ordem para validação controlada em staging:
+
+```bash
+npm run ci
+npm run readiness
+APP_URL=https://staging.exemplo.com npm run staging:webhook:dry-run
+npm run staging:webhook:evidence
+npm run staging:webhook:go-no-go
+npm run staging:webhook:report
+```
+
+Passos operacionais:
+
+1. Configure `APP_URL` para a URL real do staging.
+2. Execute o dry-run externo.
+3. Gere evidências redigidas do banco de staging.
+4. Gere decisão formal go/no-go.
+5. Gere relatório final de validação.
+
+Interpretação da decisão:
+
+- `GO_STAGING`: staging apto para ativar `META_WEBHOOK_ENABLED=true`.
+- `NO_GO_STAGING`: bloqueado, corrigir sinais faltantes.
+- `PENDING_EXTERNAL_VALIDATION`: faltam evidências externas (APP_URL/Supabase real).
+
+Política de ativação:
+
+- Staging pode ser habilitado somente após `GO_STAGING`.
+- Produção permanece bloqueada neste estágio de validação.
 
 ### Como testar em desenvolvimento
 
@@ -467,3 +606,16 @@ npm run verify
 - Nenhum token apareceu em erro, audit log, console ou interface.
 - Sincronização continua manual.
 - Nenhuma DM, webhook, scraping ou agendamento implementado.
+
+## Checklist final antes de ativar webhooks em producao
+
+1. Aplicar migrations no Supabase.
+2. Regenerar tipos Supabase via CLI real.
+3. Rodar `npm run verify`.
+4. Rodar `npm run ci`.
+5. Rodar `npm run readiness`.
+6. Rodar `npm run staging:webhook:dry-run` com `APP_URL` de staging.
+7. Conferir `/integracoes/meta/webhooks`.
+8. Conferir `/api/health`.
+9. Ativar `META_WEBHOOK_ENABLED=true` apenas apos staging OK.
+10. Manter quarentena obrigatoria.

@@ -19,7 +19,7 @@ if (existsSync(".env.local")) {
   }
 }
 
-const requiredScripts = ["lint", "build", "test", "check:health", "e2e:ci", "ci", "readiness", "verify"];
+const requiredScripts = ["lint", "build", "test", "check:health", "e2e:ci", "ci", "readiness", "verify", "staging:webhook:dry-run"];
 const requiredMigrations = [
   "001_initial_schema.sql",
   "002_operational_hardening.sql",
@@ -28,6 +28,15 @@ const requiredMigrations = [
   "005_backfill_internal_users.sql",
   "006_bootstrap_first_admin.sql",
   "007_retention_policy.sql",
+  "008_internal_roles.sql",
+  "009_operational_incidents.sql",
+  "010_topic_taxonomy.sql",
+  "011_mobilization_reports.sql",
+  "012_action_plans.sql",
+  "013_action_execution.sql",
+  "014_strategic_memory.sql",
+  "015_meta_webhooks.sql",
+  "015a_add_mention_type.sql",
 ];
 
 const issues = [];
@@ -47,10 +56,37 @@ for (const migration of requiredMigrations) {
 }
 
 const readme = readFileSync("README.md", "utf8");
-for (const section of ["npm run ci", "readiness", "Checklist antes de produção", "Checklist antes de avançar para webhooks"]) {
+for (const section of ["npm run ci", "readiness", "Checklist antes de produção", "Checklist antes de avançar para webhooks", "Governança e Papéis Internos", "Painel de Incidentes"]) {
   if (!readme.includes(section)) {
     issues.push(`README sem seção esperada: ${section}`);
   }
+}
+
+if (!existsSync(join("docs", "meta-webhooks-readiness.md"))) {
+  issues.push("Documento de readiness de webhooks ausente: docs/meta-webhooks-readiness.md");
+}
+
+if (!existsSync(join("docs", "meta-webhooks-operator-guide.md"))) {
+  issues.push("Guia de operação de webhooks ausente: docs/meta-webhooks-operator-guide.md");
+}
+
+if (!existsSync(join("docs", "meta-webhooks-staging-checklist.md"))) {
+  issues.push("Checklist de staging de webhooks ausente: docs/meta-webhooks-staging-checklist.md");
+}
+
+if (!existsSync(join("src", "app", "api", "meta", "webhook", "route.ts"))) {
+  issues.push("Endpoint ausente: src/app/api/meta/webhook/route.ts");
+}
+
+const webhookProcessingSource = readFileSync(join("src", "lib", "meta", "webhook-processing.ts"), "utf8");
+if (!webhookProcessingSource.includes('action: "quarantine"')) {
+  issues.push("Regra de quarentena não encontrada no processamento de webhooks.");
+}
+if (!webhookProcessingSource.includes("Nenhum evento gera DM automática")) {
+  issues.push("Guardrail de DM automática não documentado em webhook-processing.ts.");
+}
+if (!webhookProcessingSource.includes("Nenhum evento cria score político individual")) {
+  issues.push("Guardrail de score político individual não documentado em webhook-processing.ts.");
 }
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) issues.push("NEXT_PUBLIC_SUPABASE_URL ausente.");

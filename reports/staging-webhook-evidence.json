@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-04-30T16:33:04.637Z",
+  "status": "PENDING_EXTERNAL_VALIDATION",
+  "reason": "Tabelas de webhook indisponiveis na API de staging (schema cache/route exposure).",
+  "totalMetaWebhookEvents": 0,
+  "totalQuarantined": 0,
+  "totalProcessed": 0,
+  "totalIgnored": 0,
+  "totalFailed": 0,
+  "totalInvalidSignature": 0,
+  "totalWebhookIncidents": 0,
+  "totalWebhookAuditLogs": 0,
+  "lastEvent": null,
+  "lastIncident": null
+}

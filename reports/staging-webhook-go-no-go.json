@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-04-30T16:33:05.644Z",
+  "decision": "NO_GO_STAGING",
+  "signals": {
+    "appUrlConfigured": true,
+    "healthOk": true,
+    "healthSecretsSafe": true,
+    "dryRunExecuted": true,
+    "signedEventSeen": false,
+    "unsignedRejectionSeen": false,
+    "operatorIgnoredSeen": false,
+    "operatorProcessedSeen": false,
+    "auditLogsFound": false,
+    "incidentsFound": false,
+    "noDmAutomatic": true,
+    "noAutoContact": true,
+    "noPoliticalScore": true
+  },
+  "sourceArtifacts": {
+    "dryRunArtifactFound": true,
+    "evidenceArtifactFound": true
+  },
+  "notes": [
+    "Nenhuma DM automatica foi implementada.",
+    "Nenhuma criacao automatica de contato por webhook foi implementada.",
+    "Nenhum score politico individual foi implementado."
+  ]
+}

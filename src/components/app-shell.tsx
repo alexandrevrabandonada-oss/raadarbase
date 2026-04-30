@@ -7,6 +7,13 @@ import {
   MessageSquareText,
   Settings,
   Users,
+  ShieldCheck,
+  AlertCircle,
+  Hash,
+  FileText,
+  ClipboardList,
+  Play,
+  Lightbulb
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LogoutButton } from "@/components/logout-button";
@@ -15,11 +22,18 @@ import { USE_MOCKS } from "@/lib/config";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/relatorios", label: "Relatórios", icon: FileText },
+  { href: "/acoes", label: "Ações", icon: ClipboardList },
+  { href: "/execucao", label: "Execução", icon: Play },
+  { href: "/memoria", label: "Memória", icon: Lightbulb },
+  { href: "/temas", label: "Temas", icon: Hash },
   { href: "/pessoas", label: "Pessoas", icon: Users },
   { href: "/abordagem", label: "Abordagem", icon: KanbanSquare },
   { href: "/mensagens", label: "Mensagens", icon: MessageSquareText },
   { href: "/integracoes/meta", label: "Integração Meta", icon: Cable },
   { href: "/operacao", label: "Operação", icon: Activity },
+  { href: "/operacao/incidentes", label: "Incidentes", icon: AlertCircle },
+  { href: "/governanca", label: "Conformidade", icon: ShieldCheck },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 

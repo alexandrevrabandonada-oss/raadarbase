@@ -47,39 +47,64 @@ for (const table of sensitiveTables) {
   }
 }
 
-const testEmail = process.env.SUPABASE_TEST_EMAIL;
-const testPassword = process.env.SUPABASE_TEST_PASSWORD;
+const roleTests = [
+  {
+    role: "admin",
+    email: process.env.SUPABASE_TEST_ADMIN_EMAIL,
+    password: process.env.SUPABASE_TEST_ADMIN_PASSWORD,
+  },
+  {
+    role: "operador",
+    email: process.env.SUPABASE_TEST_OPERATOR_EMAIL,
+    password: process.env.SUPABASE_TEST_OPERATOR_PASSWORD,
+  },
+  {
+    role: "leitura",
+    email: process.env.SUPABASE_TEST_READONLY_EMAIL,
+    password: process.env.SUPABASE_TEST_READONLY_PASSWORD,
+  },
+];
 
-if (!testEmail || !testPassword) {
-  console.log("[check:rls] SUPABASE_TEST_EMAIL/PASSWORD ausentes. Validacao autenticada foi pulada.");
-} else {
+for (const test of roleTests) {
+  if (!test.email || !test.password) {
+    console.log(`[check:rls] Credenciais para papel "${test.role}" ausentes. Pulando.`);
+    continue;
+  }
+
   const authClient = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
   const { error: signInError } = await authClient.auth.signInWithPassword({
-    email: testEmail,
-    password: testPassword,
+    email: test.email,
+    password: test.password,
   });
+
   if (signInError) {
-    console.error(`[check:rls] Falha ao autenticar usuario de teste: ${signInError.message}`);
+    console.error(`[check:rls] Falha ao autenticar usuario de teste (${test.role}): ${signInError.message}`);
+    failed = true;
+    continue;
+  }
+
+  console.log(`[check:rls] Testando papel: ${test.role}`);
+
+  // 1. Leitura deve funcionar para todos
+  const { error: readError } = await authClient.from("meta_sync_runs").select("id").limit(1);
+  if (readError) {
+    console.error(`[check:rls] FALHA: ${test.role} nao conseguiu ler meta_sync_runs: ${readError.message}`);
     failed = true;
   } else {
-    const { error: readError } = await authClient.from("meta_sync_runs").select("id").limit(1);
-    if (readError) {
-      console.error(`[check:rls] FALHA: usuario autenticado nao conseguiu ler meta_sync_runs: ${readError.message}`);
+    console.log(`[check:rls] OK: ${test.role} conseguiu ler meta_sync_runs.`);
+  }
+
+  // 2. Escrita direta deve ser bloqueada para todos via RLS (deve ocorrer via RPC/Actions)
+  for (const table of sensitiveTables) {
+    const { error } = await authClient.from(table).insert({}).select("id").limit(1);
+    if (!error) {
+      console.error(`[check:rls] FALHA: ${test.role} conseguiu escrever diretamente em ${table}.`);
       failed = true;
     } else {
-      console.log("[check:rls] OK: usuario autenticado conseguiu ler meta_sync_runs.");
-    }
-
-    for (const table of sensitiveTables) {
-      const { error } = await authClient.from(table).insert({}).select("id").limit(1);
-      if (!error) {
-        console.error(`[check:rls] FALHA: usuario autenticado conseguiu escrever diretamente em ${table}.`);
-        failed = true;
-      } else {
-        console.log(`[check:rls] OK: usuario autenticado bloqueado para escrita direta em ${table}.`);
-      }
+      console.log(`[check:rls] OK: ${test.role} bloqueado para escrita direta em ${table}.`);
     }
   }
 }

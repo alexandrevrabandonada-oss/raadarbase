@@ -8,6 +8,7 @@ import { getPersonById } from "@/lib/data/people";
 import { listInteractions } from "@/lib/data/interactions";
 import { getLatestAuditLogForEntity } from "@/lib/data/audit";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
+import { Badge } from "@/components/ui/badge";
 import { PersonActions } from "./person-actions";
 
 export const dynamic = "force-dynamic";
@@ -82,7 +83,30 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             ))}
           </CardContent>
         </Card>
-        <PersonActions person={person} latestOutreach={latestOutreach?.summary ?? null} />
+        <div className="flex flex-col gap-6">
+          <PersonActions person={person} latestOutreach={latestOutreach?.summary ?? null} />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Temas das interações públicas</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                Estes temas descrevem as interações registradas através de comentários ou posts, <strong>não a pessoa</strong>.
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(timeline.flatMap(t => t.theme ? [t.theme] : []))).map((theme) => (
+                  <Badge key={theme} variant="secondary">
+                    {theme}
+                  </Badge>
+                ))}
+                {timeline.every(t => !t.theme) ? (
+                  <span className="text-xs text-muted-foreground italic">Nenhum tema detectado ou revisado.</span>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );

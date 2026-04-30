@@ -15,6 +15,13 @@
     "e2e:ci": "node scripts/run-e2e-ci.mjs",
     "e2e:ui": "playwright test --ui",
     "ci": "npm run lint && npm run build && npm run test && npm run check:health && npm run e2e:ci",
+    "test:webhook:local": "node scripts/test-meta-webhook-local.mjs",
+    "staging:webhook:dry-run": "node scripts/staging-webhook-dry-run.mjs",
+    "staging:check-url": "node scripts/check-staging-url.mjs",
+    "staging:db-check": "node scripts/staging-db-check.mjs",
+    "staging:webhook:evidence": "node scripts/staging-webhook-evidence.mjs",
+    "staging:webhook:go-no-go": "node scripts/staging-webhook-go-no-go.mjs",
+    "staging:webhook:report": "node scripts/generate-staging-webhook-report.mjs",
     "readiness": "node scripts/production-readiness.mjs",
     "verify": "npm run lint && npm run build && npm run test && npm run check:rls && npm run check:health && npm run e2e",
     "supabase:types": "node scripts/generate-supabase-types.mjs"

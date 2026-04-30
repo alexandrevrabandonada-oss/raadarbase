@@ -5,11 +5,12 @@ import { isSupabaseConfigured, shouldUseMockData } from "@/lib/config";
 import { people as mockPeople, messageTemplates as mockTemplates } from "@/lib/mock-data";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { requireInternalSession } from "@/lib/supabase/auth";
+import { requireRole } from "@/lib/authz/roles";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AuditAction, MessageTemplate, PersonStatus } from "@/lib/types";
 import type { Json, TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 
-export type ActionResult = { ok: true; message: string } | { ok: false; error: string };
+export type ActionResult = { ok: true; message: string; id?: string } | { ok: false; error: string };
 
 function validateId(value: string, label: string) {
   if (!value.trim()) throw new Error(`${label} inválido.`);
@@ -91,6 +92,7 @@ export async function updateContactStatus(personId: string, status: PersonStatus
     summary: `Status atualizado para ${status}.`,
     metadata: { status },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.status = status;
@@ -114,6 +116,7 @@ export async function registerManualDm(personId: string): Promise<ActionResult> 
     entityId: personId,
     summary: "DM manual registrada.",
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.status = "abordado";
@@ -318,6 +321,7 @@ export async function upsertMessageTemplate(
     entityId: templateId,
     summary: templateId ? "Modelo de mensagem atualizado." : "Modelo de mensagem criado.",
     mutate: async () => {
+      await requireRole(["admin", "operador", "comunicacao"]);
       if (shouldUseMockData()) {
         if (templateId) {
           const template = mockTemplates.find((item) => item.id === templateId);
@@ -368,6 +372,7 @@ export async function removeMessageTemplate(templateId: string): Promise<ActionR
     entityId: templateId,
     summary: "Modelo de mensagem removido.",
     mutate: async () => {
+      await requireRole(["admin", "operador", "comunicacao"]);
       if (shouldUseMockData()) {
         const next = mockTemplates.filter((item) => item.id !== templateId);
         mockTemplates.splice(0, mockTemplates.length, ...next);
@@ -389,6 +394,7 @@ export async function anonymizeContact(personId: string): Promise<ActionResult> 
     entityId: personId,
     summary: "Contato anonimizado e retirado da base operacional.",
     mutate: async () => {
+      await requireRole(["admin"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.username = `anon_${person.id}`;

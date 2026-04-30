@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { shouldUseMockData } from "@/lib/config";
 import type { Json, TableInsert } from "@/lib/supabase/database.types";
 import type { AuditAction } from "@/lib/types";
 
@@ -22,6 +23,8 @@ export async function writeAuditLog(payload: AuditPayload) {
     summary: payload.summary,
     metadata: payload.metadata ?? {},
   };
+
+  if (shouldUseMockData()) return;
 
   const supabase = getSupabaseAdminClient();
   const { error } = await supabase.from("audit_logs").insert(insertPayload);

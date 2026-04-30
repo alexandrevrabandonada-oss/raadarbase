@@ -34,7 +34,47 @@ export type AuditAction =
   | "meta.sync_marked_failed"
   | "meta.sync_retried"
   | "internal_user.approved"
-  | "internal_user.disabled";
+  | "internal_user.disabled"
+  | "incident.acknowledged"
+  | "incident.resolved"
+  | "topic.confirmed"
+  | "topic.removed"
+  | "topic.suggested"
+  | "report.created"
+  | "report.generated"
+  | "report.exported"
+  | "report.archived"
+  | "report.forbidden_term_detected"
+  | "topic.created"
+  | "topic.updated"
+  | "topic.disabled"
+  | "authz.access_denied"
+  | "action_plan.created"
+  | "action_plan.updated"
+  | "action_plan.completed"
+  | "action_plan.archived"
+  | "action_plan.item_created"
+  | "action_plan.item_updated"
+  | "action_plan.item_completed"
+  | "action_plan.item_archived"
+  | "action_plan.suggested_from_report"
+  | "action_plan.forbidden_term_detected"
+  | "action_execution.evidence_created"
+  | "action_execution.evidence_updated"
+  | "action_execution.evidence_removed"
+  | "action_execution.result_created"
+  | "action_execution.result_updated"
+  | "action_execution.exported"
+  | "action_execution.item_completed_with_result"
+  | "action_execution.forbidden_term_detected"
+  | "strategic_memory.created"
+  | "strategic_memory.updated"
+  | "strategic_memory.archived"
+  | "strategic_memory.linked"
+  | "strategic_memory.unlinked"
+  | "strategic_memory.suggested_from_results"
+  | "strategic_memory.forbidden_term_detected"
+  | "strategic_memory.exported";
 
 export type ContactRecord = TableRow<"contacts">;
 export type IgPeopleRow = TableRow<"ig_people">;
@@ -45,6 +85,9 @@ export type MessageTemplateRow = TableRow<"message_templates">;
 export type AuditLogRow = TableRow<"audit_logs">;
 export type InternalUserRow = TableRow<"internal_users">;
 export type OperationalRetentionPolicyRow = TableRow<"operational_retention_policies">;
+export type OperationalIncidentRow = TableRow<"operational_incidents">;
+export type OperationalIncidentSeverity = OperationalIncidentRow["severity"];
+export type OperationalIncidentStatus = OperationalIncidentRow["status"];
 
 export type InternalUserListItem = {
   id: string;
@@ -122,6 +165,7 @@ export type AuditLogEntry = {
 export type IgPost = {
   id: string;
   shortcode: string;
+  permalink: string | null;
   caption: string;
   publishedAt: string;
   interactions: number;

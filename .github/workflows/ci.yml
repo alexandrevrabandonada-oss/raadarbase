@@ -10,6 +10,18 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      NEXT_PUBLIC_USE_MOCKS: "true"
+      E2E_BYPASS_AUTH: "false"
+      E2E_TEST_MODE: "true"
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+      META_APP_SECRET: ci-meta-app-secret
+      META_ACCESS_TOKEN: ci-meta-access-token
+      META_WEBHOOK_VERIFY_TOKEN: ci-meta-webhook-verify-token
+      META_WEBHOOK_ENABLED: "false"
 
     steps:
       - name: Checkout
@@ -24,24 +36,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-        env:
-          NODE_ENV: production
-          NEXT_PUBLIC_USE_MOCKS: "false"
-          E2E_BYPASS_AUTH: "false"
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Healthcheck
-        run: npm run check:health
-
-      - name: E2E CI
-        run: npm run e2e:ci
+      - name: CI Pipeline
+        run: npm run ci

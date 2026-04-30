@@ -30,12 +30,12 @@ export async function getInternalSession() {
         email: "e2e@radardebase.local",
         full_name: "E2E User",
         role: "admin",
-        status: "active",
+        status: "active" as const,
         approved_at: new Date(0).toISOString(),
         approved_by: null,
         created_at: new Date(0).toISOString(),
         updated_at: new Date(0).toISOString(),
-      },
+      } satisfies InternalUserProfile,
     };
   }
   try {

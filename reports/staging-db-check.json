@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-04-30T16:40:21.398Z",
+  "status": "READY",
+  "tables": [
+    {
+      "table": "meta_webhook_events",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "meta_webhook_event_links",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "audit_logs",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "operational_incidents",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "ig_posts",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "ig_people",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    },
+    {
+      "table": "ig_interactions",
+      "exists": true,
+      "ok": true,
+      "detail": "ok",
+      "classification": "ok"
+    }
+  ],
+  "enumCheck": {
+    "enumMencaoExistsOrAccepted": true,
+    "mode": "db_filter_accepted",
+    "detail": "ok"
+  },
+  "rlsCheck": {
+    "checked": true,
+    "readPolicyForAnonBlocked": false,
+    "eventsDetail": "anon read allowed",
+    "linksDetail": "anon read allowed"
+  },
+  "webhookApiExposure": {
+    "metaWebhookEvents": "visible_to_anon",
+    "metaWebhookEventLinks": "visible_to_anon"
+  },
+  "guidance": {
+    "schemaCacheIssue": false,
+    "nextActions": []
+  }
+}

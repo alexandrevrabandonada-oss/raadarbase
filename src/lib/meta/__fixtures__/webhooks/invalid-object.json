@@ -1,0 +1,18 @@
+{
+  "object": "facebook",
+  "entry": [
+    {
+      "id": "1234567890",
+      "time": 1714400000,
+      "changes": [
+        {
+          "field": "posts",
+          "value": {
+            "post_id": "123_456",
+            "message": "Post do Facebook"
+          }
+        }
+      ]
+    }
+  ]
+}

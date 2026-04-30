@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-04-30T16:32:38.945Z",
+  "status": "PENDING_EXTERNAL_VALIDATION",
+  "appUrlConfigured": true,
+  "appUrlValid": true,
+  "checks": [
+    {
+      "name": "GET APP_URL",
+      "ok": true,
+      "status": 200,
+      "message": "HTTP 200",
+      "urlChecked": "GET APP_URL"
+    },
+    {
+      "name": "GET APP_URL/api/health",
+      "ok": true,
+      "status": 200,
+      "message": "HTTP 200",
+      "urlChecked": "GET APP_URL/api/health"
+    },
+    {
+      "name": "GET APP_URL/api/meta/webhook",
+      "ok": false,
+      "status": 404,
+      "message": "HTTP 404",
+      "urlChecked": "GET APP_URL/api/meta/webhook"
+    }
+  ],
+  "likelyCause": "rota nao publicada ou path incorreto"
+}
