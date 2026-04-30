@@ -180,10 +180,7 @@ export function getWebhookEventId(payload: Record<string, unknown>): string | nu
   
   if (payload.entry && Array.isArray(payload.entry) && payload.entry.length > 0) {
     const entry = payload.entry[0] as Record<string, unknown>;
-    if (entry.id && typeof entry.id === "string") {
-      return entry.id;
-    }
-    
+
     if (entry.messaging && Array.isArray(entry.messaging) && entry.messaging.length > 0) {
       const messaging = entry.messaging[0] as Record<string, unknown>;
       if (messaging.message && typeof messaging.message === "object") {
@@ -192,6 +189,10 @@ export function getWebhookEventId(payload: Record<string, unknown>): string | nu
           return message.mid;
         }
       }
+    }
+
+    if (entry.id && typeof entry.id === "string") {
+      return entry.id;
     }
     
     if (entry.changes && Array.isArray(entry.changes) && entry.changes.length > 0) {

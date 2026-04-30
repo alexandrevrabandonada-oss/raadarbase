@@ -219,9 +219,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       actorEmail: null,
       action: "meta.webhook_rejected" as AuditAction,
       entityType: "meta_webhook_events",
-      entityId: externalId,
+      entityId: null,
       summary: "Webhook rejeitado: assinatura inválida",
       metadata: { 
+        external_id: externalId,
         object_type: objectType,
         event_type: eventType,
         has_signature: !!signatureHeader,

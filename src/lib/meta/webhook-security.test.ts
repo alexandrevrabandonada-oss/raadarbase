@@ -165,11 +165,10 @@ describe("webhook-security", () => {
       expect(getWebhookEventId({ entry: [{ id: "entry-123" }] })).toBe("entry-123");
     });
 
-    it("deve extrair id de mensagem (DM) - prioriza entry.id se existir", () => {
+    it("deve extrair id de mensagem (DM) a partir do mid", () => {
       const { getWebhookEventId } = webhookSecurity;
-      // O fixture de DM tem entry.id, então retorna entry.id ao invés de mid
       const id = getWebhookEventId(instagramDmProhibited as Record<string, unknown>);
-      expect(id).toBeDefined();
+      expect(id).toBe("mid.$cAAJunk4yFsdfsdf");
     });
 
     it("deve extrair entry.id de comentário (quando entry.id existe)", () => {

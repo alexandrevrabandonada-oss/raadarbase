@@ -1,25 +1,32 @@
 {
-  "generatedAt": "2026-04-30T17:07:29.972Z",
+  "generatedAt": "2026-04-30T22:40:53.083Z",
   "status": "READY",
-  "totalMetaWebhookEvents": 0,
-  "totalQuarantined": 0,
+  "totalMetaWebhookEvents": 3,
+  "totalQuarantined": 1,
   "totalProcessed": 0,
-  "totalIgnored": 0,
+  "totalIgnored": 2,
   "totalFailed": 0,
   "totalInvalidSignature": 0,
-  "totalWebhookIncidents": 2,
-  "totalWebhookAuditLogs": 6,
-  "signedEventSeen": false,
+  "totalWebhookIncidents": 6,
+  "totalWebhookAuditLogs": 27,
+  "signedEventSeen": true,
   "unsignedRejectionSeen": false,
-  "operatorIgnoredSeen": false,
+  "operatorIgnoredSeen": true,
   "operatorProcessedSeen": false,
-  "lastEvent": null,
+  "lastEvent": {
+    "id": "b8ed4b4b-efef-4c35-a3df-cfb2fb399007",
+    "status": "ignored",
+    "eventType": "messaging",
+    "objectType": "instagram",
+    "signatureValid": true,
+    "receivedAt": "2026-04-30T22:29:12.226478+00:00"
+  },
   "lastIncident": {
-    "id": "860342cb-6dff-4c25-9a24-cb95f1b5db9f",
+    "id": "55e2a23e-5540-480a-bef5-c0f3e699ddc0",
     "kind": "meta.webhook_invalid_signature",
     "severity": "critical",
     "status": "open",
     "title": "Assinatura inválida em webhook Meta",
-    "createdAt": "2026-04-30T02:47:01.357154+00:00"
+    "createdAt": "2026-04-30T22:34:25.520957+00:00"
   }
 }

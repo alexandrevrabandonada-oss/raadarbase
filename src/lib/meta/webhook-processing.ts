@@ -144,6 +144,23 @@ export async function createWebhookEvent(payload: {
     .single();
   
   if (error) {
+    const externalEventId = payload.externalEventId;
+    const isDuplicateExternalId =
+      Boolean(externalEventId) &&
+      (error.code === "23505" || /duplicate key/i.test(error.message));
+
+    if (isDuplicateExternalId && externalEventId) {
+      const { data: existing, error: existingError } = await supabase
+        .from("meta_webhook_events")
+        .select("id")
+        .eq("external_event_id", externalEventId)
+        .maybeSingle();
+
+      if (!existingError && existing) {
+        return (existing as { id: string }).id;
+      }
+    }
+
     throw new Error(`Falha ao criar webhook event: ${error.message}`);
   }
   

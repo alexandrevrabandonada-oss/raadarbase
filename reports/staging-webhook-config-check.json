@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-04-30T17:07:27.054Z",
+  "generatedAt": "2026-04-30T22:34:26.932Z",
   "appUrlConfigured": true,
-  "status": "NO_GO_STAGING",
+  "status": "READY",
   "source": "health",
   "diagnosticsStatus": 404,
   "checks": [
@@ -12,40 +12,40 @@
     },
     {
       "name": "verify token present",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "app secret present",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "service role present",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "webhook enabled",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "allowed objects configured",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "allowed object includes instagram",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     },
     {
       "name": "max payload configured",
-      "ok": false,
+      "ok": true,
       "detail": "boolean only"
     }
   ],
   "environment": "production",
-  "runtime": null
+  "runtime": "nodejs"
 }
