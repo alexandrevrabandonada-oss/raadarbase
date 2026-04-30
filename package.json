@@ -17,6 +17,7 @@
     "ci": "npm run lint && npm run build && npm run test && npm run check:health && npm run e2e:ci",
     "test:webhook:local": "node scripts/test-meta-webhook-local.mjs",
     "staging:webhook:dry-run": "node scripts/staging-webhook-dry-run.mjs",
+    "staging:webhook:config-check": "node scripts/staging-webhook-config-check.mjs",
     "staging:check-url": "node scripts/check-staging-url.mjs",
     "staging:db-check": "node scripts/staging-db-check.mjs",
     "staging:webhook:evidence": "node scripts/staging-webhook-evidence.mjs",

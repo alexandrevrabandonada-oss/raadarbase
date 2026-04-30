@@ -31,6 +31,11 @@ META_WEBHOOK_ALLOWED_OBJECTS=instagram
 META_WEBHOOK_MAX_PAYLOAD_BYTES=262144
 ```
 
+Observacao de alinhamento obrigatorio:
+
+- O dry-run deve usar o mesmo `META_WEBHOOK_VERIFY_TOKEN` e `META_APP_SECRET` configurados no runtime remoto.
+- Nunca usar valores fallback para simular token/secret em staging remoto.
+
 ## Checklist de Testes
 
 ### 1. Verificação (GET)
@@ -40,6 +45,19 @@ META_WEBHOOK_MAX_PAYLOAD_BYTES=262144
   curl "https://staging-url/api/meta/webhook?hub.mode=subscribe&hub.verify_token=SEU_TOKEN&hub.challenge=1234567890"
   ```
   **Esperado**: Retorna `1234567890` com status 200
+
+### 0. Diagnóstico seguro de configuração
+
+- [ ] Executar checagem de configuração remota:
+  ```bash
+  APP_URL=https://staging-url npm run staging:webhook:config-check
+  ```
+  **Esperado**:
+  - `verify token present: ok`
+  - `app secret present: ok`
+  - `service role present: ok`
+  - `webhook enabled: ok` (somente staging controlado)
+  - `allowed object includes instagram: ok`
 
 - [ ] Testar GET com token inválido:
   ```bash

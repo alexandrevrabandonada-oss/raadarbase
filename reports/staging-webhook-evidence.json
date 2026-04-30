@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T16:57:23.104Z",
+  "generatedAt": "2026-04-30T17:07:29.972Z",
   "status": "READY",
   "totalMetaWebhookEvents": 0,
   "totalQuarantined": 0,
@@ -8,7 +8,7 @@
   "totalFailed": 0,
   "totalInvalidSignature": 0,
   "totalWebhookIncidents": 2,
-  "totalWebhookAuditLogs": 4,
+  "totalWebhookAuditLogs": 6,
   "signedEventSeen": false,
   "unsignedRejectionSeen": false,
   "operatorIgnoredSeen": false,

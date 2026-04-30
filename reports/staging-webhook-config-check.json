@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-04-30T17:07:27.054Z",
+  "appUrlConfigured": true,
+  "status": "NO_GO_STAGING",
+  "source": "health",
+  "diagnosticsStatus": 404,
+  "checks": [
+    {
+      "name": "health endpoint reachable",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "verify token present",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "app secret present",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "service role present",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "webhook enabled",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "allowed objects configured",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "allowed object includes instagram",
+      "ok": false,
+      "detail": "boolean only"
+    },
+    {
+      "name": "max payload configured",
+      "ok": false,
+      "detail": "boolean only"
+    }
+  ],
+  "environment": "production",
+  "runtime": null
+}

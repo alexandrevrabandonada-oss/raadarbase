@@ -18,6 +18,21 @@ import { countWebhookEventsByStatus, getStaleQuarantineEvents, getInvalidSignatu
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const appUrlConfigured = Boolean(process.env.APP_URL);
+  const metaWebhookVerifyPresent = Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN);
+  const metaAppSecretPresent = Boolean(process.env.META_APP_SECRET);
+  const metaWebhookAllowedObjectsConfigured = Boolean(
+    process.env.META_WEBHOOK_ALLOWED_OBJECTS && process.env.META_WEBHOOK_ALLOWED_OBJECTS.trim().length > 0,
+  );
+  const metaWebhookAllowedObjectsHasInstagram = (process.env.META_WEBHOOK_ALLOWED_OBJECTS ?? "instagram")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .includes("instagram");
+  const maxPayloadBytes = Number.parseInt(process.env.META_WEBHOOK_MAX_PAYLOAD_BYTES ?? "262144", 10);
+  const metaWebhookMaxPayloadBytesConfigured = Number.isFinite(maxPayloadBytes) && maxPayloadBytes > 0;
+  const supabaseServerKeyPresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const runtime = process.env.NEXT_RUNTIME ?? "nodejs";
+
   const productionWarnings = getUnsafeProductionWarnings();
   const [
     stuckRuns, 
@@ -46,7 +61,6 @@ export async function GET() {
   const unsignedRejectionSeen = invalidSignatures.length > 0;
   const operatorProcessedSeen = webhookCounts.processed > 0;
   const operatorIgnoredSeen = webhookCounts.ignored > 0;
-  const appUrlConfigured = Boolean(process.env.APP_URL);
   const dryRunExecuted =
     appUrlConfigured &&
     (webhookCounts.verified +
@@ -118,6 +132,14 @@ export async function GET() {
     last_meta_sync_at: latestRun?.started_at ?? null,
     supabase_configured: isSupabaseConfigured(),
     meta_configured: isMetaConfigured(),
+    app_url_configured: appUrlConfigured,
+    meta_webhook_verify_present: metaWebhookVerifyPresent,
+    meta_app_secret_present: metaAppSecretPresent,
+    meta_webhook_allowed_objects_configured: metaWebhookAllowedObjectsConfigured,
+    meta_webhook_allowed_objects_has_instagram: metaWebhookAllowedObjectsHasInstagram,
+    meta_webhook_max_payload_bytes_configured: metaWebhookMaxPayloadBytesConfigured,
+    supabase_server_key_present: supabaseServerKeyPresent,
+    runtime,
     mock_mode: USE_MOCKS,
     environment: getEnvironmentLabel(),
     rls_check_hint: "Use npm run check:rls to verify role isolation.",

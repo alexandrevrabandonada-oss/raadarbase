@@ -44,8 +44,10 @@ function sign(payloadString, secret) {
 function printHeader() {
   console.log("[staging:webhook:dry-run] Meta webhook dry-run");
   console.log("[staging:webhook:dry-run] APP_URL:", appUrl ? "configured" : "not configured");
-  console.log("[staging:webhook:dry-run] META_APP_SECRET:", hasAppSecret ? "configured" : "not configured");
-  console.log("[staging:webhook:dry-run] META_WEBHOOK_VERIFY_TOKEN:", hasVerifyToken ? "configured" : "not configured");
+  console.log(`[staging:webhook:dry-run] using APP_URL host: ${appUrl ? new URL(appUrl).hostname : "not configured"}`);
+  console.log(`[staging:webhook:dry-run] app secret present: ${hasAppSecret ? "yes" : "no"}`);
+  console.log(`[staging:webhook:dry-run] verify token present: ${hasVerifyToken ? "yes" : "no"}`);
+  console.log("[staging:webhook:dry-run] token/secret must match remote runtime values.");
 }
 
 async function safeJson(response) {
@@ -58,8 +60,13 @@ async function safeJson(response) {
 
 async function runWhenAppAvailable() {
   const results = [];
-  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN || "dry-run-token";
-  const appSecret = process.env.META_APP_SECRET || "dry-run-secret";
+  const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN;
+  const appSecret = process.env.META_APP_SECRET;
+
+  if (!verifyToken || !appSecret) {
+    throw new Error("META_WEBHOOK_VERIFY_TOKEN e META_APP_SECRET sao obrigatorios para dry-run alinhado ao runtime remoto.");
+  }
+
   const challenge = "staging-dry-run-challenge";
 
   const getParams = new URLSearchParams({
