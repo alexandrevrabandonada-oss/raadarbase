@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T16:32:42.974Z",
+  "generatedAt": "2026-04-30T16:51:04.028Z",
   "appUrlConfigured": true,
   "executedWithAppUrl": true,
   "status": "NO_GO_STAGING",
@@ -7,27 +7,27 @@
     {
       "name": "GET verification",
       "ok": false,
-      "detail": "status=404"
+      "detail": "status=403"
     },
     {
       "name": "POST signed",
       "ok": false,
-      "detail": "status=404"
+      "detail": "status=503"
     },
     {
       "name": "POST unsigned rejected",
       "ok": false,
-      "detail": "status=404"
+      "detail": "status=503"
     },
     {
       "name": "DM prohibited",
       "ok": false,
-      "detail": "status=404"
+      "detail": "status=503"
     },
     {
       "name": "Invalid object",
       "ok": false,
-      "detail": "status=404"
+      "detail": "status=503"
     },
     {
       "name": "Healthcheck safe",

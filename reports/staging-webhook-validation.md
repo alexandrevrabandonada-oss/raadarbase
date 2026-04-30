@@ -1,6 +1,6 @@
 # Validacao de Staging dos Webhooks Meta
 
-- Data/hora: 2026-04-30T16:36:01.931Z
+- Data/hora: 2026-04-30T16:51:10.052Z
 - APP_URL presente: sim
 - dry-run executado: sim
 - decisao go/no-go: NO_GO_STAGING
@@ -13,13 +13,13 @@
 - total ignorado: 0
 - total failed: 0
 - total assinatura invalida: 0
-- total incidentes relacionados a webhook: 0
-- total audit_logs relacionados a webhook: 0
+- total incidentes relacionados a webhook: 2
+- total audit_logs relacionados a webhook: 2
 
 ## Ultimos sinais (redigidos)
 
 - ultimo evento: n/a
-- ultimo incidente: n/a
+- ultimo incidente: {"id":"860342cb-6dff-4c25-9a24-cb95f1b5db9f","kind":"meta.webhook_invalid_signature","severity":"critical","status":"open","title":"Assinatura inválida em webhook Meta","createdAt":"2026-04-30T02:47:01.357154+00:00"}
 
 ## Resultado go/no-go
 
@@ -33,8 +33,8 @@
   - unsignedRejectionSeen: missing
   - operatorIgnoredSeen: missing
   - operatorProcessedSeen: missing
-  - auditLogsFound: missing
-  - incidentsFound: missing
+  - auditLogsFound: ok
+  - incidentsFound: ok
   - noDmAutomatic: ok
   - noAutoContact: ok
   - noPoliticalScore: ok
@@ -42,14 +42,14 @@
 
 ## Pendencias
 
-- Tabelas de webhook indisponiveis na API de staging (schema cache/route exposure).
+- Dry-run externo bloqueado em GET verification (status=403).
 
 ## Checklist final
 
 - [x] dry-run externo com APP_URL
 - [ ] eventos webhook registrados
-- [ ] audit logs encontrados
-- [ ] incidentes encontrados
+- [x] audit logs encontrados
+- [x] incidentes encontrados
 - [ ] decisao GO_STAGING
 
 ## Aviso
