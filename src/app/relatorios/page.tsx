@@ -59,21 +59,21 @@ export default async function RelatoriosPage() {
         description="Acompanhamento diário do piloto e relatórios consolidados de mobilização."
       />
 
-      <Tabs defaultValue="operacional" className="space-y-6 overflow-x-hidden">
-        <TabsList className="flex w-full overflow-x-auto border border-slate-200 bg-slate-100 p-1">
-          <TabsTrigger value="operacional" className="shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+      <Tabs defaultValue="operacional" className="space-y-6">
+        <TabsList className="bg-slate-100 p-1 border border-slate-200">
+          <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Painel do Piloto (7 Dias)
           </TabsTrigger>
-          <TabsTrigger value="relatorios" className="shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+          <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Relatórios de Pautas
           </TabsTrigger>
-          <TabsTrigger value="retrospectiva" className="shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+          <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Retrospectiva Semanal
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="retrospectiva" className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex justify-between items-center">
             <h2 className="text-xl font-black flex items-center gap-2">
               <FileText className="w-5 h-5 text-indigo-600" />
               Retrospectiva e Aprendizado do Piloto
@@ -107,7 +107,6 @@ export default async function RelatoriosPage() {
                 <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Engajamento por Tema</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -126,16 +125,14 @@ export default async function RelatoriosPage() {
                     ))}
                   </TableBody>
                 </Table>
-                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Motivos de &quot;Não Abordar&quot;</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Motivos de "Não Abordar"</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -152,7 +149,6 @@ export default async function RelatoriosPage() {
                     ))}
                   </TableBody>
                 </Table>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -180,7 +176,7 @@ export default async function RelatoriosPage() {
         </TabsContent>
 
         <TabsContent value="operacional" className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex justify-between items-center">
             <h2 className="text-xl font-black flex items-center gap-2">
               <LayoutDashboard className="w-5 h-5 text-emerald-600" />
               Monitoramento Diário da Operação
@@ -195,7 +191,7 @@ export default async function RelatoriosPage() {
         </TabsContent>
 
         <TabsContent value="relatorios" className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex justify-between items-center">
             <div className="text-sm text-muted-foreground italic">
               Relatórios descrevem pautas, não perfis individuais.
             </div>
@@ -270,36 +266,8 @@ export default async function RelatoriosPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:hidden">
-        {reports.map((report) => (
-          <Card key={report.id} className="rounded-2xl border-[#e2d7c4]">
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8a6d3a]">Relatorio</p>
-                  <Link href={`/relatorios/${report.id}`} className="mt-1 block text-lg font-black text-[#0b3326] hover:underline">
-                    {report.title}
-                  </Link>
-                </div>
-                <Badge variant={report.status === 'generated' ? 'default' : report.status === 'archived' ? 'secondary' : 'outline'}>
-                  {report.status}
-                </Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><p className="text-xs uppercase text-muted-foreground">Periodo</p><p>{report.period_start} a {report.period_end}</p></div>
-                <div><p className="text-xs uppercase text-muted-foreground">Gerado em</p><p>{report.generated_at ? formatDateTime(report.generated_at) : "-"}</p></div>
-              </div>
-              <Button variant="outline" nativeButton={false} render={<Link href={`/relatorios/${report.id}`} />} className="h-11 w-full rounded-xl">
-                Ver relatorio
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="hidden lg:block">
+      <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -355,7 +323,6 @@ export default async function RelatoriosPage() {
               ) : null}
             </TableBody>
           </Table>
-          </div>
         </CardContent>
       </Card>
       </TabsContent>

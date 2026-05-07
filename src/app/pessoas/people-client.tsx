@@ -125,7 +125,7 @@ export function PeopleClient({
         }
       })
       .slice(0, 10);
-  }, [operators, priorityFilter, priorityPeople, selectedTheme]);
+  }, [priorityFilter, priorityPeople, selectedTheme]);
 
   const filteredPeople = useMemo(() => {
     return people
@@ -207,7 +207,7 @@ export function PeopleClient({
             <select
               className="h-9 rounded-md border bg-background px-3 text-sm font-medium"
               value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value as typeof priorityFilter)}
+              onChange={(event) => setPriorityFilter(event.target.value as any)}
             >
               <optgroup label="Filtros Rápidos">
                 {quickFilters.map((item) => (
