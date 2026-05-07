@@ -130,7 +130,7 @@ export default async function RelatoriosPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Motivos de "Não Abordar"</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Motivos de &quot;Não Abordar&quot;</CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
