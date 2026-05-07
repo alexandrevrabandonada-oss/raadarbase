@@ -123,14 +123,14 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
 
   return (
     <form onSubmit={handleSubmit}>
-      <Card>
+      <Card className="overflow-hidden rounded-2xl border-[#e2d7c4]">
         <CardHeader>
-          <CardTitle>Dados Básicos</CardTitle>
+          <CardTitle>Dados basicos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="report">Relatório de Origem (Opcional)</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select value={reportId} onValueChange={(value) => setReportId(value ?? "") }>
                 <SelectTrigger id="report" className="flex-1">
                   <SelectValue placeholder="Selecione um relatório gerado" />
@@ -147,6 +147,7 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
                 variant="outline" 
                 onClick={handleSuggest} 
                 disabled={!reportId || reportId === "none" || suggesting}
+                className="h-12 rounded-xl text-base sm:h-10 sm:text-sm"
               >
                 {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 Sugerir
@@ -161,6 +162,7 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
               placeholder="Ex: Resposta à pauta de saúde Vila Rica" 
               value={title} 
               onChange={(e) => setTitle(e.target.value)}
+              className="h-12 rounded-xl text-base"
               required 
             />
           </div>
@@ -172,15 +174,15 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
               placeholder="Objetivos gerais e motivação coletiva do plano." 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[100px]"
+              className="min-h-[120px] rounded-xl text-base"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="topic">Tema Principal</Label>
               <Select value={topicId} onValueChange={(value) => setTopicId(value ?? "") }>
-                <SelectTrigger id="topic">
+                <SelectTrigger id="topic" className="h-12 rounded-xl text-base">
                   <SelectValue placeholder="Selecione o tema" />
                 </SelectTrigger>
                 <SelectContent>
@@ -193,7 +195,7 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
             <div className="grid gap-2">
               <Label htmlFor="priority">Prioridade</Label>
               <Select value={priority} onValueChange={(value) => setPriority(value ?? "medium") }>
-                <SelectTrigger id="priority">
+                <SelectTrigger id="priority" className="h-12 rounded-xl text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,11 +214,12 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
               type="date" 
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              className="h-12 rounded-xl text-base"
             />
           </div>
 
           {suggestions && (
-            <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <h4 className="text-sm font-bold flex items-center mb-2">
                 <Sparkles className="h-4 w-4 mr-2 text-primary" />
                 Sugestões geradas
@@ -235,11 +238,11 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between border-t p-6">
-          <Button type="button" variant="ghost" onClick={() => router.back()}>
+        <CardFooter className="flex flex-col gap-3 border-t p-4 sm:flex-row sm:justify-between sm:p-6">
+          <Button type="button" variant="ghost" onClick={() => router.back()} className="h-12 w-full rounded-xl text-base sm:w-auto sm:h-10 sm:text-sm">
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl text-base sm:w-auto sm:h-10 sm:text-sm">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Criar Plano de Ação"}
           </Button>
         </CardFooter>
