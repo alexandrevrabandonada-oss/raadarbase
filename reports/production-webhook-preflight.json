@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-05-01T01:38:19.430Z",
+  "staging_go_status": "GO_STAGING",
+  "staging_observation_status": "STAGING_STABLE",
+  "open_webhook_incidents": 0,
+  "critical_webhook_incidents": 0,
+  "stale_quarantine_count": 0,
+  "processing_failures_count": 0,
+  "noDmAutomatic": true,
+  "noAutoContact": true,
+  "noPoliticalScore": true,
+  "docs_present": true,
+  "runbook_present": true,
+  "risk_matrix_present": true,
+  "training_checklist_present": true,
+  "production_activation_allowed": false,
+  "production_ready_recommendation": "READY_FOR_HUMAN_REVIEW"
+}

@@ -619,3 +619,45 @@ npm run verify
 8. Conferir `/api/health`.
 9. Ativar `META_WEBHOOK_ENABLED=true` apenas apos staging OK.
 10. Manter quarentena obrigatoria.
+
+## Decisao humana para producao
+
+Producao nao e ativada automaticamente. O sistema exige deliberacao humana formal registrada.
+
+### Por que producao nao e automatica
+
+- Webhook em producao tem impacto direto em dados reais de pessoas.
+- Qualquer automacao proibida (DM, contato automatico, score politico) causaria dano irreversivel.
+- A decisao deve ser conjunta entre responsavel tecnico, operacao e compliance.
+
+### Sequencia de comandos para preparar a decisao
+
+```bash
+npm run staging:webhook:evidence
+npm run staging:webhook:go-no-go
+npm run staging:webhook:observation
+npm run production:webhook:preflight
+npm run production:go-no-go
+npm run production:decision-pack
+```
+
+### Como usar o template de ata
+
+1. Abrir `docs/production-go-no-go-meeting-template.md`.
+2. Preencher todos os campos antes da reuniao.
+3. Conduzir reuniao com os tres responsaveis (tecnico, operacao, compliance).
+4. Registrar decisao final: GO_PRODUCTION, NO_GO_PRODUCTION ou POSTPONE.
+5. Arquivar ata em `docs/decisions/` com nome descritivo e data.
+
+### Como registrar a decisao
+
+1. Copiar `docs/decisions/production-webhook-decision-example.md` como ponto de partida.
+2. Preencher com dados reais da reuniao.
+3. Obter aceite formal dos tres responsaveis.
+4. Somente apos aceite registrado: aplicar configuracao de producao manualmente.
+
+### Como manter producao bloqueada ate aprovacao
+
+- Manter `META_WEBHOOK_ENABLED` sem valor `true` em producao ate decisao formal.
+- Verificar `npm run production:go-no-go` antes de qualquer tentativa de ativacao.
+- Em caso de duvida: status `BLOCKED` ou `NEEDS_TRAINING` impede avanco.

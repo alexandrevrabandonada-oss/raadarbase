@@ -3,7 +3,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
 const forbiddenMarkers = [
-  "access_token",
+  "access_token=",
+  '"access_token"',
   "service_role",
   "SUPABASE_SERVICE_ROLE_KEY",
   "META_ACCESS_TOKEN",

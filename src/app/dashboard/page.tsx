@@ -9,6 +9,7 @@ import { listPeople } from "@/lib/data/people";
 import { listPosts } from "@/lib/data/posts";
 import { isMetaConfigured } from "@/lib/meta/client";
 import { getMetaDashboardStats } from "@/lib/meta/sync";
+import { getMetaReconciliationSummary } from "@/lib/data/meta-reconciliation";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -51,6 +52,9 @@ export default async function DashboardPage() {
   }
   const totalInteractions = posts.reduce((sum, post) => sum + (post.interactions ?? 0), 0);
   const metaStats = await getMetaDashboardStats().catch(() => null);
+  const metaReconciliation = await getMetaReconciliationSummary().catch(() => null);
+  const latestFinishedRun = metaReconciliation?.latestFinalizedRun ?? null;
+  const hasStartedRuns = Boolean(metaReconciliation?.startedRuns.length);
 
   return (
     <AppShell>
@@ -104,7 +108,20 @@ export default async function DashboardPage() {
           <>
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Última sincronização Meta</CardTitle></CardHeader>
-              <CardContent><p className="text-lg font-black">{metaStats?.latest?.status ?? "Sem registro"}</p></CardContent>
+              <CardContent className="space-y-3">
+                <p className="text-lg font-black">{latestFinishedRun?.status ?? metaStats?.latest?.status ?? "Sem registro"}</p>
+                {hasStartedRuns ? (
+                  <p className="text-xs font-semibold text-amber-700">
+                    Há run iniciada sem finalização, ver reconciliação.
+                  </p>
+                ) : null}
+                <Link
+                  href="/operacao/meta-reconciliacao"
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "w-full" })}
+                >
+                  Reconciliação Meta
+                </Link>
+              </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Posts sincronizados</CardTitle></CardHeader>
@@ -145,8 +162,14 @@ export default async function DashboardPage() {
           </>
         ) : (
           <Card className="sm:col-span-2 xl:col-span-4">
-            <CardContent className="pt-6 text-sm font-medium text-muted-foreground">
-              Integração Meta ainda não configurada.
+            <CardContent className="flex flex-col gap-3 pt-6 text-sm font-medium text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <span>Integração Meta ainda não configurada.</span>
+              <Link
+                href="/operacao/meta-reconciliacao"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Reconciliação Meta
+              </Link>
             </CardContent>
           </Card>
         )}

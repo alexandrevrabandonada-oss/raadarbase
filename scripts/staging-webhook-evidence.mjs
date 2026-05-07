@@ -107,7 +107,7 @@ async function main() {
     supabase.from("meta_webhook_events").select("status,signature_valid", { count: "exact" }),
     supabase
       .from("operational_incidents")
-      .select("id", { count: "exact" })
+      .select("id,kind", { count: "exact" })
       .or("kind.ilike.%meta.webhook%,related_entity_type.eq.meta_webhook_events"),
     supabase
       .from("audit_logs")
@@ -170,6 +170,10 @@ async function main() {
   const totalFailed = events.filter((e) => e.status === "failed").length;
   const totalInvalidSignature = events.filter((e) => e.signature_valid === false).length;
 
+  const incidents = incidentsRes.data || [];
+  const totalWebhookIncidents = incidentsRes.count || 0;
+  const invalidSignatureIncidentSeen = incidents.some(i => i.kind === "meta.webhook_invalid_signature");
+
   const summary = {
     generatedAt: new Date().toISOString(),
     status: "READY",
@@ -179,10 +183,10 @@ async function main() {
     totalIgnored,
     totalFailed,
     totalInvalidSignature,
-    totalWebhookIncidents: incidentsRes.count || 0,
+    totalWebhookIncidents,
     totalWebhookAuditLogs: auditsRes.count || 0,
     signedEventSeen: events.some((e) => e.signature_valid && ["verified", "quarantined", "processed"].includes(e.status)),
-    unsignedRejectionSeen: totalInvalidSignature > 0,
+    unsignedRejectionSeen: totalInvalidSignature > 0 || invalidSignatureIncidentSeen,
     operatorIgnoredSeen: totalIgnored > 0,
     operatorProcessedSeen: totalProcessed > 0,
     lastEvent: lastEventRes.data

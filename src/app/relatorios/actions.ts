@@ -7,7 +7,8 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { 
   createMobilizationReportDraft, 
   generateMobilizationReportSnapshotData,
-  archiveMobilizationReport 
+  archiveMobilizationReport,
+  createFirstRealInstagramReport
 } from "@/lib/data/reports";
 import { validateReportTextSafety } from "@/lib/reports/safety";
 import type { ActionResult } from "@/app/actions";
@@ -93,6 +94,33 @@ export async function generateMobilizationReportAction(id: string): Promise<Acti
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Falha ao gerar relatório.",
+    };
+  }
+}
+
+export async function createFirstRealInstagramReportAction(): Promise<ActionResult & { reportId?: string }> {
+  try {
+    const session = await requireInternalSession();
+    await requireRole(["admin", "operador"]);
+
+    const report = await createFirstRealInstagramReport();
+
+    await writeAuditLog({
+      actorId: session.id,
+      actorEmail: session.email,
+      action: "report.generated",
+      entityType: "mobilization_reports",
+      entityId: report.reportId,
+      summary: `Primeiro relatório real do Instagram gerado: ${report.reportTitle}`,
+    });
+
+    revalidatePath("/relatorios");
+    revalidatePath("/relatorios/novo");
+    return { ok: true, message: "Primeiro relatório real gerado com sucesso.", reportId: report.reportId };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Falha ao gerar o primeiro relatório real.",
     };
   }
 }

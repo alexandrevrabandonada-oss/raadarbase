@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-05-01T01:38:19.064Z",
+  "status": "READY",
+  "totalMetaWebhookEvents": 3,
+  "totalQuarantined": 0,
+  "totalProcessed": 1,
+  "totalIgnored": 2,
+  "totalFailed": 0,
+  "totalWebhookIncidents": 0,
+  "totalWebhookAuditLogs": 28,
+  "webhookOpenIncidents": 0,
+  "webhookCriticalIncidents": 0,
+  "staleQuarantineEvents": 0,
+  "webhookProcessingFailures": 0,
+  "noDmAutomatic": true,
+  "noAutoContact": true,
+  "noPoliticalScore": true,
+  "statusSuggestion": "STAGING_STABLE"
+}

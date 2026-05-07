@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-04-30T22:34:40.054Z",
-  "decision": "NO_GO_STAGING",
+  "generatedAt": "2026-05-06T23:00:45.309Z",
+  "decision": "GO_STAGING",
   "signals": {
     "appUrlConfigured": true,
     "healthOk": true,
@@ -9,7 +9,7 @@
     "signedEventSeen": true,
     "unsignedRejectionSeen": true,
     "operatorIgnoredSeen": true,
-    "operatorProcessedSeen": false,
+    "operatorProcessedSeen": true,
     "auditLogsFound": true,
     "incidentsFound": true,
     "noDmAutomatic": true,

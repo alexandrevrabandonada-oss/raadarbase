@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, Play, FileDown, Archive, ClipboardList } from "lucide-react";
+import { Loader2, Play, FileDown, Archive, ClipboardList, RefreshCw, Megaphone } from "lucide-react";
 import { generateMobilizationReportAction, archiveMobilizationReportAction } from "../actions";
 
 export function ReportControls({ 
@@ -43,6 +43,10 @@ export function ReportControls({
       
       {status === 'generated' && (
         <>
+          <Button size="sm" variant="outline" onClick={handleGenerate} disabled={isPending}>
+            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Atualizar dados
+          </Button>
           <Button
             size="sm"
             variant="default"
@@ -51,6 +55,14 @@ export function ReportControls({
             render={<Link href={`/acoes/novo?reportId=${reportId}`} />}
           >
             <ClipboardList className="mr-2 h-4 w-4" /> Criar Plano de Ação
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/relatorios/${reportId}/devolutiva`} />}
+          >
+            <Megaphone className="mr-2 h-4 w-4" /> Devolutiva Pública
           </Button>
           <Button size="sm" variant="outline" onClick={handleExport}>
             <FileDown className="mr-2 h-4 w-4" /> Exportar

@@ -86,6 +86,34 @@ export async function getActionPlan(id: string): Promise<ActionPlanWithItems | n
   return data as ActionPlanWithItems | null;
 }
 
+export async function getActionPlanByReportId(reportId: string): Promise<ActionPlanWithItems | null> {
+  if (shouldUseMockData()) {
+    const plan = mockActionPlans.find((item) => item.source_report_id === reportId);
+    if (!plan) return null;
+
+    return {
+      ...plan,
+      topic: mockTopics.find((topic) => topic.id === plan.topic_id) ?? null,
+      items: mockActionPlanItems.filter((item) => item.action_plan_id === plan.id),
+    };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("action_plans")
+    .select(`
+      *,
+      topic:topic_categories(*),
+      items:action_plan_items(*)
+    `)
+    .eq("source_report_id", reportId)
+    .order("created_at", { ascending: false })
+    .maybeSingle();
+
+  if (error) throw new Error(`Falha ao buscar plano por relatório: ${error.message}`);
+  return data as ActionPlanWithItems | null;
+}
+
 export async function createActionPlan(input: TableInsert<"action_plans">) {
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -164,59 +192,47 @@ export async function suggestActionPlanFromReport(reportId: string) {
   const report = await getMobilizationReport(reportId);
   if (!report) throw new Error("Relatório não encontrado.");
 
-  const suggestions: { type: TableInsert<"action_plan_items">["type"]; title: string; description: string }[] = [];
+  const snapshot = report.snapshot as { topTopics?: Array<{ topic_id: string; topic?: { name?: string } | null }> } | null;
+  const reportTopics = snapshot?.topTopics?.length ? snapshot.topTopics : report.topics ?? [];
+  const topicNames = reportTopics
+    .map((entry) => entry.topic?.name ?? null)
+    .filter((value): value is string => Boolean(value));
+  const highlightTopics = topicNames.slice(0, 4);
+  const highlightLabel = highlightTopics.length > 0 ? highlightTopics.join(", ") : "as pautas mais recorrentes do Instagram";
 
-  // Analisa os tópicos do relatório
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  report.topics?.forEach((rt: any) => {
-    const topicName = rt.topic.name.toLowerCase();
-    
-    if (topicName.includes("saúde")) {
-      suggestions.push({
-        type: "post_publico",
-        title: `Explicar demandas de saúde: ${rt.topic.name}`,
-        description: "Post informativo sintetizando o que foi ouvido da comunidade sobre este tema."
-      });
-      suggestions.push({
-        type: "escuta_bairro",
-        title: `Roda de escuta sobre saúde em ${rt.topic.name}`,
-        description: "Organizar encontro presencial para aprofundar as demandas levantadas no relatório."
-      });
-    } else if (topicName.includes("transporte")) {
-      suggestions.push({
-        type: "carrossel",
-        title: `Mapeamento do transporte: ${rt.topic.name}`,
-        description: "Visualizar as principais reclamações de horários e linhas citadas."
-      });
-      suggestions.push({
-        type: "resposta_publica",
-        title: `Síntese de demandas de transporte`,
-        description: "Publicar nota pública com os dados consolidados de mobilização sobre transporte."
-      });
-    } else if (topicName.includes("poluição") || topicName.includes("csn") || topicName.includes("ambiente")) {
-      suggestions.push({
-        type: "video_curto",
-        title: `Impacto da poluição: ${rt.topic.name}`,
-        description: "Vídeo explicando tecnicamente e politicamente o impacto do pó preto e poluição local."
-      });
-      suggestions.push({
-        type: "encaminhamento",
-        title: `Protocolar demandas ambientais`,
-        description: "Encaminhar síntese do relatório para órgãos de fiscalização ambiental."
-      });
-    } else {
-      // Sugestão genérica
-      suggestions.push({
-        type: "material_explicativo",
-        title: `Informativo sobre ${rt.topic.name}`,
-        description: "Criar material didático sobre a pauta mais mobilizada no período."
-      });
-    }
-  });
+  const suggestions: { type: TableInsert<"action_plan_items">["type"]; title: string; description: string }[] = [
+    {
+      type: "carrossel",
+      title: `O que apareceu na escuta do Instagram: ${highlightLabel}`,
+      description: "Sintetizar o relatório em linguagem pública, com foco em pauta coletiva e sem dados pessoais.",
+    },
+    {
+      type: "post_publico",
+      title: "Publicar devolutiva no Instagram",
+      description: "Responder publicamente às pautas mais recorrentes com uma devolutiva clara, útil e coletiva.",
+    },
+    {
+      type: "encaminhamento",
+      title: "Compartilhar chamada em grupos",
+      description: "Levar a chamada pública aos grupos certos sem automação, microtargeting ou contato em massa.",
+    },
+    {
+      type: "escuta_bairro",
+      title: "Monitorar escuta por bairro por 7 dias",
+      description: "Acompanhar os relatos por bairro durante a janela de escuta sem expor contatos por padrão.",
+    },
+    {
+      type: "material_explicativo",
+      title: "Gerar síntese territorial após 7 dias",
+      description: "Consolidar uma leitura pública da escuta territorial com base em pautas agregadas e consentidas.",
+    },
+  ];
 
   return {
     reportTitle: report.title,
-    suggestedTopicId: report.topics?.[0]?.topic_id,
+    suggestedTitle: "Resposta pública às pautas mais recorrentes do Instagram",
+    suggestedDescription: `Plano público e coletivo baseado nas pautas mais recorrentes do Instagram (${highlightLabel}).`,
+    suggestedTopicId: reportTopics[0]?.topic_id,
     items: suggestions
   };
 }

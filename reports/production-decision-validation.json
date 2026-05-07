@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-05-01T13:23:22.143Z",
+  "decision_file_found": true,
+  "decision_file_path": "docs/decisions/production-webhook-decision-DRAFT.md",
+  "is_draft": true,
+  "decision": "UNKNOWN",
+  "participants_present": false,
+  "roles_present": true,
+  "training_completed": false,
+  "rollback_present": false,
+  "justification_present": false,
+  "signatures_present": false,
+  "production_activation_allowed": false,
+  "status": "BLOCKED_DRAFT"
+}

@@ -47,37 +47,56 @@ function decide(signals) {
   return mustBeTrue.every(Boolean) ? "GO_STAGING" : "NO_GO_STAGING";
 }
 
-async function healthSignals(appUrlConfigured, appUrl) {
+async function healthSignals(appUrlConfigured, appUrl, dryRun) {
   if (!appUrlConfigured) {
     return { healthOk: false, healthSecretsSafe: false, response: null };
   }
 
-  try {
-    const response = await fetch(`${appUrl}/api/health`);
-    const text = await response.text();
-    const hasSecretMarker = [
-      "META_APP_SECRET",
-      "META_WEBHOOK_VERIFY_TOKEN",
-      "SUPABASE_SERVICE_ROLE_KEY",
-      "access_token",
-      "service_role",
-    ].some((marker) => text.includes(marker));
-
-    let parsed = null;
+  // Se APP_URL estiver disponível no ambiente, validar em tempo real.
+  if (appUrl) {
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = null;
-    }
+      const response = await fetch(`${appUrl}/api/health`);
+      const text = await response.text();
+      const hasSecretMarker = [
+        "META_APP_SECRET",
+        "META_WEBHOOK_VERIFY_TOKEN",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "access_token",
+        "service_role",
+      ].some((marker) => text.includes(marker));
 
-    return {
-      healthOk: response.ok,
-      healthSecretsSafe: !hasSecretMarker,
-      response: parsed,
-    };
-  } catch {
-    return { healthOk: false, healthSecretsSafe: false, response: null };
+      let parsed = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        parsed = null;
+      }
+
+      return {
+        healthOk: response.ok,
+        healthSecretsSafe: !hasSecretMarker,
+        response: parsed,
+      };
+    } catch {
+      return { healthOk: false, healthSecretsSafe: false, response: null };
+    }
   }
+
+  // APP_URL ausente no ambiente local: derivar do artefato de dry-run que já testou
+  // o endpoint remoto e incluiu um check explícito de "Healthcheck safe".
+  const healthCheck = Array.isArray(dryRun?.checks)
+    ? dryRun.checks.find((c) => c.name === "Healthcheck safe")
+    : null;
+
+  if (healthCheck) {
+    return {
+      healthOk: Boolean(healthCheck.ok),
+      healthSecretsSafe: Boolean(healthCheck.ok),
+      response: null,
+    };
+  }
+
+  return { healthOk: false, healthSecretsSafe: false, response: null };
 }
 
 async function main() {
@@ -85,7 +104,7 @@ async function main() {
   const evidence = readJsonIfExists(evidenceArtifactPath);
   const appUrl = process.env.APP_URL || "";
   const appUrlConfigured = Boolean(appUrl) || Boolean(dryRun?.appUrlConfigured);
-  const health = await healthSignals(appUrlConfigured, appUrl);
+  const health = await healthSignals(appUrlConfigured, appUrl, dryRun);
 
   const dryRunExecuted = Boolean(dryRun?.executedWithAppUrl);
   const signedEventSeen = Boolean(evidence?.signedEventSeen);

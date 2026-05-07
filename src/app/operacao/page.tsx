@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/mock-data";
 import { countRecentMetaErrors, listMetaSyncRuns } from "@/lib/data/operation";
+import { compareLatestEvidenceSnapshots, countMetaReconciliationEvidence } from "@/lib/data/meta-reconciliation-evidence";
 import { getRepeatedFailureSummary } from "@/lib/operation/repeated-failures";
 import { getStuckSyncRuns } from "@/lib/operation/stuck-runs";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
@@ -34,13 +35,19 @@ export default async function OperacaoPage() {
   let stuckRuns;
   let recentErrorCount;
   let repeatedFailures;
+  let evidenceCount = 0;
+  let latestEvidence = null;
+  let previousEvidence = null;
+  let evidenceDelta = null;
   try {
-    [runs, stuckRuns, recentErrorCount, repeatedFailures] = await Promise.all([
+    [runs, stuckRuns, recentErrorCount, repeatedFailures, evidenceCount] = await Promise.all([
       listMetaSyncRuns(),
       getStuckSyncRuns(),
       countRecentMetaErrors(24),
       getRepeatedFailureSummary(),
+      countMetaReconciliationEvidence(),
     ]);
+    ({ latest: latestEvidence, previous: previousEvidence, delta: evidenceDelta } = await compareLatestEvidenceSnapshots());
   } catch (error) {
     return (
       <AppShell>
@@ -59,6 +66,31 @@ export default async function OperacaoPage() {
         title="Operação"
         description="Acompanhe sincronizações Meta, contagens, erros redigidos e quem executou cada rotina."
       />
+      <div className="mb-6 flex justify-end">
+        <Button variant="outline" nativeButton={false} render={<Link href="/operacao/meta-reconciliacao" />}>
+          Reconciliação Meta
+        </Button>
+      </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Evidências Meta</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-2xl font-black">{evidenceCount} evidências</p>
+            <p className="text-sm text-muted-foreground">
+              Última evidência: {latestEvidence ? formatDateTime(latestEvidence.generated_at) : "Sem registro"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Status: {latestEvidence?.status ?? "-"}
+              {evidenceDelta ? ` | Delta: ${evidenceDelta.posts_count >= 0 ? "+" : ""}${evidenceDelta.posts_count} posts, ${evidenceDelta.interactions_count >= 0 ? "+" : ""}${evidenceDelta.interactions_count} interações, ${evidenceDelta.people_count >= 0 ? "+" : ""}${evidenceDelta.people_count} pessoas, ${evidenceDelta.meta_sync_runs_count >= 0 ? "+" : ""}${evidenceDelta.meta_sync_runs_count} runs` : ""}
+            </p>
+          </div>
+          <Button variant="outline" nativeButton={false} render={<Link href="/operacao/meta-reconciliacao" />}>
+            Ver histórico
+          </Button>
+        </CardContent>
+      </Card>
       <Card className="mb-6 border-yellow-500/40 bg-yellow-50">
         <CardHeader>
           <CardTitle>Atenção operacional</CardTitle>

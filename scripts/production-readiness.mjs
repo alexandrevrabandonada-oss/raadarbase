@@ -19,7 +19,9 @@ if (existsSync(".env.local")) {
   }
 }
 
-const requiredScripts = ["lint", "build", "test", "check:health", "e2e:ci", "ci", "readiness", "verify", "staging:webhook:dry-run"];
+const requiredScripts = ["lint", "build", "test", "check:health", "e2e:ci", "ci", "readiness", "verify", "staging:webhook:dry-run", "production:webhook:preflight", "production:go-no-go", "production:decision-pack"];
+requiredScripts.push("production:decision:validate");
+requiredScripts.push("production:shadow-check", "production:shadow-report");
 const requiredMigrations = [
   "001_initial_schema.sql",
   "002_operational_hardening.sql",
@@ -74,6 +76,30 @@ if (!existsSync(join("docs", "meta-webhooks-staging-checklist.md"))) {
   issues.push("Checklist de staging de webhooks ausente: docs/meta-webhooks-staging-checklist.md");
 }
 
+if (!existsSync(join("docs", "production-webhook-runbook.md"))) {
+  issues.push("Runbook de pre-homologacao ausente: docs/production-webhook-runbook.md");
+}
+
+if (!existsSync(join("docs", "production-webhook-risk-matrix.md"))) {
+  issues.push("Matriz de risco de pre-homologacao ausente: docs/production-webhook-risk-matrix.md");
+}
+
+if (!existsSync(join("docs", "webhook-operator-training-checklist.md"))) {
+  issues.push("Checklist de treinamento operacional ausente: docs/webhook-operator-training-checklist.md");
+}
+
+if (!existsSync(join("docs", "production-go-no-go-meeting-template.md"))) {
+  issues.push("Template de ata de decisao ausente: docs/production-go-no-go-meeting-template.md");
+}
+
+if (!existsSync(join("docs", "production-shadow-checklist.md"))) {
+  issues.push("Checklist de producao shadow ausente: docs/production-shadow-checklist.md");
+}
+
+if (!existsSync(join("docs", "decisions", "production-webhook-decision-example.md"))) {
+  issues.push("Exemplo de decisao ausente: docs/decisions/production-webhook-decision-example.md");
+}
+
 if (!existsSync(join("src", "app", "api", "meta", "webhook", "route.ts"))) {
   issues.push("Endpoint ausente: src/app/api/meta/webhook/route.ts");
 }
@@ -89,10 +115,32 @@ if (!webhookProcessingSource.includes("Nenhum evento cria score político indivi
   issues.push("Guardrail de score político individual não documentado em webhook-processing.ts.");
 }
 
+if (!webhookProcessingSource.includes("Todo evento entra em quarentena primeiro")) {
+  issues.push("Quarentena obrigatoria nao esta explicitada em webhook-processing.ts.");
+}
+
+const webhookRouteSource = readFileSync(join("src", "app", "api", "meta", "webhook", "route.ts"), "utf8");
+if (!webhookRouteSource.includes("isWebhookEnabled()")) {
+  issues.push("Endpoint de webhook sem gate explicito de habilitacao.");
+}
+
+if (/META_WEBHOOK_ENABLED\s*=\s*["']true["']/.test(webhookRouteSource)) {
+  issues.push("Ativacao automatica direta de producao detectada no endpoint de webhook.");
+}
+
+if (process.env.META_WEBHOOK_ENABLED === "true") {
+  warnings.push("META_WEBHOOK_ENABLED=true no ambiente atual. Validar que isto nao representa ativacao automatica de producao.");
+}
+
+if ((process.env.META_WEBHOOK_ENABLED ?? "false").trim() !== "false") {
+  issues.push("META_WEBHOOK_ENABLED precisa ficar false em producao shadow.");
+}
+
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) issues.push("NEXT_PUBLIC_SUPABASE_URL ausente.");
 if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) issues.push("NEXT_PUBLIC_SUPABASE_ANON_KEY ausente.");
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) issues.push("SUPABASE_SERVICE_ROLE_KEY ausente.");
 if (process.env.NEXT_PUBLIC_USE_MOCKS === "true") issues.push("NEXT_PUBLIC_USE_MOCKS precisa ficar inativo para produção.");
+if ((process.env.NEXT_PUBLIC_USE_MOCKS ?? "false").trim() !== "false") issues.push("NEXT_PUBLIC_USE_MOCKS precisa ser false em producao shadow.");
 if (process.env.E2E_BYPASS_AUTH === "true") issues.push("E2E_BYPASS_AUTH não pode ficar ativo para produção.");
 if (!process.env.META_ACCESS_TOKEN) warnings.push("META_ACCESS_TOKEN ausente.");
 if (!process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) warnings.push("INSTAGRAM_BUSINESS_ACCOUNT_ID ausente.");
@@ -132,6 +180,15 @@ function stopServer(server) {
   server.kill("SIGTERM");
 }
 
+function readJsonIfPresent(path) {
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 const port = process.env.READINESS_PORT ?? "3200";
 const server = spawn("npm", ["run", "start", "--", "--hostname", "127.0.0.1", "--port", port], {
   stdio: "pipe",
@@ -157,6 +214,26 @@ try {
   issues.push(error instanceof Error ? error.message : "Falha ao validar /api/health em readiness.");
 } finally {
   stopServer(server);
+}
+
+const decisionValidation = readJsonIfPresent(join("reports", "production-decision-validation.json"));
+if (!decisionValidation) {
+  warnings.push("Sem reports/production-decision-validation.json. Producao deve permanecer bloqueada ate validacao formal da decisao.");
+} else {
+  const shouldRemainBlocked =
+    !decisionValidation.decision_file_found ||
+    decisionValidation.is_draft ||
+    decisionValidation.decision === "NO_GO_PRODUCTION" ||
+    decisionValidation.decision === "POSTPONE" ||
+    (decisionValidation.decision === "GO_PRODUCTION" && decisionValidation.status !== "VALID_GO_PRODUCTION");
+
+  if (shouldRemainBlocked && decisionValidation.production_activation_allowed) {
+    issues.push("Inconsistencia: validacao indica cenario bloqueado, mas production_activation_allowed=true.");
+  }
+
+  if (!shouldRemainBlocked && decisionValidation.status === "VALID_GO_PRODUCTION" && !decisionValidation.production_activation_allowed) {
+    issues.push("Inconsistencia: GO_PRODUCTION valido sem autorizacao de ativacao no validador.");
+  }
 }
 
 if (warnings.length > 0) {

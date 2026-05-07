@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-04-30T22:40:53.083Z",
+  "generatedAt": "2026-05-06T23:00:45.841Z",
   "status": "READY",
   "totalMetaWebhookEvents": 3,
-  "totalQuarantined": 1,
-  "totalProcessed": 0,
+  "totalQuarantined": 0,
+  "totalProcessed": 1,
   "totalIgnored": 2,
   "totalFailed": 0,
   "totalInvalidSignature": 0,
   "totalWebhookIncidents": 6,
-  "totalWebhookAuditLogs": 27,
+  "totalWebhookAuditLogs": 29,
   "signedEventSeen": true,
-  "unsignedRejectionSeen": false,
+  "unsignedRejectionSeen": true,
   "operatorIgnoredSeen": true,
-  "operatorProcessedSeen": false,
+  "operatorProcessedSeen": true,
   "lastEvent": {
     "id": "b8ed4b4b-efef-4c35-a3df-cfb2fb399007",
     "status": "ignored",
@@ -25,7 +25,7 @@
     "id": "55e2a23e-5540-480a-bef5-c0f3e699ddc0",
     "kind": "meta.webhook_invalid_signature",
     "severity": "critical",
-    "status": "open",
+    "status": "resolved",
     "title": "Assinatura inválida em webhook Meta",
     "createdAt": "2026-04-30T22:34:25.520957+00:00"
   }

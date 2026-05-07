@@ -2,10 +2,380 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import type { TableRow } from "@/lib/supabase/database.types";
 import { sanitizeReportSnapshot } from "@/lib/reports/safety";
+import { suggestTopicsForText } from "@/lib/topics/rules";
 import { mockReports, mockActionPlans, mockActionPlanItems, mockTopics } from "./e2e-mocks";
 
 export type MobilizationReportRow = TableRow<"mobilization_reports">;
 export type MobilizationReportTopicRow = TableRow<"mobilization_report_topics">;
+
+type TopicCategoryRow = TableRow<"topic_categories">;
+type IgPostRow = TableRow<"ig_posts">;
+type IgInteractionRow = TableRow<"ig_interactions">;
+type InteractionTopicTagRow = TableRow<"interaction_topic_tags">;
+type PostTopicTagRow = TableRow<"post_topic_tags">;
+
+type ReportTopicSummary = {
+  topic_id: string;
+  topic: TopicCategoryRow | null;
+  interaction_count: number;
+  post_count: number;
+  people_count: number;
+  source_breakdown: {
+    manual: number;
+    rule_suggestion: number;
+    operator_confirmed: number;
+  };
+};
+
+type ReportPostSummary = {
+  post_id: string;
+  shortcode: string | null;
+  published_at: string | null;
+  caption_excerpt: string | null;
+  comment_count: number;
+  topic_names: string[];
+};
+
+type RepresentativeComment = {
+  text: string;
+  occurredAt: string;
+  postShortcode: string | null;
+  topicNames: string[];
+};
+
+type PendingThemeItem = {
+  interactionId: string;
+  occurredAt: string;
+  excerpt: string;
+  suggestedTopicNames: string[];
+};
+
+type ReportSnapshot = {
+  generatedAt: string;
+  period: {
+    start: string | null;
+    end: string | null;
+    source: "first_real_ingestion" | "generated_from_existing_report";
+  };
+  totals: {
+    postsAnalyzed: number;
+    interactionsAnalyzed: number;
+    uniquePeople: number;
+    themesDetected: number;
+    confirmedThemes: number;
+    pendingThemes: number;
+  };
+  topTopics: ReportTopicSummary[];
+  topPosts: ReportPostSummary[];
+  representativeComments: RepresentativeComment[];
+  pendingThemes: PendingThemeItem[];
+  publicRecommendations: string[];
+};
+
+function safeTextExcerpt(text: string | null | undefined, limit = 180) {
+  if (!text) return null;
+  const clean = text
+    .replace(/\s+/g, " ")
+    .replace(/\b\d{2}\s?\d{4,5}-?\d{4}\b/g, "[TELEFONE OCULTO]")
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[EMAIL OCULTO]")
+    .trim();
+  return clean.length > limit ? `${clean.slice(0, limit - 1)}…` : clean;
+}
+
+function getTimestampValue(value: string | null | undefined) {
+  if (!value) return null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function pickMinimumTimestamp(values: Array<string | null | undefined>) {
+  const candidates = values.filter((value): value is string => Boolean(getTimestampValue(value)));
+  if (candidates.length === 0) return null;
+  return candidates.sort((left, right) => (getTimestampValue(left)! - getTimestampValue(right)!))[0];
+}
+
+function pickMaximumTimestamp(values: Array<string | null | undefined>) {
+  const candidates = values.filter((value): value is string => Boolean(getTimestampValue(value)));
+  if (candidates.length === 0) return null;
+  return candidates.sort((left, right) => (getTimestampValue(right)! - getTimestampValue(left)!))[0];
+}
+
+function formatRecommendation(topicNames: string[]) {
+  const focus = topicNames[0];
+  return focus
+    ? `Responder comentário recorrente e devolver a pauta de ${focus} em linguagem pública.`
+    : "Responder comentário recorrente com devolutiva pública.";
+}
+
+async function loadInstagramAnalysisSnapshot() {
+  const supabase = getSupabaseAdminClient();
+
+  const [postsResult, interactionsResult, peopleResult, topicsResult, interactionTagsResult, postTagsResult] = await Promise.all([
+    supabase.from("ig_posts").select("id, shortcode, caption, published_at, synced_at, created_at, metrics, permalink, instagram_post_id"),
+    supabase.from("ig_interactions").select("id, person_id, post_id, occurred_at, synced_at, created_at, text_content, type, theme, raw_payload"),
+    supabase.from("ig_people").select("id, username, display_name, synced_at, created_at, updated_at"),
+    supabase.from("topic_categories").select("id, slug, name, description, color, active, created_at, updated_at"),
+    supabase.from("interaction_topic_tags").select("id, interaction_id, topic_id, source, created_at, interaction:ig_interactions(id, person_id, post_id, occurred_at, text_content, type), topic:topic_categories(id, slug, name, description, color, active, created_at, updated_at)"),
+    supabase.from("post_topic_tags").select("id, post_id, topic_id, source, created_at, post:ig_posts(id, shortcode, caption, published_at), topic:topic_categories(id, slug, name, description, color, active, created_at, updated_at)"),
+  ]);
+
+  if (postsResult.error) throw new Error(`Falha ao ler posts reais: ${postsResult.error.message}`);
+  if (interactionsResult.error) throw new Error(`Falha ao ler interações reais: ${interactionsResult.error.message}`);
+  if (peopleResult.error) throw new Error(`Falha ao ler pessoas reais: ${peopleResult.error.message}`);
+  if (topicsResult.error) throw new Error(`Falha ao ler temas reais: ${topicsResult.error.message}`);
+  if (interactionTagsResult.error) throw new Error(`Falha ao ler tags de interações: ${interactionTagsResult.error.message}`);
+  if (postTagsResult.error) throw new Error(`Falha ao ler tags de posts: ${postTagsResult.error.message}`);
+
+  const posts = (postsResult.data ?? []) as IgPostRow[];
+  const interactions = (interactionsResult.data ?? []) as IgInteractionRow[];
+  const people = peopleResult.data ?? [];
+  const topics = (topicsResult.data ?? []) as TopicCategoryRow[];
+  const interactionTags = (interactionTagsResult.data ?? []) as Array<
+    InteractionTopicTagRow & { topic: TopicCategoryRow | null; interaction: IgInteractionRow | null }
+  >;
+  const postTags = (postTagsResult.data ?? []) as Array<PostTopicTagRow & { topic: TopicCategoryRow | null; post: IgPostRow | null }>;
+
+  const postsById = new Map(posts.map((post) => [post.id, post]));
+  const topicsById = new Map(topics.map((topic) => [topic.id, topic]));
+  const topicsBySlug = new Map(topics.map((topic) => [topic.slug, topic]));
+
+  const topicStats = new Map<
+    string,
+    ReportTopicSummary & { peopleIds: Set<string> }
+  >();
+
+  for (const tag of interactionTags) {
+    const topic = topicsById.get(tag.topic_id) ?? tag.topic ?? null;
+    const current = topicStats.get(tag.topic_id) ?? {
+      topic_id: tag.topic_id,
+      topic,
+      interaction_count: 0,
+      post_count: 0,
+      people_count: 0,
+      source_breakdown: {
+        manual: 0,
+        rule_suggestion: 0,
+        operator_confirmed: 0,
+      },
+      peopleIds: new Set<string>(),
+    };
+
+    current.topic = topic;
+    current.interaction_count += 1;
+    const sourceKey = tag.source as keyof typeof current.source_breakdown;
+    if (sourceKey in current.source_breakdown) {
+      current.source_breakdown[sourceKey] += 1;
+    }
+    if (tag.interaction?.person_id) current.peopleIds.add(tag.interaction.person_id);
+    topicStats.set(tag.topic_id, current);
+  }
+
+  for (const tag of postTags) {
+    const topic = topicsById.get(tag.topic_id) ?? tag.topic ?? null;
+    const current = topicStats.get(tag.topic_id) ?? {
+      topic_id: tag.topic_id,
+      topic,
+      interaction_count: 0,
+      post_count: 0,
+      people_count: 0,
+      source_breakdown: {
+        manual: 0,
+        rule_suggestion: 0,
+        operator_confirmed: 0,
+      },
+      peopleIds: new Set<string>(),
+    };
+
+    current.topic = topic;
+    current.post_count += 1;
+    const sourceKey = tag.source as keyof typeof current.source_breakdown;
+    if (sourceKey in current.source_breakdown) {
+      current.source_breakdown[sourceKey] += 1;
+    }
+    topicStats.set(tag.topic_id, current);
+  }
+
+  const interactionTagsByInteraction = new Map<string, Array<{ topic: TopicCategoryRow | null; source: InteractionTopicTagRow["source"] }>>();
+  for (const tag of interactionTags) {
+    const current = interactionTagsByInteraction.get(tag.interaction_id) ?? [];
+    current.push({ topic: topicsById.get(tag.topic_id) ?? tag.topic ?? null, source: tag.source });
+    interactionTagsByInteraction.set(tag.interaction_id, current);
+  }
+
+  const interactionTagsByPost = new Map<string, Array<{ topic: TopicCategoryRow | null; source: PostTopicTagRow["source"] }>>();
+  for (const tag of postTags) {
+    const current = interactionTagsByPost.get(tag.post_id) ?? [];
+    current.push({ topic: topicsById.get(tag.topic_id) ?? tag.topic ?? null, source: tag.source });
+    interactionTagsByPost.set(tag.post_id, current);
+  }
+
+  for (const interaction of interactions) {
+    if (interactionTagsByInteraction.has(interaction.id) || !interaction.text_content) continue;
+
+    for (const suggestion of suggestTopicsForText(interaction.text_content)) {
+      const topic = topicsBySlug.get(suggestion.slug) ?? null;
+      if (!topic) continue;
+
+      const current = topicStats.get(topic.id) ?? {
+        topic_id: topic.id,
+        topic,
+        interaction_count: 0,
+        post_count: 0,
+        people_count: 0,
+        source_breakdown: {
+          manual: 0,
+          rule_suggestion: 0,
+          operator_confirmed: 0,
+        },
+        peopleIds: new Set<string>(),
+      };
+
+      current.topic = topic;
+      current.interaction_count += 1;
+      current.source_breakdown.rule_suggestion += 1;
+      if (interaction.person_id) current.peopleIds.add(interaction.person_id);
+      topicStats.set(topic.id, current);
+    }
+  }
+
+  const postCommentStats = new Map<string, { count: number; topics: Set<string> }>();
+  for (const interaction of interactions) {
+    if (!interaction.post_id) continue;
+    const current = postCommentStats.get(interaction.post_id) ?? { count: 0, topics: new Set<string>() };
+    current.count += 1;
+
+    for (const tag of interactionTagsByInteraction.get(interaction.id) ?? []) {
+      if (tag.topic?.name) current.topics.add(tag.topic.name);
+    }
+
+    for (const tag of interactionTagsByPost.get(interaction.post_id) ?? []) {
+      if (tag.topic?.name) current.topics.add(tag.topic.name);
+    }
+
+    postCommentStats.set(interaction.post_id, current);
+  }
+
+  const topTopics = [...topicStats.values()]
+    .map((topic) => ({
+      topic_id: topic.topic_id,
+      topic: topic.topic,
+      interaction_count: topic.interaction_count,
+      post_count: topic.post_count,
+      people_count: topic.peopleIds.size,
+      source_breakdown: topic.source_breakdown,
+    }))
+    .sort((left, right) => {
+      if (right.interaction_count !== left.interaction_count) return right.interaction_count - left.interaction_count;
+      if (right.post_count !== left.post_count) return right.post_count - left.post_count;
+      return right.people_count - left.people_count;
+    });
+
+  const confirmedThemes = topTopics.filter((topic) => topic.source_breakdown.operator_confirmed > 0).length;
+
+  const topPosts = [...postCommentStats.entries()]
+    .map(([postId, summary]) => {
+      const post = postsById.get(postId);
+      return {
+        post_id: postId,
+        shortcode: post?.shortcode ?? null,
+        published_at: post?.published_at ?? null,
+        caption_excerpt: safeTextExcerpt(post?.caption, 140),
+        comment_count: summary.count,
+        topic_names: [...summary.topics],
+      } satisfies ReportPostSummary;
+    })
+    .sort((left, right) => {
+      if (right.comment_count !== left.comment_count) return right.comment_count - left.comment_count;
+      return (getTimestampValue(right.published_at) ?? 0) - (getTimestampValue(left.published_at) ?? 0);
+    })
+    .slice(0, 5);
+
+  const rankedInteractions = [...interactions]
+    .filter((interaction) => Boolean(interaction.text_content))
+    .sort((left, right) => {
+      const rightCount = right.post_id ? postCommentStats.get(right.post_id)?.count ?? 0 : 0;
+      const leftCount = left.post_id ? postCommentStats.get(left.post_id)?.count ?? 0 : 0;
+      if (rightCount !== leftCount) return rightCount - leftCount;
+      return (getTimestampValue(right.occurred_at) ?? 0) - (getTimestampValue(left.occurred_at) ?? 0);
+    });
+
+  const representativeComments: RepresentativeComment[] = rankedInteractions.slice(0, 6).map((interaction) => ({
+    text: safeTextExcerpt(interaction.text_content, 180) ?? "",
+    occurredAt: interaction.occurred_at,
+    postShortcode: interaction.post_id ? postsById.get(interaction.post_id)?.shortcode ?? null : null,
+    topicNames: [...(interactionTagsByInteraction.get(interaction.id) ?? [])].map((tag) => tag.topic?.name).filter((value): value is string => Boolean(value)),
+  }));
+
+  const pendingThemes = interactions
+    .filter((interaction) => !interactionTagsByInteraction.has(interaction.id) && Boolean(interaction.text_content))
+    .slice(0, 10)
+    .map((interaction) => {
+      const suggestedTopicNames = suggestTopicsForText(interaction.text_content ?? "")
+        .map((suggestion) => topicsBySlug.get(suggestion.slug) ?? null)
+        .filter((topic): topic is TopicCategoryRow => Boolean(topic))
+        .map((topic) => topic.name);
+
+      return {
+        interactionId: interaction.id,
+        occurredAt: interaction.occurred_at,
+        excerpt: safeTextExcerpt(interaction.text_content, 180) ?? "",
+        suggestedTopicNames,
+      } satisfies PendingThemeItem;
+    });
+
+  const periodStart = pickMinimumTimestamp([
+    ...posts.map((post) => post.synced_at ?? post.published_at ?? post.created_at),
+    ...interactions.map((interaction) => interaction.synced_at ?? interaction.occurred_at ?? interaction.created_at),
+    ...people.map((person) => person.synced_at ?? person.created_at ?? person.updated_at),
+  ]);
+  const periodEnd = pickMaximumTimestamp([
+    ...posts.map((post) => post.synced_at ?? post.published_at ?? post.created_at),
+    ...interactions.map((interaction) => interaction.synced_at ?? interaction.occurred_at ?? interaction.created_at),
+    ...people.map((person) => person.synced_at ?? person.created_at ?? person.updated_at),
+  ]);
+
+  const snapshot: ReportSnapshot = sanitizeReportSnapshot({
+    generatedAt: new Date().toISOString(),
+    period: {
+      start: periodStart,
+      end: periodEnd,
+      source: "first_real_ingestion",
+    },
+    totals: {
+      postsAnalyzed: posts.length,
+      interactionsAnalyzed: interactions.length,
+      uniquePeople: people.length,
+      themesDetected: topTopics.length,
+      confirmedThemes,
+      pendingThemes: pendingThemes.length,
+    },
+    topTopics,
+    topPosts,
+    representativeComments,
+    pendingThemes,
+    publicRecommendations: [
+      formatRecommendation(topTopics.slice(0, 2).map((item) => item.topic?.name ?? item.topic_id)),
+      "Fazer post explicativo com síntese coletiva do tema mais mobilizado.",
+      "Organizar escuta pública de bairro ou plenária para aprofundar pontos recorrentes.",
+      "Criar material educativo com linguagem simples e devolutiva pública.",
+      "Levar a pauta consolidada para reunião interna e definir encaminhamentos públicos.",
+    ],
+  });
+
+  return {
+    posts,
+    interactions,
+    people,
+    topics,
+    topicStats: topTopics,
+    topPosts,
+    representativeComments,
+    pendingThemes,
+    periodStart,
+    periodEnd,
+    snapshot,
+  };
+}
 
 export async function listMobilizationReports() {
   if (shouldUseMockData()) return mockReports;
@@ -81,8 +451,8 @@ export async function createMobilizationReportDraft(input: {
   description?: string;
   period_start?: string;
   period_end?: string;
-  created_by: string;
-  created_by_email: string;
+  created_by: string | null;
+  created_by_email: string | null;
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   filters: any;
 }) {
@@ -126,65 +496,76 @@ export async function generateMobilizationReportSnapshotData(reportId: string) {
   const report = await getMobilizationReport(reportId);
   if (!report) throw new Error("Relatório não encontrado.");
 
-  // 1. Get filtered interactions/posts based on report filters
-  // For this brick, we'll do a simplified aggregation
-  // We'll count interactions per topic in the period
-  
-  const { data: tags, error: tagsError } = await supabase
-    .from("interaction_topic_tags")
-    .select(`
-      topic_id,
-      interaction:ig_interactions!inner(*)
-    `)
-    .gte("interaction.occurred_at", report.period_start || '1970-01-01')
-    .lte("interaction.occurred_at", report.period_end || '9999-12-31');
+  const analysis = await loadInstagramAnalysisSnapshot();
 
-  if (tagsError) throw new Error(`Falha na agregação: ${tagsError.message}`);
-
-  const statsByTopic: Record<string, { interaction_count: number; people: Set<string> }> = {};
-  
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  tags?.forEach((tag: any) => {
-    if (!statsByTopic[tag.topic_id]) {
-      statsByTopic[tag.topic_id] = { interaction_count: 0, people: new Set() };
-    }
-    statsByTopic[tag.topic_id].interaction_count++;
-    statsByTopic[tag.topic_id].people.add(tag.interaction.person_id);
-  });
-
-  // 2. Save stats to mobilization_report_topics
-  for (const [topicId, stats] of Object.entries(statsByTopic)) {
+  for (const topic of analysis.topicStats) {
+    if (!topic.topic) continue;
     await supabase.from("mobilization_report_topics").upsert({
       report_id: reportId,
-      topic_id: topicId,
-      interaction_count: stats.interaction_count,
-      people_count: stats.people.size,
+      topic_id: topic.topic_id,
+      interaction_count: topic.interaction_count,
+      post_count: topic.post_count,
+      people_count: topic.people_count,
+      summary: `Tema mobilizado com ${topic.interaction_count} interações públicas.`,
     });
   }
-
-  // 3. Update report status and generated_at
-  const snapshot = sanitizeReportSnapshot({
-    generatedAt: new Date().toISOString(),
-    totalInteractions: tags?.length || 0,
-    topicRanking: Object.keys(statsByTopic).length,
-    // Add representative comments (top 3 for simplicity)
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-    representativeComments: tags?.slice(0, 5).map((t: any) => ({
-      text: t.interaction.text_content,
-      occurredAt: t.interaction.occurred_at
-    })) || []
-  });
 
   const { error: updateError } = await supabase
     .from("mobilization_reports")
     .update({
       status: "generated",
       generated_at: new Date().toISOString(),
-      snapshot,
+      snapshot: analysis.snapshot,
     })
     .eq("id", reportId);
 
   if (updateError) throw new Error(`Falha ao finalizar relatório: ${updateError.message}`);
+
+  return analysis.snapshot;
+}
+
+export async function createFirstRealInstagramReport() {
+  if (shouldUseMockData()) {
+    const report = mockReports.find((item) => item.status === "generated") ?? mockReports[0];
+    return { reportId: report.id, reportTitle: report.title };
+  }
+
+  const analysis = await loadInstagramAnalysisSnapshot();
+  if (analysis.posts.length === 0 && analysis.interactions.length === 0) {
+    throw new Error("Nenhum dado real sincronizado foi encontrado para gerar o relatório.");
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const existing = await supabase
+    .from("mobilization_reports")
+    .select("id, status")
+    .eq("title", "Primeiro relatório real do Instagram")
+    .order("created_at", { ascending: true })
+    .maybeSingle();
+
+  if (existing.error) throw new Error(`Falha ao verificar relatório existente: ${existing.error.message}`);
+
+  let reportId = existing.data?.id;
+
+  if (!reportId) {
+    const draft = await createMobilizationReportDraft({
+      title: "Primeiro relatório real do Instagram",
+      description: "Relatório real de pauta construído a partir de posts, comentários e temas públicos sincronizados do Instagram.",
+      period_start: analysis.periodStart ?? undefined,
+      period_end: analysis.periodEnd ?? undefined,
+      created_by: null,
+      created_by_email: null,
+      filters: {
+        scope: "first_real_ingestion",
+        confirmedOnly: false,
+        dataSources: ["ig_posts", "ig_interactions", "ig_people", "topic_categories", "interaction_topic_tags", "post_topic_tags"],
+      },
+    });
+    reportId = draft.id;
+  }
+
+  await generateMobilizationReportSnapshotData(reportId);
+  return { reportId, reportTitle: "Primeiro relatório real do Instagram" };
 }
 
 export async function archiveMobilizationReport(id: string) {

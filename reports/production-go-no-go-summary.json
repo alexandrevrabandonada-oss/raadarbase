@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-05-01T13:23:18.176Z",
+  "staging_go_status": "GO_STAGING",
+  "staging_observation_status": "STAGING_STABLE",
+  "production_preflight_recommendation": "READY_FOR_HUMAN_REVIEW",
+  "open_webhook_incidents": 0,
+  "critical_webhook_incidents": 0,
+  "guardrails_ok": true,
+  "noDmAutomatic": true,
+  "noAutoContact": true,
+  "noPoliticalScore": true,
+  "docs_ready": true,
+  "runbook_present": true,
+  "risk_matrix_present": true,
+  "training_checklist_present": true,
+  "meeting_template_present": true,
+  "decision_example_present": true,
+  "training_template_ready": true,
+  "human_decision_required": true,
+  "automatic_activation_allowed": false,
+  "recommendation": "READY_FOR_HUMAN_DECISION"
+}

@@ -22,6 +22,18 @@ test("healthcheck responde sem segredos ou marcadores sensíveis", async ({ requ
   expect(body).toHaveProperty("staging_webhook_unsigned_rejection_seen");
   expect(body).toHaveProperty("staging_webhook_operator_processed_seen");
   expect(body).toHaveProperty("staging_webhook_operator_ignored_seen");
+  expect(body).toHaveProperty("meta_reconciliation_evidence_count");
+  expect(body).toHaveProperty("latest_meta_reconciliation_evidence_status");
+  expect(body).toHaveProperty("latest_meta_reconciliation_evidence_at");
+  expect(body).toHaveProperty("latest_meta_reconciliation_hash");
+  expect(body).toHaveProperty("latest_meta_reconciliation_posts_delta");
+  expect(body).toHaveProperty("latest_meta_reconciliation_interactions_delta");
+  expect(body).toHaveProperty("latest_meta_reconciliation_people_delta");
+  expect(body).toHaveProperty("latest_meta_reconciliation_runs_delta");
+  expect(body).toHaveProperty("silence_corrective_actions_count");
+  expect(body).toHaveProperty("silence_corrective_actions_done_count");
+  expect(body).toHaveProperty("silence_positive_impact_count");
+  expect(body).toHaveProperty("silence_attention_impact_count");
 
   expect(
     [

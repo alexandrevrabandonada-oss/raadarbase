@@ -1,5 +1,26 @@
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+function loadEnvLocal() {
+  try {
+    const text = readFileSync(join(process.cwd(), ".env.local"), "utf8");
+    text.split(/\r?\n/).forEach(line => {
+      const idx = line.indexOf("=");
+      if (idx <= 0) return;
+      const key = line.slice(0, idx).trim();
+      let val = line.slice(idx + 1).trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      process.env[key] = val;
+    });
+  } catch (e) {
+    // Ignore if file not found
+  }
+}
+
+loadEnvLocal();
 
 const projectId = process.env.SUPABASE_PROJECT_ID ?? "blimjnitngthldhazvwh";
 const accessToken = process.env.SUPABASE_ACCESS_TOKEN;

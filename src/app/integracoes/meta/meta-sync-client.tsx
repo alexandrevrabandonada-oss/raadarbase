@@ -82,7 +82,7 @@ export function MetaSyncClient({
               Sincronizar últimos posts
             </Button>
             <Button type="button" disabled={pending || !configured} onClick={() => run(syncMetaRecentCommentsAction)} variant="outline">
-              Sincronizar comentários dos posts recentes
+              Sincronizar comentários recentes
             </Button>
           </div>
           {feedback ? (

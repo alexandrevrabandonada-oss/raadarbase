@@ -4,18 +4,11 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listStrategicMemories } from "@/lib/data/strategic-memory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import { 
-  Plus, 
-  Lightbulb, 
-  Search, 
-  Calendar, 
-  MapPin, 
-  Tag,
-  ArrowRight
-} from "lucide-react";
+import { Search, Calendar, MapPin, Tag, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { MemoryNavActions } from "./memory-nav-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +33,7 @@ export default async function MemoriaPage({
             title="Memória Estratégica"
             description="Acúmulo de aprendizados coletivos para guiar as próximas ações da organização."
           />
-          <div className="flex gap-2">
-            <Link href="/memoria/sugestoes" className={buttonVariants({ variant: "outline" })}>
-              <Lightbulb className="h-4 w-4 mr-2" /> Sugerir a partir dos resultados
-            </Link>
-            <Button nativeButton={false} render={<Link href="/memoria/nova" />}>
-              <Plus className="h-4 w-4 mr-2" /> Nova Memória
-            </Button>
-          </div>
+          <MemoryNavActions />
         </div>
 
         <Card className="border-indigo-100 bg-indigo-50/20">
@@ -72,9 +58,9 @@ export default async function MemoriaPage({
             <Card>
               <CardContent className="py-12 text-center">
                 <p className="text-muted-foreground">Nenhuma memória estratégica encontrada para estes filtros.</p>
-                <Button variant="link" className="mt-2" nativeButton={false} render={<Link href="/memoria/nova" />}>
+                <Link href="/memoria/nova" className={buttonVariants({ variant: "link", className: "mt-2" })}>
                   Comece registrando o primeiro aprendizado
-                </Button>
+                </Link>
               </CardContent>
             </Card>
           ) : (

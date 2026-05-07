@@ -74,34 +74,51 @@ export async function listInteractionsByTopic(topicId: string, limit = 50) {
   return data ?? [];
 }
 
-export async function getPendingTopicReviews(limit = 20) {
+export async function getPendingTopicReviews(
+  limit = 20,
+  period?: { start?: string | null; end?: string | null },
+) {
   if (shouldUseMockData()) {
-    return mockInteractions.slice(0, limit).map((interaction, index) => ({
-      id: interaction.id,
-      type: interaction.type,
-      occurred_at: interaction.occurredAt,
-      text_content: interaction.text,
-      tags: index === 0 ? [{ topic: mockTopics[1] }] : [],
-    }));
+    return mockInteractions
+      .filter((interaction) => {
+        const occurredAt = Date.parse(interaction.occurredAt);
+        const afterStart = !period?.start || occurredAt >= Date.parse(period.start);
+        const beforeEnd = !period?.end || occurredAt <= Date.parse(period.end);
+        return afterStart && beforeEnd;
+      })
+      .slice(0, limit)
+      .map((interaction, index) => ({
+        id: interaction.id,
+        type: interaction.type,
+        occurred_at: interaction.occurredAt,
+        text_content: interaction.text,
+        tags: index === 0 ? [{ topic: mockTopics[1] }] : [],
+      }));
   }
 
   const supabase = getSupabaseAdminClient();
-  // Simplified: interações com sugestões automáticas mas sem confirmação manual
-  // Precisamos listar interações que tenham tags de 'rule_suggestion' mas não de 'operator_confirmed'
-  // Para simplificar agora, listamos as mais recentes que tenham pelo menos uma tag de sugestão.
-  const { data, error } = await supabase
+  let query = supabase
     .from("ig_interactions")
     .select(`
       *,
       tags:interaction_topic_tags(
+        source,
         topic:topic_categories(*)
       )
     `)
     .order("occurred_at", { ascending: false })
     .limit(limit);
-  
+
+  if (period?.start) query = query.gte("occurred_at", period.start);
+  if (period?.end) query = query.lte("occurred_at", period.end);
+
+  const { data, error } = await query;
+
   if (error) throw new Error(`Falha ao listar fila de revisão: ${error.message}`);
-  return data ?? [];
+  return (data ?? []).filter((interaction) => {
+    const tags = (interaction.tags ?? []) as Array<{ source?: string }>;
+    return tags.length === 0 || tags.some((tag) => tag.source !== "operator_confirmed");
+  });
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────

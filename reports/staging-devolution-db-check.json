@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-05-06T23:00:49.036Z",
+  "status": "OK",
+  "schemaCacheReloaded": true,
+  "reloadAttempted": true,
+  "checks": [
+    {
+      "table": "public_devolution_publications",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 1,
+      "detail": "ok"
+    },
+    {
+      "table": "territorial_listening_windows",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 1,
+      "detail": "ok"
+    },
+    {
+      "table": "territorial_listening_daily_snapshots",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 5,
+      "detail": "ok"
+    },
+    {
+      "table": "territorial_listening_outreach_logs",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 4,
+      "detail": "ok"
+    },
+    {
+      "table": "public_receipt_distribution_logs",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 3,
+      "detail": "ok"
+    },
+    {
+      "table": "public_receipt_distribution_cycles",
+      "serviceRoleCanRead": true,
+      "serviceRoleCount": 2,
+      "detail": "ok"
+    }
+  ],
+  "anonWriteBlocked": true
+}

@@ -13,7 +13,9 @@ import {
   FileText,
   ClipboardList,
   Play,
-  Lightbulb
+  Lightbulb,
+  EarOff,
+  Map,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LogoutButton } from "@/components/logout-button";
@@ -26,7 +28,10 @@ const navItems = [
   { href: "/acoes", label: "Ações", icon: ClipboardList },
   { href: "/execucao", label: "Execução", icon: Play },
   { href: "/memoria", label: "Memória", icon: Lightbulb },
+  { href: "/radar/silencios", label: "Radar de Silêncios", icon: EarOff },
   { href: "/temas", label: "Temas", icon: Hash },
+  { href: "/campo", label: "Campo", icon: Map },
+  { href: "/voluntarios", label: "Voluntários", icon: Users },
   { href: "/pessoas", label: "Pessoas", icon: Users },
   { href: "/abordagem", label: "Abordagem", icon: KanbanSquare },
   { href: "/mensagens", label: "Mensagens", icon: MessageSquareText },

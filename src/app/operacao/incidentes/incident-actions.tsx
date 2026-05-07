@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { acknowledgeIncident, resolveIncident } from "@/app/operacao/incidentes/actions";
+import { acknowledgeIncident, addIncidentNote, resolveIncident } from "@/app/operacao/incidentes/actions";
 import type { OperationalIncidentRow } from "@/lib/types";
 
 export function IncidentActions({ incident, canManage }: { incident: OperationalIncidentRow; canManage: boolean }) {
@@ -28,6 +28,21 @@ export function IncidentActions({ incident, canManage }: { incident: Operational
           Reconhecer
         </Button>
       ) : null}
+      <Button
+        id={`note-incident-${incident.id}`}
+        size="sm"
+        variant="outline"
+        disabled={isPending}
+        onClick={() => {
+          const note = window.prompt("Registrar nota operacional curta (max. 280 caracteres)");
+          if (!note) return;
+          startTransition(async () => {
+            await addIncidentNote(incident.id, note);
+          });
+        }}
+      >
+        Nota
+      </Button>
       <Button
         id={`resolve-incident-${incident.id}`}
         size="sm"

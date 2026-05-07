@@ -26,12 +26,27 @@ export default async function DetalheRelatorioPage({
   if (!report) notFound();
 
   const snapshot = report.snapshot as any;
+  const topTopics = snapshot.topTopics?.length ? snapshot.topTopics : report.topics ?? [];
+  const topPosts = snapshot.topPosts ?? [];
+  const pendingThemes = snapshot.pendingThemes ?? [];
+  const publicRecommendations = snapshot.publicRecommendations ?? [];
+  const confirmedThemes = snapshot.totals?.confirmedThemes ?? topTopics.filter((rt: any) => rt.source_breakdown?.operator_confirmed > 0).length;
+  const totals = snapshot.totals ?? {
+    postsAnalyzed: 0,
+    interactionsAnalyzed: snapshot.totalInteractions ?? 0,
+    uniquePeople: snapshot.uniquePeople ?? 0,
+    themesDetected: topTopics.length,
+    confirmedThemes,
+    pendingThemes: pendingThemes.length,
+  };
+  const periodStart = snapshot.period?.start ?? report.period_start;
+  const periodEnd = snapshot.period?.end ?? report.period_end;
 
   return (
     <AppShell>
       <PageHeader
         title={report.title}
-        description={`Período: ${report.period_start} a ${report.period_end}. Criado por ${report.created_by_email}.`}
+        description={`Período: ${periodStart} a ${periodEnd}. Criado por ${report.created_by_email}.`}
       />
 
       <div className="mb-6 flex items-center justify-between">
@@ -53,18 +68,51 @@ export default async function DetalheRelatorioPage({
         {/* Métricas Rápidas */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs uppercase text-muted-foreground">Total de Interações</CardTitle>
+            <CardTitle className="text-xs uppercase text-muted-foreground">Posts analisados</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-black">{snapshot.totalInteractions || 0}</p>
+            <p className="text-3xl font-black">{totals.postsAnalyzed ?? 0}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs uppercase text-muted-foreground">Temas Mobilizados</CardTitle>
+            <CardTitle className="text-xs uppercase text-muted-foreground">Interações analisadas</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-black">{report.topics?.length || 0}</p>
+            <p className="text-3xl font-black">{totals.interactionsAnalyzed ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase text-muted-foreground">Pessoas públicas únicas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black">{totals.uniquePeople ?? 0}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase text-muted-foreground">Temas detectados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black">{totals.themesDetected ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase text-muted-foreground">Temas confirmados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black">{totals.confirmedThemes ?? 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase text-muted-foreground">Temas pendentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-black">{totals.pendingThemes ?? 0}</p>
           </CardContent>
         </Card>
         <Card>
@@ -83,11 +131,11 @@ export default async function DetalheRelatorioPage({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {report.topics?.map((rt: any) => (
-                <div key={rt.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+              {topTopics.map((rt: any) => (
+                <div key={rt.id ?? rt.topic_id ?? rt.topic?.name} className="flex items-center justify-between border-b pb-2 last:border-0">
                   <div>
                     <p className="font-semibold">{rt.topic.name}</p>
-                    <p className="text-xs text-muted-foreground">{rt.people_count} perfis diferentes interagiram</p>
+                    <p className="text-xs text-muted-foreground">{rt.people_count} pessoas públicas únicas; {rt.post_count ?? 0} posts relacionados</p>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-black">{rt.interaction_count}</p>
@@ -95,40 +143,61 @@ export default async function DetalheRelatorioPage({
                   </div>
                 </div>
               ))}
-              {(!report.topics || report.topics.length === 0) && (
+              {topTopics.length === 0 && (
                 <p className="py-8 text-center text-sm text-muted-foreground italic">
-                  Nenhum dado de pauta gerado. Clique em &quot;Gerar Dados&quot; para processar.
+                  Nenhum dado de pauta gerado.
                 </p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Recomendações Neutras */}
         <Card>
           <CardHeader>
-            <CardTitle>Recomendações Operacionais</CardTitle>
+            <CardTitle>Recomendações públicas</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-md border p-3 text-sm">
-              <p className="font-bold">Responder Pautas Ativas</p>
-              <p className="text-xs text-muted-foreground mt-1">Existem interações sem resposta nos temas mais mobilizados.</p>
-            </div>
-            <div className="rounded-md border p-3 text-sm">
-              <p className="font-bold">Aprofundar Escuta</p>
-              <p className="text-xs text-muted-foreground mt-1">O volume de interações em alguns temas sugere necessidade de post explicativo.</p>
-            </div>
-            <div className="rounded-md border p-3 text-sm">
-              <p className="font-bold">Reunião de Pauta</p>
-              <p className="text-xs text-muted-foreground mt-1">Levar os dados de mobilização para a próxima plenária/reunião.</p>
-            </div>
+          <CardContent className="space-y-3 text-sm">
+            {publicRecommendations.map((item: string) => (
+              <div key={item} className="rounded-md border p-3">
+                {item}
+              </div>
+            ))}
+            {publicRecommendations.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">Sem recomendações registradas.</p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        {/* Recomendações Neutras */}
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle>Posts com maior volume de comentários</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {topPosts.map((post: any) => (
+              <div key={post.post_id} className="rounded-md border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{post.shortcode ?? post.post_id.slice(0, 8)}</p>
+                    <p className="text-xs text-muted-foreground">{post.comment_count} comentários analisados</p>
+                  </div>
+                  <Badge variant="outline">{post.topic_names.length} temas</Badge>
+                </div>
+                {post.caption_excerpt ? <p className="mt-3 text-sm text-muted-foreground">{post.caption_excerpt}</p> : null}
+              </div>
+            ))}
+            {topPosts.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground italic md:col-span-2 xl:col-span-3">
+                Nenhum post com volume suficiente para destaque.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
         {/* Comentários Representativos (Sanitizados) */}
         <Card className="md:col-span-3">
           <CardHeader>
-            <CardTitle>Sinais da Escuta (Comentários)</CardTitle>
+            <CardTitle>Comentários representativos sanitizados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,6 +207,8 @@ export default async function DetalheRelatorioPage({
                   <p className="mt-2 text-[10px] text-muted-foreground uppercase tracking-widest">
                     {formatDateTime(comment.occurredAt)}
                   </p>
+                  {comment.postShortcode ? <p className="mt-1 text-[10px] text-muted-foreground">Post: {comment.postShortcode}</p> : null}
+                  {comment.topicNames?.length ? <p className="mt-1 text-[10px] text-muted-foreground">Temas: {comment.topicNames.join(", ")}</p> : null}
                 </div>
               ))}
               {(!snapshot.representativeComments || snapshot.representativeComments.length === 0) && (
@@ -146,6 +217,28 @@ export default async function DetalheRelatorioPage({
                 </p>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle>Temas pendentes de revisão</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pendingThemes.map((item: any) => (
+              <div key={item.interactionId} className="rounded-md border p-4">
+                <p className="text-sm italic">&quot;{item.excerpt}&quot;</p>
+                <p className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {formatDateTime(item.occurredAt)}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sugestão por regra: {item.suggestedTopicNames.length ? item.suggestedTopicNames.join(", ") : "Sem sugestão automática"}
+                </p>
+              </div>
+            ))}
+            {pendingThemes.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground italic">Nenhuma interação pendente de revisão.</p>
+            ) : null}
           </CardContent>
         </Card>
       </div>

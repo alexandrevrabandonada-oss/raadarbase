@@ -48,7 +48,8 @@ export function NewPlanForm({ topics, reports, initialReportId }: NewPlanFormPro
     setSuggesting(true);
     try {
       const data = await suggestActionPlanFromReportAction(reportId);
-      setTitle(`Plano: ${data.reportTitle}`);
+      setTitle(data.suggestedTitle || `Plano: ${data.reportTitle}`);
+      setDescription(data.suggestedDescription || `Plano público baseado no relatório ${data.reportTitle}.`);
       setTopicId(data.suggestedTopicId || "");
       setSuggestions(data.items);
       toast({

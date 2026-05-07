@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-05-04T16:59:56.153Z",
+  "status": "FAIL",
+  "localChecks": [
+    {
+      "name": "APP_URL",
+      "present": false
+    },
+    {
+      "name": "META_ACCESS_TOKEN",
+      "present": false
+    },
+    {
+      "name": "INSTAGRAM_BUSINESS_ACCOUNT_ID",
+      "present": false
+    },
+    {
+      "name": "META_GRAPH_VERSION",
+      "present": false
+    },
+    {
+      "name": "SUPABASE_SERVICE_ROLE_KEY",
+      "present": true
+    },
+    {
+      "name": "NEXT_PUBLIC_SUPABASE_URL",
+      "present": true
+    },
+    {
+      "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "present": true
+    }
+  ],
+  "remoteHealthReachable": false,
+  "remoteChecks": []
+}

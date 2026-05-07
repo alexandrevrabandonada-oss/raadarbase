@@ -5,7 +5,7 @@ import {
   E2E_BYPASS_AUTH_OPTOUT_COOKIE,
   E2E_BYPASS_AUTH_OPTOUT_HEADER,
 } from "@/lib/config";
-import { isInternalUserActive } from "@/lib/supabase/internal-users";
+import { isInternalUserActive, type InternalAccessReason } from "@/lib/supabase/internal-users";
 
 const protectedPaths = [
   "/dashboard",
@@ -52,8 +52,8 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
   const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
-  let internalStatus: "pending" | "active" | "disabled" | null = null;
-  let accessReason: "pending" | "disabled" | "missing-profile" | "setup" | null = null;
+  let internalStatus: string | null = null;
+  let accessReason: InternalAccessReason | null = null;
 
   if (data.user) {
     const { data: internalUser, error } = await supabase
@@ -68,8 +68,8 @@ export async function middleware(request: NextRequest) {
       accessReason = "missing-profile";
     } else {
       internalStatus = internalUser.status;
-      if (!isInternalUserActive(internalStatus)) {
-        accessReason = internalStatus;
+      if (!isInternalUserActive(internalStatus as "pending" | "active" | "disabled")) {
+        accessReason = internalStatus as InternalAccessReason;
       }
     }
   }
@@ -89,7 +89,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (request.nextUrl.pathname === "/login" && data.user && isInternalUserActive(internalStatus)) {
+  if (request.nextUrl.pathname === "/login" && data.user && isInternalUserActive(internalStatus as "pending" | "active" | "disabled")) {
     const dashboardUrl = request.nextUrl.clone();
     dashboardUrl.pathname = "/dashboard";
     return NextResponse.redirect(dashboardUrl);
