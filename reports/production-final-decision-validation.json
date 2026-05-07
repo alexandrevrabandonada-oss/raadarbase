@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-05-07T17:13:15.999Z",
+  "meeting_exists": true,
+  "meeting_path": "docs/production-go-no-go-final-meeting.md",
+  "is_draft": false,
+  "decision": "GO_PRODUCTION",
+  "decision_explicit": true,
+  "participants_present": true,
+  "responsibles_present": true,
+  "evidences_complete": true,
+  "rollback_present": true,
+  "observation_window_present": true,
+  "signatures_present": true,
+  "justification_present": true,
+  "shadow_ready": true,
+  "access_ready": true,
+  "webhook_production_disabled": true,
+  "guardrails_present": true,
+  "production_authorized": true,
+  "status": "VALID_GO_PRODUCTION"
+}

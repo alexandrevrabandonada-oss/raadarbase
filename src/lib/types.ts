@@ -6,6 +6,16 @@ export type ConsentStatus = Database["public"]["Enums"]["consent_status"];
 export type InternalUserStatus = Database["public"]["Enums"]["internal_user_status"];
 
 export type KanbanColumnId =
+  | "para_abordar"
+  | "mensagem_enviada"
+  | "esperando_resposta"
+  | "respondeu"
+  | "precisa_encaminhar"
+  | "convidado"
+  | "entrou_na_base"
+  | "primeira_acao_feita"
+  | "nao_insistir"
+  | "nao_abordar"
   | "novo"
   | "responder_comentario"
   | "mandar_dm_manual"
@@ -22,6 +32,18 @@ export type AuditAction =
   | "contact.do_not_contact"
   | "contact.notes_updated"
   | "contact.tags_updated"
+  | "contact.response_recorded"
+  | "contact.responsible_assigned"
+  | "contact.outreach_task_created"
+  | "contact.outreach_task_updated"
+  | "outreach_task.responsible_assigned"
+  | "outreach_task.bulk_assigned"
+  | "outreach_task.balanced"
+  | "contact.referral_recorded"
+  | "contact.imported"
+  | "referral.created"
+  | "referral.updated"
+  | "referral.status_updated"
   | "message.created"
   | "message.updated"
   | "message.deleted"
@@ -179,6 +201,8 @@ export type PersonWithContact = {
   notes: string;
   doNotContactReason: string | null;
   syncedAt: string | null;
+  responsibleId: string | null;
+  responsibleName: string | null;
   contact: ContactRecord | null;
 };
 
@@ -205,7 +229,52 @@ export type OutreachTaskWithPerson = {
   notes: string;
   dueAt: string | null;
   completedAt: string | null;
+  responsibleId: string | null;
   person: Pick<PersonWithContact, "id" | "username" | "status"> | null;
+};
+
+export type PersonReferralType = 
+  | "evento_campo"
+  | "voluntariado"
+  | "grupo_lista"
+  | "missao_eluta"
+  | "missao_simples"
+  | "revisar_depois"
+  | "nao_abordar";
+
+export type PersonReferralStatus = 
+  | "recomendado"
+  | "convidado"
+  | "respondeu"
+  | "confirmou"
+  | "compareceu"
+  | "ajudou"
+  | "recusou"
+  | "interessado"
+  | "em_revisao"
+  | "concluido"
+  | "recebeu_link"
+  | "acessou"
+  | "fez_primeira_missao"
+  | "colaborador"
+  | "pode_puxar_missao";
+
+export type PersonReferral = {
+  id: string;
+  personId: string;
+  targetType: PersonReferralType;
+  targetId: string | null;
+  status: PersonReferralStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  responsibleId?: string | null;
+  externalId?: string | null;
+  lastEventAt?: string | null;
+  lastEventType?: string | null;
+  lastEventSource?: "manual" | "webhook" | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: any;
 };
 
 export type MessageTemplate = {
@@ -213,6 +282,8 @@ export type MessageTemplate = {
   name: string;
   theme: string;
   body: string;
+  category: string | null;
+  whenToUse: string | null;
   active: boolean;
   updatedAt: string;
 };
@@ -244,3 +315,59 @@ export type IgPost = {
 export type IgPerson = PersonWithContact;
 export type IgInteraction = InteractionWithPost;
 export type OutreachTask = OutreachTaskWithPerson;
+
+export type PriorityTemperature = "quente" | "morno" | "frio";
+
+export type PeoplePriorityQuickFilter =
+  | "todos"
+  | "quentes"
+  | "sem_responsavel"
+  | "pendente_resposta"
+  | "sem_encaminhamento"
+  | "nao_abordar";
+
+export type PriorityPerson = PersonWithContact & {
+  mainTheme: string | null;
+  temperature: PriorityTemperature;
+  priorityScore: number;
+  priorityReason: string;
+  nextAction: string;
+  latestInteractionLabel: string;
+  latestInteractionType: InteractionType | null;
+  outreachStatusLabel: string;
+  responsibleId: string | null;
+  responsibleName: string | null;
+  suggestedMessage: string | null;
+  suggestedTemplateName: string | null;
+  instagramUrl: string | null;
+  hasPendingTask: boolean;
+  isPendingResponse: boolean;
+  hasReferral: boolean;
+  priorityEligible: boolean;
+  riskFlags: {
+    noReferralAfterResponse: boolean;
+    recentOutreach: boolean;
+    doNotContact: boolean;
+  };
+};
+
+export type PersonResponseKind =
+  | "nao_respondeu"
+  | "respondeu_bem"
+  | "pediu_informacoes"
+  | "quer_entrar_grupo"
+  | "quer_ir_evento"
+  | "quer_conhecer_missao_eluta"
+  | "quer_ajudar_online"
+  | "quer_ajudar_presencial"
+  | "nao_quer_contato"
+  | "revisar_depois";
+
+export type PersonTimelineItem = {
+  id: string;
+  type: "instagram" | "tarefa" | "registro";
+  title: string;
+  description: string;
+  occurredAt: string;
+  badge?: string | null;
+};

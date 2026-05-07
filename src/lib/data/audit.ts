@@ -75,3 +75,21 @@ export async function getLatestAuditByAction(action: AuditAction): Promise<Audit
     handleSupabaseReadError("getLatestAuditByAction", error);
   }
 }
+
+export async function listAuditLogsForEntity(entityType: string, entityId: string, limit = 25): Promise<AuditLogEntry[]> {
+  if (shouldUseMockData()) return [];
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .eq("entity_type", entityType)
+      .eq("entity_id", entityId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []).map(mapAuditEntry);
+  } catch (error) {
+    handleSupabaseReadError("listAuditLogsForEntity", error);
+  }
+}

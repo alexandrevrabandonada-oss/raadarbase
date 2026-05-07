@@ -1,0 +1,204 @@
+{
+  "generatedAt": "2026-05-07T17:03:59.316Z",
+  "matrix": [
+    {
+      "role": "admin",
+      "capabilities": [
+        {
+          "capability": "exportar_contato_consentido",
+          "evidence": [
+            {
+              "file": "src/lib/data/volunteers.ts",
+              "matched": true
+            },
+            {
+              "file": "src/lib/data/volunteer-applications.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "aprovar_rejeitar_voluntarios",
+          "evidence": [
+            {
+              "file": "src/app/voluntarios/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "gerar_evidencias",
+          "evidence": [
+            {
+              "file": "src/app/api/escuta/bairro/snapshots/[id]/export/route.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "processar_webhooks",
+          "evidence": [
+            {
+              "file": "src/app/integracoes/meta/webhooks/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "arquivar_incidentes",
+          "evidence": [
+            {
+              "file": "src/app/operacao/incidentes/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        }
+      ]
+    },
+    {
+      "role": "operador",
+      "capabilities": [
+        {
+          "capability": "revisar_temas",
+          "evidence": [
+            {
+              "file": "src/app/temas/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "gerar_acoes",
+          "evidence": [
+            {
+              "file": "src/app/radar/silencios/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "revisar_voluntarios",
+          "evidence": [
+            {
+              "file": "src/app/voluntarios/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "criar_campo",
+          "evidence": [
+            {
+              "file": "src/app/campo/novo/page.tsx",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "gerar_snapshots",
+          "evidence": [
+            {
+              "file": "src/app/api/escuta/bairro/snapshots/[id]/export/route.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "sem_export_irrestrito_contato",
+          "evidence": [
+            {
+              "file": "src/lib/data/volunteers.ts",
+              "matched": true
+            },
+            {
+              "file": "src/lib/data/volunteer-applications.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        }
+      ]
+    },
+    {
+      "role": "comunicacao",
+      "capabilities": [
+        {
+          "capability": "ver_relatorios",
+          "evidence": [
+            {
+              "file": "src/app/relatorios/[id]/devolutiva/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "gerar_kit",
+          "evidence": [
+            {
+              "file": "src/app/relatorios/[id]/devolutiva/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "registrar_distribuicao",
+          "evidence": [
+            {
+              "file": "src/app/actions.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        },
+        {
+          "capability": "sem_acesso_amplo_contato",
+          "evidence": [
+            {
+              "file": "src/lib/authz/roles.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        }
+      ]
+    },
+    {
+      "role": "leitura",
+      "capabilities": [
+        {
+          "capability": "apenas_visualizacao_interna",
+          "evidence": [
+            {
+              "file": "src/lib/authz/roles.ts",
+              "matched": true
+            },
+            {
+              "file": "src/lib/authz/roles.ts",
+              "matched": true
+            }
+          ],
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "findings": {
+    "rolesChecked": 4,
+    "failedCapabilities": 0
+  },
+  "failures": [],
+  "recommendation": "ACCESS_READY",
+  "productionAuthorized": false
+}

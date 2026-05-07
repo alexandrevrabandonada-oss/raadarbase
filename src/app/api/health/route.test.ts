@@ -91,12 +91,20 @@ describe("health route", () => {
     expect(text).not.toContain('"access_token"');
     expect(text).not.toContain("META_ACCESS_TOKEN");
     expect(text).not.toContain("INSTAGRAM_BUSINESS_ACCOUNT_ID");
+    expect(text).not.toContain("meta_app_secret_present");
+    expect(text).not.toContain("meta_webhook_verify_present");
+    expect(text).not.toContain("supabase_server_key_present");
+    expect(text).not.toContain("meta_api_credentials_present");
 
     const body = JSON.parse(text);
-    expect(body).toHaveProperty("meta_api_credentials_present");
-    expect(body).toHaveProperty("instagram_business_account_id_present");
-    expect(body).toHaveProperty("meta_graph_version_present");
+    expect(body).toHaveProperty("database_ready");
+    expect(body).toHaveProperty("meta_integration_ready");
+    expect(body).toHaveProperty("webhook_runtime_ready");
     expect(body).toHaveProperty("meta_manual_sync_ready");
+    expect(body).toHaveProperty("production_shadow_safe");
+    expect(body).toHaveProperty("meta_read_api_ready");
+    expect(body).toHaveProperty("meta_server_credentials_ready");
+    expect(body).toHaveProperty("webhook_verification_ready");
     expect(body).toHaveProperty("staging_webhook_validation_status");
     expect(
       [

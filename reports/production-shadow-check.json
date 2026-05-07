@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-05-06T23:09:31.639Z",
+  "generatedAt": "2026-05-07T16:58:45.434Z",
   "appUrl": "https://raadarbase.vercel.app",
   "environment": "production-shadow",
   "health": {
     "ok": true,
     "status": 200,
-    "secretsExposed": [
-      "META_APP_SECRET"
-    ],
+    "sensitiveMarkersFound": [],
+    "secretValuesFound": [],
+    "piiFound": [],
     "mockModeFalse": true,
     "metaManualSyncReadyIsBoolean": true,
     "webhookEnabledFalse": true
@@ -17,64 +17,73 @@
       "route": "/",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/dashboard",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/integracoes/meta",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/recibo/escuta",
       "status": 200,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/escuta/bairro",
       "status": 200,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/campo",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/voluntarios",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/voluntarios/quero-ajudar",
       "status": 200,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     },
     {
       "route": "/radar/silencios",
       "status": 307,
       "ok": true,
-      "secretsExposed": [],
-      "piiExposed": false
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
     }
   ],
   "supabase": {
@@ -82,11 +91,14 @@
     "responds": true,
     "rlsBasicOk": true
   },
-  "failures": [
-    "Health expôs marcador sensível."
-  ],
-  "secretLeakDetected": true,
+  "findings": {
+    "sensitiveMarkersFound": 0,
+    "secretValuesFound": 0,
+    "piiFound": 0
+  },
+  "failures": [],
+  "secretLeakDetected": false,
   "webhookEnabled": false,
   "publicProductionReleased": false,
-  "recommendation": "SHADOW_BLOCKED"
+  "recommendation": "SHADOW_READY"
 }

@@ -1,0 +1,212 @@
+"use server";
+
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { shouldUseMockData } from "@/lib/config";
+
+export type PilotDashboardData = {
+  summary: {
+    prioritizedToday: number;
+    openTasks: number;
+    tasksWithoutResponsible: number;
+    messagesSent: number;
+    responsesRecorded: number;
+    referralsCreated: number;
+    doNotContactCount: number;
+    staleTasksCount: number; // > 48h
+    pendingReferralsCount: number; // Responded but not referred
+  };
+  responsibleBreakdown: Array<{
+    operatorName: string;
+    openTasks: number;
+    completedTasks: number;
+    responsesRecorded: number;
+    pendingReferrals: number;
+  }>;
+  funnel: {
+    prioritized: number;
+    approached: number;
+    responded: number;
+    referred: number;
+    firstAction: number;
+  };
+  retrospective?: {
+    totalReviewed: number;
+    responseRateByTheme: Array<{ theme: string; rate: number; count: number }>;
+    nonContactReasons: Array<{ reason: string; count: number }>;
+  };
+};
+
+export async function getPilotDashboardData(): Promise<PilotDashboardData> {
+  if (shouldUseMockData()) {
+    return {
+      summary: {
+        prioritizedToday: 15,
+        openTasks: 42,
+        tasksWithoutResponsible: 8,
+        messagesSent: 25,
+        responsesRecorded: 12,
+        referralsCreated: 5,
+        doNotContactCount: 3,
+        staleTasksCount: 4,
+        pendingReferralsCount: 7,
+      },
+      responsibleBreakdown: [
+        { operatorName: "Operador 1", openTasks: 10, completedTasks: 5, responsesRecorded: 8, pendingReferrals: 2 },
+        { operatorName: "Operador 2", openTasks: 15, completedTasks: 3, responsesRecorded: 4, pendingReferrals: 5 },
+      ],
+      funnel: {
+        prioritized: 100,
+        approached: 60,
+        responded: 30,
+        referred: 15,
+        firstAction: 5,
+      },
+    };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayIso = today.toISOString();
+  
+  const fortyEightHoursAgo = new Date();
+  fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+  const staleIso = fortyEightHoursAgo.toISOString();
+
+  // 1. Summary Metrics
+  const [
+    { count: prioritizedToday },
+    { count: openTasks },
+    { count: tasksWithoutResponsible },
+    { count: messagesSent },
+    { count: responsesRecorded },
+    { count: referralsCreated },
+    { count: doNotContactCount },
+    { count: staleTasksCount }
+  ] = await Promise.all([
+    supabase.from("ig_people").select("*", { count: "exact", head: true }).gte("created_at", todayIso),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null).is("responsible_id", null),
+    supabase.from("ig_interactions").select("*", { count: "exact", head: true }).eq("type", "dm_manual").gte("occurred_at", todayIso),
+    supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("status", "respondeu").gte("updated_at", todayIso),
+    supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }).gte("created_at", todayIso),
+    supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("status", "nao_abordar").gte("updated_at", todayIso),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null).lt("updated_at", staleIso)
+  ]);
+
+  // Fallback for pendingReferralsCount if RPC not available (simpler version)
+  const { data: peopleResponded } = await supabase.from("ig_people").select("id").eq("status", "respondeu");
+  const respondedIds = peopleResponded?.map(p => p.id) || [];
+  const { data: referredPeople } = await supabase.from("ig_person_referrals").select("person_id").in("person_id", respondedIds);
+  const referredIds = new Set(referredPeople?.map(r => r.person_id) || []);
+  const actualPendingReferrals = respondedIds.filter(id => !referredIds.has(id)).length;
+
+  // 2. Responsible Breakdown
+  const { data: operators } = await supabase.from("internal_users").select("id, full_name, email").eq("status", "active");
+  const breakdown = await Promise.all((operators || []).map(async op => {
+    const [
+      { count: opOpen },
+      { count: opDone },
+      { count: opResponses },
+      { data: opRespondedPeople }
+    ] = await Promise.all([
+      supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).is("completed_at", null),
+      supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).not("completed_at", "is", null),
+      supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).eq("status", "respondeu"),
+      supabase.from("ig_people").select("id").eq("responsible_id", op.id).eq("status", "respondeu")
+    ]);
+
+    const opRespondedIds = opRespondedPeople?.map(p => p.id) || [];
+    const { data: opReferred } = await supabase.from("ig_person_referrals").select("person_id").in("person_id", opRespondedIds);
+    const opReferredIds = new Set(opReferred?.map(r => r.person_id) || []);
+    const opPendingReferrals = opRespondedIds.filter(id => !opReferredIds.has(id)).length;
+
+    return {
+      operatorName: op.full_name || op.email,
+      openTasks: opOpen || 0,
+      completedTasks: opDone || 0,
+      responsesRecorded: opResponses || 0,
+      pendingReferrals: opPendingReferrals
+    };
+  }));
+
+  // 3. Funnel
+  const [
+    { count: fPrioritized },
+    { count: fApproached },
+    { count: fResponded },
+    { count: fReferred },
+    { count: fFirstAction }
+  ] = await Promise.all([
+    supabase.from("ig_people").select("*", { count: "exact", head: true }),
+    supabase.from("ig_people").select("*", { count: "exact", head: true }).neq("status", "novo").neq("status", "responder"),
+    supabase.from("ig_people").select("*", { count: "exact", head: true }).in("status", ["respondeu", "contato_confirmado"]),
+    supabase.from("ig_person_referrals").select("person_id", { count: "exact", head: true }),
+    supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }).eq("status", "compareceu") // Example of "First Action"
+  ]);
+
+  // 4. Retrospective (Weekly/Aggregated)
+  const [
+    { data: themeStats },
+    { data: doNotContactData }
+  ] = await Promise.all([
+    supabase.from("ig_people").select("themes, status"),
+    supabase.from("ig_people").select("do_not_contact_reason").not("do_not_contact_reason", "is", null)
+  ]);
+
+  const themesMap = new Map<string, { total: number, responded: number }>();
+  themeStats?.forEach(p => {
+    p.themes?.forEach((t: string) => {
+      const current = themesMap.get(t) || { total: 0, responded: 0 };
+      current.total += 1;
+      if (p.status === 'respondeu' || p.status === 'contato_confirmado') current.responded += 1;
+      themesMap.set(t, current);
+    });
+  });
+
+  const responseRateByTheme = Array.from(themesMap.entries())
+    .map(([theme, stats]) => ({
+      theme,
+      rate: Math.round((stats.responded / stats.total) * 100),
+      count: stats.total
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const reasonsMap = new Map<string, number>();
+  doNotContactData?.forEach(p => {
+    const reason = p.do_not_contact_reason || "Não especificado";
+    reasonsMap.set(reason, (reasonsMap.get(reason) || 0) + 1);
+  });
+
+  const nonContactReasons = Array.from(reasonsMap.entries())
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    summary: {
+      prioritizedToday: prioritizedToday || 0,
+      openTasks: openTasks || 0,
+      tasksWithoutResponsible: tasksWithoutResponsible || 0,
+      messagesSent: messagesSent || 0,
+      responsesRecorded: responsesRecorded || 0,
+      referralsCreated: referralsCreated || 0,
+      doNotContactCount: doNotContactCount || 0,
+      staleTasksCount: staleTasksCount || 0,
+      pendingReferralsCount: actualPendingReferrals,
+    },
+    responsibleBreakdown: breakdown,
+    funnel: {
+      prioritized: fPrioritized || 0,
+      approached: fApproached || 0,
+      responded: fResponded || 0,
+      referred: fReferred || 0,
+      firstAction: fFirstAction || 0,
+    },
+    retrospective: {
+      totalReviewed: fPrioritized || 0,
+      responseRateByTheme,
+      nonContactReasons
+    }
+  };
+}

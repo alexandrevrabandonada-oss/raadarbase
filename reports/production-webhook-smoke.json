@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-05-07T17:22:25.939Z",
+  "appUrl": "https://raadarbase.vercel.app",
+  "checks": {
+    "getVerificationOk": true,
+    "signedAccepted": true,
+    "signedQuarantined": true,
+    "unsignedRejected": true,
+    "eventPersisted": true,
+    "eventInQuarantine": true,
+    "eventSignatureValid": true,
+    "auditLogCreated": true,
+    "invalidIncidentCreated": true,
+    "redactedPayloadSafe": true
+  },
+  "http": {
+    "getVerificationStatus": 200,
+    "signedStatus": 200,
+    "signedBody": {
+      "success": true,
+      "status": "quarantined",
+      "hasEventId": true
+    },
+    "unsignedStatus": 401
+  },
+  "event": {
+    "id": "95463a0a-1d43-4655-9da4-dc0f46b70e8f",
+    "status": "quarantined",
+    "signatureValid": true,
+    "objectType": "instagram",
+    "eventType": "comments",
+    "receivedAt": "2026-05-07T17:22:23.563514+00:00",
+    "processedAt": null
+  },
+  "auditLogs": {
+    "quarantinedDelta": 1,
+    "rejectedDelta": 1,
+    "verifiedDelta": 1
+  },
+  "incidents": {
+    "invalidSignatureDelta": 1
+  },
+  "failures": [],
+  "recommendation": "WEBHOOK_SMOKE_READY"
+}

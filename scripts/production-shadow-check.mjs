@@ -8,20 +8,32 @@ const appUrl = (process.env.PRODUCTION_SHADOW_URL || process.env.APP_URL || defa
 const reportsDir = join(process.cwd(), "reports");
 const outputPath = join(reportsDir, "production-shadow-check.json");
 
-const forbiddenMarkers = [
-  "service_role",
-  "sbp_",
-  "eyJhbGciOi",
-  "raw_payload",
-  "contact_email",
-  "contact_phone",
+const sensitiveMarkers = [
+  /meta_app_secret/i,
+  /meta_access_token/i,
+  /meta_webhook_verify_token/i,
+  /supabase_service_role_key/i,
+  /next_public_supabase_anon_key/i,
+  /access_token/i,
+  /app_secret/i,
+  /service_role/i,
+  /webhook_verify_token/i,
+  /bearer\s+[a-z0-9._-]+/i,
+  /raw_payload/i,
+  /["']contact_email["']\s*:/i,
+  /["']contact_phone["']\s*:/i,
+  /["']comment_text["']\s*:/i,
+  /["']username["']\s*:/i,
 ];
 
 const secretEnvKeys = [
+  "SUPABASE_SECRET_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
   "META_ACCESS_TOKEN",
   "META_APP_SECRET",
   "META_WEBHOOK_VERIFY_TOKEN",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
 ];
 
 const criticalRoutes = [
@@ -57,19 +69,29 @@ async function fetchText(url, init) {
   return { response, text };
 }
 
-function hasForbiddenMarker(text) {
-  const markers = forbiddenMarkers.filter((marker) => text.toLowerCase().includes(marker.toLowerCase()));
+function findSensitiveMarkers(text) {
+  const markers = sensitiveMarkers.filter((pattern) => pattern.test(text)).map((pattern) => pattern.source);
+  return [...new Set(markers)];
+}
+
+function findSecretValues(text) {
+  const matches = [];
   for (const key of secretEnvKeys) {
     const value = process.env[key]?.trim();
     if (value && value.length > 8 && text.includes(value)) {
-      markers.push(key);
+      matches.push(key);
     }
   }
-  return markers;
+  if (/sb_(publishable|secret)_[a-z0-9._-]+/i.test(text)) matches.push("supabase_token_shape");
+  if (/eyJhbGciOi[0-9A-Za-z._-]+/.test(text)) matches.push("jwt_shape");
+  return [...new Set(matches)];
 }
 
-function hasPiiShape(text) {
-  return /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text) || /\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?9\d{4}[-\s]?\d{4}\b/.test(text);
+function findPii(text) {
+  const findings = [];
+  if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text)) findings.push("email_shape");
+  if (/\b(?:\+?55\s?)?(?:\(?\d{2}\)?\s?)?9\d{4}[-\s]?\d{4}\b/.test(text)) findings.push("phone_shape");
+  return findings;
 }
 
 async function checkHealth() {
@@ -83,7 +105,9 @@ async function checkHealth() {
   return {
     ok: response.ok,
     status: response.status,
-    secretsExposed: hasForbiddenMarker(text),
+    sensitiveMarkersFound: findSensitiveMarkers(text),
+    secretValuesFound: findSecretValues(text),
+    piiFound: findPii(text),
     mockModeFalse: json?.mock_mode === false,
     metaManualSyncReadyIsBoolean: typeof json?.meta_manual_sync_ready === "boolean",
     webhookEnabledFalse: json?.meta_webhook_enabled === false,
@@ -99,8 +123,9 @@ async function checkRoutes() {
       route,
       status: response.status,
       ok: response.ok || [301, 302, 303, 307, 308].includes(response.status),
-      secretsExposed: hasForbiddenMarker(text),
-      piiExposed: isPublic ? hasPiiShape(text) : false,
+      sensitiveMarkersFound: findSensitiveMarkers(text),
+      secretValuesFound: findSecretValues(text),
+      piiFound: isPublic ? findPii(text) : [],
     });
   }
   return results;
@@ -108,7 +133,7 @@ async function checkRoutes() {
 
 async function checkSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) return { configured: false, responds: false, rlsBasicOk: false };
   const headers = { apikey: anon, Authorization: `Bearer ${anon}`, "Content-Type": "application/json" };
   const health = await fetch(`${url}/rest/v1/`, { headers }).catch(() => null);
@@ -132,19 +157,31 @@ async function main() {
 
   if (!appUrl) failures.push("APP_URL ausente.");
   if (!health.ok) failures.push("/api/health não respondeu OK.");
-  if (health.secretsExposed.length > 0) failures.push("Health expôs marcador sensível.");
+  if (health.sensitiveMarkersFound.length > 0) failures.push("Health expôs marcador sensível.");
+  if (health.secretValuesFound.length > 0) failures.push("Health expôs valor sensível.");
+  if (health.piiFound.length > 0) failures.push("Health expôs PII.");
   if (!health.mockModeFalse) failures.push("mock_mode não está false.");
   if (!health.metaManualSyncReadyIsBoolean) failures.push("meta_manual_sync_ready não é boolean seguro.");
   if (!health.webhookEnabledFalse) failures.push("meta_webhook_enabled não está false.");
   for (const route of routes) {
     if (!route.ok) failures.push(`Rota crítica falhou: ${route.route}`);
-    if (route.secretsExposed.length > 0) failures.push(`Rota expôs marcador sensível: ${route.route}`);
-    if (route.piiExposed) failures.push(`Página pública expôs padrão de PII: ${route.route}`);
+    if (route.sensitiveMarkersFound.length > 0) failures.push(`Rota expôs marcador sensível: ${route.route}`);
+    if (route.secretValuesFound.length > 0) failures.push(`Rota expôs valor sensível: ${route.route}`);
+    if (route.piiFound.length > 0) failures.push(`Página pública expôs padrão de PII: ${route.route}`);
   }
   if (!supabase.configured || !supabase.responds) failures.push("Supabase não respondeu com anon key.");
   if (!supabase.rlsBasicOk) failures.push("RLS básico não bloqueou escrita anon em ig_people.");
 
-  const status = health.secretsExposed.length > 0 || routes.some((route) => route.secretsExposed.length > 0 || route.piiExposed)
+  const totals = {
+    sensitiveMarkersFound:
+      health.sensitiveMarkersFound.length + routes.reduce((count, route) => count + route.sensitiveMarkersFound.length, 0),
+    secretValuesFound:
+      health.secretValuesFound.length + routes.reduce((count, route) => count + route.secretValuesFound.length, 0),
+    piiFound:
+      health.piiFound.length + routes.reduce((count, route) => count + route.piiFound.length, 0),
+  };
+
+  const status = totals.sensitiveMarkersFound > 0 || totals.secretValuesFound > 0 || totals.piiFound > 0
     ? "SHADOW_BLOCKED"
     : failures.length > 0
       ? "NEEDS_FIX"
@@ -157,6 +194,7 @@ async function main() {
     health,
     routes,
     supabase,
+    findings: totals,
     failures,
     secretLeakDetected: status === "SHADOW_BLOCKED",
     webhookEnabled: false,
@@ -172,9 +210,12 @@ async function main() {
   console.log(`- health_ok: ${health.ok}`);
   console.log(`- mock_mode_false: ${health.mockModeFalse}`);
   console.log(`- webhook_enabled_false: ${health.webhookEnabledFalse}`);
-  console.log(`- routes_ok: ${routes.every((route) => route.ok && route.secretsExposed.length === 0 && !route.piiExposed)}`);
+  console.log(`- routes_ok: ${routes.every((route) => route.ok && route.sensitiveMarkersFound.length === 0 && route.secretValuesFound.length === 0 && route.piiFound.length === 0)}`);
   console.log(`- supabase_responds: ${supabase.responds}`);
   console.log(`- rls_basic_ok: ${supabase.rlsBasicOk}`);
+  console.log(`- sensitive_markers_found: ${totals.sensitiveMarkersFound}`);
+  console.log(`- secret_values_found: ${totals.secretValuesFound}`);
+  console.log(`- pii_found: ${totals.piiFound}`);
   console.log(`- secret_leak_detected: ${payload.secretLeakDetected}`);
   console.log(`- recommendation: ${status}`);
 

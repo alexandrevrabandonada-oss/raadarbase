@@ -908,6 +908,7 @@ export type Database = {
           total_interactions: number
           updated_at: string
           username: string
+          responsible_id: string | null
         }
         Insert: {
           created_at?: string
@@ -924,6 +925,7 @@ export type Database = {
           total_interactions?: number
           updated_at?: string
           username: string
+          responsible_id?: string | null
         }
         Update: {
           created_at?: string
@@ -940,6 +942,7 @@ export type Database = {
           total_interactions?: number
           updated_at?: string
           username?: string
+          responsible_id?: string | null
         }
         Relationships: []
       }
@@ -1130,31 +1133,103 @@ export type Database = {
         Row: {
           active: boolean
           body: string
+          category: string | null
           created_at: string
           id: string
           name: string
           theme: string | null
           updated_at: string
+          when_to_use: string | null
         }
         Insert: {
           active?: boolean
           body: string
+          category?: string | null
           created_at?: string
           id?: string
           name: string
           theme?: string | null
           updated_at?: string
+          when_to_use?: string | null
         }
         Update: {
           active?: boolean
           body?: string
+          category?: string | null
           created_at?: string
           id?: string
           name?: string
           theme?: string | null
           updated_at?: string
+          when_to_use?: string | null
         }
         Relationships: []
+      }
+      ig_person_referrals: {
+        Row: {
+          id: string
+          person_id: string
+          target_type: Database["public"]["Enums"]["referral_target_type"]
+          target_id: string | null
+          status: Database["public"]["Enums"]["referral_status"]
+          notes: string
+          created_at: string
+          updated_at: string
+          responsible_id: string | null
+          external_id: string | null
+          last_event_at: string | null
+          last_event_type: string | null
+          last_event_source: string | null
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          person_id: string
+          target_type: Database["public"]["Enums"]["referral_target_type"]
+          target_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          notes?: string
+          created_at?: string
+          updated_at?: string
+          responsible_id?: string | null
+          external_id?: string | null
+          last_event_at?: string | null
+          last_event_type?: string | null
+          last_event_source?: string | null
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          person_id?: string
+          target_type?: Database["public"]["Enums"]["referral_target_type"]
+          target_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          notes?: string
+          created_at?: string
+          updated_at?: string
+          responsible_id?: string | null
+          external_id?: string | null
+          last_event_at?: string | null
+          last_event_type?: string | null
+          last_event_source?: string | null
+          metadata?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_person_referrals_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "ig_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_person_referrals_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "field_agenda_events"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       meta_account_snapshots: {
         Row: {
@@ -1553,6 +1628,7 @@ export type Database = {
           person_id: string
           title: string
           updated_at: string
+          responsible_id: string | null
         }
         Insert: {
           column_key: string
@@ -1564,6 +1640,7 @@ export type Database = {
           person_id: string
           title: string
           updated_at?: string
+          responsible_id?: string | null
         }
         Update: {
           column_key?: string
@@ -1575,6 +1652,7 @@ export type Database = {
           person_id?: string
           title?: string
           updated_at?: string
+          responsible_id?: string | null
         }
         Relationships: [
           {
@@ -2283,6 +2361,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          external_event_id: string
+          id: string
+          payload: Json
+          processed_at: string
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          external_event_id: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          provider: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          external_event_id?: string
+          id?: string
+          payload?: Json
+          processed_at?: string
+          provider?: string
+        }
+        Relationships: []
+      }
       works: {
         Row: {
           content_warning: string | null
@@ -2340,6 +2448,30 @@ export type Database = {
     }
     Enums: {
       consent_status: "pending" | "confirmed" | "revoked"
+      referral_target_type:
+        | "evento_campo"
+        | "voluntariado"
+        | "grupo_lista"
+        | "missao_eluta"
+        | "missao_simples"
+        | "revisar_depois"
+        | "nao_abordar"
+      referral_status:
+        | "recomendado"
+        | "convidado"
+        | "respondeu"
+        | "confirmou"
+        | "compareceu"
+        | "ajudou"
+        | "recusou"
+        | "interessado"
+        | "em_revisao"
+        | "concluido"
+        | "recebeu_link"
+        | "acessou"
+        | "fez_primeira_missao"
+        | "colaborador"
+        | "pode_puxar_missao"
       interaction_type:
         | "comentario"
         | "curtida"
@@ -2489,6 +2621,32 @@ export const Constants = {
   public: {
     Enums: {
       consent_status: ["pending", "confirmed", "revoked"],
+      referral_target_type: [
+        "evento_campo",
+        "voluntariado",
+        "grupo_lista",
+        "missao_eluta",
+        "missao_simples",
+        "revisar_depois",
+        "nao_abordar",
+      ],
+      referral_status: [
+        "recomendado",
+        "convidado",
+        "respondeu",
+        "confirmou",
+        "compareceu",
+        "ajudou",
+        "recusou",
+        "interessado",
+        "em_revisao",
+        "concluido",
+        "recebeu_link",
+        "acessou",
+        "fez_primeira_missao",
+        "colaborador",
+        "pode_puxar_missao",
+      ],
       interaction_type: [
         "comentario",
         "curtida",

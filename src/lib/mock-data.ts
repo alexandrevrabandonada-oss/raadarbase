@@ -7,24 +7,34 @@ import type {
   OutreachTask,
   PersonStatus,
 } from "@/lib/types";
+import { outreachColumnLabels } from "@/lib/outreach-workflow";
 
 export const statusLabels: Record<PersonStatus, string> = {
-  novo: "Novo",
-  responder: "Responder",
-  abordado: "Abordado",
-  respondeu: "Respondeu",
-  contato_confirmado: "Contato confirmado",
-  nao_abordar: "Não abordar",
+  novo: "Novo (Sem Contato)",
+  responder: "Pendente de Resposta",
+  abordado: "Conversa Iniciada",
+  respondeu: "Respondeu Bem",
+  contato_confirmado: "Vínculo Confirmado",
+  nao_abordar: "Retirar de Abordagem",
 };
 
 export const kanbanLabels: Record<KanbanColumnId, string> = {
-  novo: "Novo",
-  responder_comentario: "Responder comentário",
-  mandar_dm_manual: "Mandar DM manual",
-  aguardando_resposta: "Aguardando resposta",
-  convidar_grupo: "Convidar para grupo",
-  contato_confirmado: "Contato confirmado",
-  nao_abordar: "Não abordar",
+  para_abordar: outreachColumnLabels.para_abordar,
+  mensagem_enviada: outreachColumnLabels.mensagem_enviada,
+  esperando_resposta: outreachColumnLabels.esperando_resposta,
+  respondeu: outreachColumnLabels.respondeu,
+  precisa_encaminhar: outreachColumnLabels.precisa_encaminhar,
+  convidado: outreachColumnLabels.convidado,
+  entrou_na_base: outreachColumnLabels.entrou_na_base,
+  primeira_acao_feita: outreachColumnLabels.primeira_acao_feita,
+  nao_insistir: outreachColumnLabels.nao_insistir,
+  nao_abordar: outreachColumnLabels.nao_abordar,
+  novo: outreachColumnLabels.para_abordar,
+  responder_comentario: outreachColumnLabels.para_abordar,
+  mandar_dm_manual: outreachColumnLabels.para_abordar,
+  aguardando_resposta: outreachColumnLabels.esperando_resposta,
+  convidar_grupo: outreachColumnLabels.precisa_encaminhar,
+  contato_confirmado: outreachColumnLabels.entrou_na_base,
 };
 
 export const posts: IgPost[] = [
@@ -86,6 +96,8 @@ export const people: IgPerson[] = [
     notes: "Comentou que pode ajudar no sábado pela manhã.",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
   },
   {
@@ -99,6 +111,8 @@ export const people: IgPerson[] = [
     notes: "DM manual enviada sobre reunião de iluminação.",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
   },
   {
@@ -112,6 +126,8 @@ export const people: IgPerson[] = [
     notes: "Respondeu positivamente, pedir consentimento para lista.",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
   },
   {
@@ -125,6 +141,8 @@ export const people: IgPerson[] = [
     notes: "Autorizou contato direto para agenda de reuniões.",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: {
       id: "c-cida",
       person_id: "p-cida",
@@ -154,6 +172,8 @@ export const people: IgPerson[] = [
     notes: "Novo perfil recorrente nos comentários.",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
   },
   {
@@ -167,6 +187,8 @@ export const people: IgPerson[] = [
     notes: "Pediu para não receber contato direto.",
     doNotContactReason: "Pediu para não receber contato direto.",
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
   },
 ];
@@ -259,12 +281,12 @@ export const interactions: IgInteraction[] = [
 ];
 
 export const outreachTasks: OutreachTask[] = [
-  { id: "t-1", personId: "p-marco", column: "novo", title: "Entender demanda da rua", notes: "", dueAt: null, completedAt: null, person: { id: "p-marco", username: "marco_vr", status: "novo" } },
-  { id: "t-2", personId: "p-ana", column: "responder_comentario", title: "Responder sobre mutirão", notes: "", dueAt: null, completedAt: null, person: { id: "p-ana", username: "ana.vr", status: "responder" } },
-  { id: "t-3", personId: "p-joao", column: "mandar_dm_manual", title: "Perguntar ponto exato", notes: "", dueAt: null, completedAt: null, person: { id: "p-joao", username: "joaopedreiro", status: "abordado" } },
-  { id: "t-4", personId: "p-lu", column: "convidar_grupo", title: "Pedir consentimento para grupo", notes: "", dueAt: null, completedAt: null, person: { id: "p-lu", username: "lu.da.vila", status: "respondeu" } },
-  { id: "t-5", personId: "p-cida", column: "contato_confirmado", title: "Adicionar na lista confirmada", notes: "", dueAt: null, completedAt: null, person: { id: "p-cida", username: "cida_comunidade", status: "contato_confirmado" } },
-  { id: "t-6", personId: "p-nina", column: "nao_abordar", title: "Respeitar pedido de privacidade", notes: "", dueAt: null, completedAt: null, person: { id: "p-nina", username: "nina.artes", status: "nao_abordar" } },
+  { id: "t-1", personId: "p-marco", column: "para_abordar", title: "Entender demanda da rua", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-marco", username: "marco_vr", status: "novo" } },
+  { id: "t-2", personId: "p-ana", column: "para_abordar", title: "Responder sobre mutirão", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-ana", username: "ana.vr", status: "responder" } },
+  { id: "t-3", personId: "p-joao", column: "mensagem_enviada", title: "Perguntar ponto exato", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-joao", username: "joaopedreiro", status: "abordado" } },
+  { id: "t-4", personId: "p-lu", column: "precisa_encaminhar", title: "Pedir consentimento para grupo", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-lu", username: "lu.da.vila", status: "respondeu" } },
+  { id: "t-5", personId: "p-cida", column: "entrou_na_base", title: "Adicionar na lista confirmada", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-cida", username: "cida_comunidade", status: "contato_confirmado" } },
+  { id: "t-6", personId: "p-nina", column: "nao_abordar", title: "Respeitar pedido de privacidade", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-nina", username: "nina.artes", status: "nao_abordar" } },
 ];
 
 export const messageTemplates: MessageTemplate[] = [
@@ -272,6 +294,8 @@ export const messageTemplates: MessageTemplate[] = [
     id: "m-1",
     name: "Responder comentário",
     theme: "escuta",
+    category: "Tem relato",
+    whenToUse: "Quando a pessoa traz um problema no comentário.",
     body: "Oi, @{username}! Vi seu comentário sobre {tema}. Obrigado por trazer isso. Se puder, manda mais detalhes por DM para organizarmos essa escuta com cuidado.",
     active: true,
     updatedAt: "2026-04-24",
@@ -280,6 +304,8 @@ export const messageTemplates: MessageTemplate[] = [
     id: "m-2",
     name: "Convidar para grupo",
     theme: "grupo",
+    category: "Perguntou como ajudar",
+    whenToUse: "Quando a pessoa quer entrar na organização.",
     body: "Oi, @{username}! A gente está organizando um grupo para avisos e reuniões da comunidade. Você autoriza receber esse convite? Link: {link_grupo}",
     active: true,
     updatedAt: "2026-04-23",
@@ -288,6 +314,8 @@ export const messageTemplates: MessageTemplate[] = [
     id: "m-3",
     name: "Formulário de escuta",
     theme: "formulário",
+    category: "Tem relato",
+    whenToUse: "Para registrar demandas estruturadas.",
     body: "Oi, @{username}. Para registrar melhor a demanda sobre {tema}, pode preencher este formulário? {link_formulario}. É opcional e usado só para organização comunitária.",
     active: true,
     updatedAt: "2026-04-22",

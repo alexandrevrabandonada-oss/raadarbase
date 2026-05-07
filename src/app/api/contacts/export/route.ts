@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireInternalSession } from "@/lib/supabase/auth";
+import { canExportContacts } from "@/lib/authz/roles";
 import type { TableRow } from "@/lib/supabase/database.types";
 
 export async function GET() {
   try {
     const user = await requireInternalSession();
+    if (!canExportContacts(user.internalUser.role)) {
+      return NextResponse.json({ error: "A exportação de contatos exige perfil admin." }, { status: 403 });
+    }
+
     const supabase = getSupabaseAdminClient();
     const { data: contacts, error: contactsError } = await supabase.from("contacts").select("*").eq("consent_status", "confirmed");
     if (contactsError) throw contactsError;
@@ -67,6 +72,9 @@ export async function GET() {
       },
     });
   } catch (error) {
+    if (error instanceof Error && /não autenticado/i.test(error.message)) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Falha ao exportar CSV." },
       { status: 500 },

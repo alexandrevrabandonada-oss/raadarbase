@@ -12,7 +12,7 @@ test.describe("Field Agenda Module", () => {
   });
 
   test("should navigate to new event form", async ({ page }) => {
-    await page.click("text=Nova ação de campo");
+    await page.locator('a[href="/campo/novo"]').first().click();
     await expect(page).toHaveURL(/\/campo\/novo/);
     await expect(page.locator("h1")).toContainText("Nova Ação de Campo");
   });

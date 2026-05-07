@@ -109,22 +109,20 @@ async function main() {
         name: "verify token present",
         ok:
           readBooleanAny(payload, [
-            "meta_webhook_verify_token_present",
-            "meta_webhook_verify_present",
+            "webhook_verification_ready",
           ]) === true,
         detail: "boolean only",
       },
       {
         name: "app secret present",
-        ok: readBoolean(payload, "meta_app_secret_present") === true,
+        ok: readBoolean(payload, "meta_server_credentials_ready") === true,
         detail: "boolean only",
       },
       {
         name: "service role present",
         ok:
           readBooleanAny(payload, [
-            "supabase_service_role_present",
-            "supabase_server_key_present",
+            "database_server_ready",
           ]) === true,
         detail: "boolean only",
       },

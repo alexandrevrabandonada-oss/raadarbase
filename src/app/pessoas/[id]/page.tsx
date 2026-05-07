@@ -2,13 +2,15 @@ import { notFound } from "next/navigation";
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/mock-data";
 import { getPersonById } from "@/lib/data/people";
 import { listInteractions } from "@/lib/data/interactions";
-import { getLatestAuditLogForEntity } from "@/lib/data/audit";
+import { listAuditLogsForEntity } from "@/lib/data/audit";
+import { listOutreachTasksForPerson } from "@/lib/data/outreach";
+import { listMessageTemplates } from "@/lib/data/messages";
+import { listFieldAgendaEvents } from "@/lib/data/field-agenda";
+import { listPersonReferralsForPerson } from "@/lib/data/referrals";
+import { buildPersonOperationalProfile } from "@/lib/data/person-profile";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
-import { Badge } from "@/components/ui/badge";
 import { PersonActions } from "./person-actions";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +39,19 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   }
 
   let timeline;
-  let latestOutreach;
+  let tasks;
+  let templates;
+  let auditLogs;
+  let events;
+  let referrals;
   try {
-    [timeline, latestOutreach] = await Promise.all([
+    [timeline, tasks, templates, auditLogs, events, referrals] = await Promise.all([
       listInteractions(person.id),
-      getLatestAuditLogForEntity("ig_people", person.id),
+      listOutreachTasksForPerson(person.id),
+      listMessageTemplates(),
+      listAuditLogsForEntity("ig_people", person.id),
+      listFieldAgendaEvents({ status: "planned" }),
+      listPersonReferralsForPerson(person.id),
     ]);
   } catch (error) {
     return (
@@ -58,55 +68,16 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   return (
     <AppShell>
       <PageHeader
-        title={`@${person.username}`}
-        description={`Última interação em ${formatDateTime(person.lastInteractionAt ?? "")}. Use esta página para registrar histórico manual, notas e consentimento.`}
+        title={person.displayName ? `${person.displayName} (@${person.username})` : `@${person.username}`}
+        description="Ficha de Vínculo: Revise o histórico, mande a DM manual e registre o encaminhamento se houver interesse."
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Timeline de interações</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {timeline.map((item) => (
-              <article key={item.id} className="rounded-md border bg-background p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-bold">{item.type.replace("_", " ")}</p>
-                  <p className="text-sm text-muted-foreground">{formatDateTime(item.occurredAt)}</p>
-                </div>
-                <p className="mt-2 text-sm">{item.text}</p>
-                {item.post?.caption ? (
-                  <p className="mt-2 rounded-md bg-muted px-3 py-2 text-xs font-medium text-muted-foreground">
-                    Post de origem: {item.post.caption}
-                  </p>
-                ) : null}
-              </article>
-            ))}
-          </CardContent>
-        </Card>
-        <div className="flex flex-col gap-6">
-          <PersonActions person={person} latestOutreach={latestOutreach?.summary ?? null} />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Temas das interações públicas</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="text-xs text-muted-foreground leading-relaxed">
-                Estes temas descrevem as interações registradas através de comentários ou posts, <strong>não a pessoa</strong>.
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {Array.from(new Set(timeline.flatMap(t => t.theme ? [t.theme] : []))).map((theme) => (
-                  <Badge key={theme} variant="secondary">
-                    {theme}
-                  </Badge>
-                ))}
-                {timeline.every(t => !t.theme) ? (
-                  <span className="text-xs text-muted-foreground italic">Nenhum tema detectado ou revisado.</span>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PersonActions
+          person={person}
+          profile={buildPersonOperationalProfile(person, timeline, tasks, templates, auditLogs)}
+          availableEvents={events}
+          referrals={referrals}
+        />
       </div>
     </AppShell>
   );

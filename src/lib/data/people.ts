@@ -15,6 +15,8 @@ function mapPerson(person: {
   notes: string;
   do_not_contact_reason: string | null;
   synced_at?: string | null;
+  responsible_id?: string | null;
+  internal_users?: { full_name: string | null } | null;
 }, contact: ContactRecord | null): PersonWithContact {
   return {
     id: person.id,
@@ -27,6 +29,8 @@ function mapPerson(person: {
     notes: person.notes,
     doNotContactReason: person.do_not_contact_reason,
     syncedAt: person.synced_at ?? null,
+    responsibleId: person.responsible_id ?? null,
+    responsibleName: person.internal_users?.full_name ?? null,
     contact,
   };
 }
@@ -36,13 +40,14 @@ export async function listPeople(): Promise<PersonWithContact[]> {
   try {
     const supabase = getSupabaseAdminClient();
     const [{ data: peopleData, error: peopleError }, { data: contactsData, error: contactsError }] = await Promise.all([
-      supabase.from("ig_people").select("*").order("last_interaction_at", { ascending: false }),
+      supabase.from("ig_people").select("*, internal_users(full_name)").order("last_interaction_at", { ascending: false }),
       supabase.from("contacts").select("*"),
     ]);
     if (peopleError) throw peopleError;
     if (contactsError) throw contactsError;
     const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
-    return (peopleData ?? []).map((person) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeople", error);
   }
@@ -52,12 +57,13 @@ export async function getPersonById(id: string): Promise<PersonWithContact | nul
   if (shouldUseMockData()) return mockPeople.find((person) => person.id === id) ?? null;
   try {
     const supabase = getSupabaseAdminClient();
-    const { data: personData, error: personError } = await supabase.from("ig_people").select("*").eq("id", id).maybeSingle();
+    const { data: personData, error: personError } = await supabase.from("ig_people").select("*, internal_users(full_name)").eq("id", id).maybeSingle();
     if (personError) throw personError;
     if (!personData) return null;
     const { data: contactData, error: contactError } = await supabase.from("contacts").select("*").eq("person_id", id).maybeSingle();
     if (contactError) throw contactError;
-    return mapPerson(personData, contactData ?? null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return mapPerson(personData as any, contactData ?? null);
   } catch (error) {
     handleSupabaseReadError("getPersonById", error);
   }

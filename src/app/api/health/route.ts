@@ -37,8 +37,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const appUrlConfigured = Boolean(process.env.APP_URL);
-  const metaWebhookVerifyPresent = Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN);
-  const metaAppSecretPresent = Boolean(process.env.META_APP_SECRET);
+  const metaWebhookVerificationReady = Boolean(process.env.META_WEBHOOK_VERIFY_TOKEN);
+  const metaServerCredentialsReady = Boolean(process.env.META_APP_SECRET);
   const metaWebhookAllowedObjectsConfigured = Boolean(
     process.env.META_WEBHOOK_ALLOWED_OBJECTS && process.env.META_WEBHOOK_ALLOWED_OBJECTS.trim().length > 0,
   );
@@ -48,16 +48,27 @@ export async function GET() {
     .includes("instagram");
   const maxPayloadBytes = Number.parseInt(process.env.META_WEBHOOK_MAX_PAYLOAD_BYTES ?? "262144", 10);
   const metaWebhookMaxPayloadBytesConfigured = Number.isFinite(maxPayloadBytes) && maxPayloadBytes > 0;
-  const supabaseServerKeyPresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const metaAccessTokenPresent = Boolean(process.env.META_ACCESS_TOKEN);
-  const instagramBusinessAccountIdPresent = Boolean(process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID);
-  const metaGraphVersionPresent = Boolean(process.env.META_GRAPH_VERSION);
+  const databaseServerReady = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) && isSupabaseConfigured();
+  const metaReadApiReady = Boolean(process.env.META_ACCESS_TOKEN);
+  const metaBusinessAccountReady = Boolean(process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID);
+  const metaGraphReady = Boolean(process.env.META_GRAPH_VERSION);
   const metaManualSyncReady =
-    metaAccessTokenPresent &&
-    instagramBusinessAccountIdPresent &&
-    metaGraphVersionPresent &&
-    supabaseServerKeyPresent &&
-    isSupabaseConfigured();
+    metaReadApiReady &&
+    metaBusinessAccountReady &&
+    metaGraphReady &&
+    databaseServerReady;
+  const metaIntegrationReady =
+    metaReadApiReady &&
+    metaBusinessAccountReady &&
+    metaGraphReady &&
+    metaServerCredentialsReady;
+  const webhookRuntimeReady =
+    metaWebhookVerificationReady &&
+    metaServerCredentialsReady &&
+    metaWebhookAllowedObjectsConfigured &&
+    metaWebhookAllowedObjectsHasInstagram &&
+    metaWebhookMaxPayloadBytesConfigured;
+  const productionShadowSafe = !USE_MOCKS && !isWebhookEnabled();
   const runtime = process.env.NEXT_RUNTIME ?? "nodejs";
 
   const productionWarnings = getUnsafeProductionWarnings();
@@ -301,19 +312,18 @@ export async function GET() {
     volunteer_pending_90d_count: volunteerReviewDashboard.pending90d.length,
     volunteer_review_rounds_count: volunteerReviewDashboard.roundsCount,
     latest_volunteer_review_round_status: volunteerReviewDashboard.latestRound?.status ?? null,
-    supabase_configured: isSupabaseConfigured(),
-    meta_configured: isMetaConfigured(),
-    app_url_configured: appUrlConfigured,
-    meta_webhook_verify_present: metaWebhookVerifyPresent,
-    meta_app_secret_present: metaAppSecretPresent,
-    meta_webhook_allowed_objects_configured: metaWebhookAllowedObjectsConfigured,
-    meta_webhook_allowed_objects_has_instagram: metaWebhookAllowedObjectsHasInstagram,
-    meta_webhook_max_payload_bytes_configured: metaWebhookMaxPayloadBytesConfigured,
-    supabase_server_key_present: supabaseServerKeyPresent,
-    meta_api_credentials_present: metaAccessTokenPresent,
-    instagram_business_account_id_present: instagramBusinessAccountIdPresent,
-    meta_graph_version_present: metaGraphVersionPresent,
+    database_ready: isSupabaseConfigured(),
+    meta_integration_ready: metaIntegrationReady && isMetaConfigured(),
+    webhook_runtime_ready: webhookRuntimeReady,
     meta_manual_sync_ready: metaManualSyncReady,
+    production_shadow_safe: productionShadowSafe,
+    app_ready: appUrlConfigured,
+    database_server_ready: databaseServerReady,
+    meta_read_api_ready: metaReadApiReady,
+    meta_server_credentials_ready: metaServerCredentialsReady,
+    webhook_verification_ready: metaWebhookVerificationReady,
+    meta_business_account_ready: metaBusinessAccountReady,
+    meta_graph_ready: metaGraphReady,
     runtime,
     mock_mode: USE_MOCKS,
     environment: getEnvironmentLabel(),

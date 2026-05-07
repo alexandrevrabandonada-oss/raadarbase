@@ -15,6 +15,8 @@ export async function listMessageTemplates(): Promise<MessageTemplate[]> {
       name: template.name,
       theme: template.theme ?? "",
       body: template.body,
+      category: template.category ?? null,
+      whenToUse: template.when_to_use ?? null,
       active: template.active,
       updatedAt: template.updated_at,
     }));

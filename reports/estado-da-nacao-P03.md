@@ -1,0 +1,21 @@
+# Estado da Nação P03
+
+- Data/hora: 2026-05-07T03:00:00Z
+- `production:route-audit` resultado: `ACCESS_READY`
+- `production:rls-audit` resultado: `ACCESS_READY`
+- `production:role-audit` resultado: `ACCESS_READY`
+- Relatório de auditoria gerado: `reports/production-access-audit-report.md`
+- Falhas encontradas durante a implementação:
+  - exports protegidos devolviam `500` sem sessão;
+  - `/api/contacts/export` não exigia `admin`;
+  - a auditoria RLS tratava tabelas vazias como vazamento de leitura anon.
+- Correções aplicadas:
+  - export APIs agora respondem `401/403` quando faltam autenticação ou papel;
+  - `/api/contacts/export` passou a exigir `admin`;
+  - `production-rls-audit` passou a registrar tabelas vazias sem falso bloqueio;
+  - readiness passou a verificar os novos scripts, o documento de auditoria e o gate de admin para export de contatos.
+- Recommendation: `ACCESS_READY`
+- Produção pública liberada: não
+- Webhook produção enabled: false
+- Guardrails preservados: sem DM automática, sem WhatsApp automático, sem e-mail automático, sem contato automático, sem score político individual, sem classificação apoiador/opositor/persuadível, sem afrouxar RLS, sem transformar pessoa do Instagram em voluntário.
+- Próximo passo recomendado: consolidar a ata humana de decisão final usando os relatórios `production-shadow-report.md` e `production-access-audit-report.md`, mantendo shadow como único ambiente validado até `GO_PRODUCTION` explícito.

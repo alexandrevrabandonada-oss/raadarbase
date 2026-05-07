@@ -1,0 +1,185 @@
+{
+  "generatedAt": "2026-05-07T17:03:33.881Z",
+  "appUrl": "https://raadarbase.vercel.app",
+  "tables": [
+    {
+      "table": "ig_people",
+      "serviceReadOk": true,
+      "serviceCount": 451,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "ig_interactions",
+      "serviceReadOk": true,
+      "serviceCount": 542,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "meta_webhook_events",
+      "serviceReadOk": true,
+      "serviceCount": 3,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "meta_webhook_event_links",
+      "serviceReadOk": true,
+      "serviceCount": 1,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "public_devolution_publications",
+      "serviceReadOk": true,
+      "serviceCount": 1,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "territorial_listening_windows",
+      "serviceReadOk": true,
+      "serviceCount": 1,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "territorial_listening_daily_snapshots",
+      "serviceReadOk": true,
+      "serviceCount": 5,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "territorial_listening_outreach_logs",
+      "serviceReadOk": true,
+      "serviceCount": 4,
+      "anonReadBlocked": true,
+      "anonReadStatus": "error",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "campaign_volunteers",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "campaign_volunteer_applications",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "campaign_squads",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "campaign_squad_members",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "field_agenda_events",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "field_agenda_event_results",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "silence_radar_corrective_actions",
+      "serviceReadOk": true,
+      "serviceCount": 0,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "public_receipt_distribution_logs",
+      "serviceReadOk": true,
+      "serviceCount": 3,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    },
+    {
+      "table": "public_receipt_distribution_cycles",
+      "serviceReadOk": true,
+      "serviceCount": 2,
+      "anonReadBlocked": true,
+      "anonReadStatus": "empty_or_hidden",
+      "anonWriteBlocked": true,
+      "anonWriteStatus": "permission_blocked"
+    }
+  ],
+  "exportChecks": [
+    {
+      "path": "/api/voluntarios/export?include_contact=true",
+      "status": 401,
+      "blocked": true
+    },
+    {
+      "path": "/api/voluntarios/inscricoes/export?include_contact=true",
+      "status": 401,
+      "blocked": true
+    },
+    {
+      "path": "/api/contacts/export",
+      "status": 401,
+      "blocked": true
+    }
+  ],
+  "findings": {
+    "serviceReadFailures": 0,
+    "anonReadLeaks": 0,
+    "anonWriteLeaks": 0,
+    "protectedExportLeaks": 0
+  },
+  "failures": [],
+  "recommendation": "ACCESS_READY",
+  "productionAuthorized": false
+}

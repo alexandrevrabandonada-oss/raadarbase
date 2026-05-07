@@ -13,11 +13,19 @@ export const E2E_BYPASS_AUTH_ACTIVE =
 export const E2E_BYPASS_AUTH_MISCONFIGURED =
   process.env.E2E_BYPASS_AUTH === "true" && !E2E_BYPASS_AUTH_ACTIVE;
 
+export function getSupabasePublishableKey() {
+  return process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+}
+
+export function getSupabaseSecretKey() {
+  return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+}
+
 export function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      getSupabasePublishableKey() &&
+      getSupabaseSecretKey(),
   );
 }
 

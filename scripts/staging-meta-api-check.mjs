@@ -97,12 +97,12 @@ async function main() {
   const remoteChecks = remote
     ? [
         { name: "health endpoint reachable", present: remote.ok, detail: `status=${remote.status}` },
-        { name: "meta_api_credentials_present", present: boolFrom(remoteBody, "meta_api_credentials_present") === true },
+        { name: "meta_read_api_ready", present: boolFrom(remoteBody, "meta_read_api_ready") === true },
         {
-          name: "instagram_business_account_id_present",
-          present: boolFrom(remoteBody, "instagram_business_account_id_present") === true,
+          name: "meta_business_account_ready",
+          present: boolFrom(remoteBody, "meta_business_account_ready") === true,
         },
-        { name: "meta_graph_version_present", present: boolFrom(remoteBody, "meta_graph_version_present") === true },
+        { name: "meta_graph_ready", present: boolFrom(remoteBody, "meta_graph_ready") === true },
         { name: "meta_manual_sync_ready", present: boolFrom(remoteBody, "meta_manual_sync_ready") === true },
       ]
     : [];

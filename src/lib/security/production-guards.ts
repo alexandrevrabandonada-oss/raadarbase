@@ -18,6 +18,8 @@ function isProductionEnvironment() {
 export function getUnsafeProductionWarnings(): UnsafeProductionWarning[] {
   const warnings: UnsafeProductionWarning[] = [];
   const isProduction = isProductionEnvironment();
+  const hasSupabaseServerKey = Boolean(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const hasSupabaseClientKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   if (isProduction && process.env.E2E_BYPASS_AUTH === "true") {
     warnings.push({
@@ -35,11 +37,11 @@ export function getUnsafeProductionWarnings(): UnsafeProductionWarning[] {
     });
   }
 
-  if (isProduction && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (isProduction && !hasSupabaseServerKey) {
     warnings.push({
       code: "SUPABASE_SERVICE_ROLE_KEY_MISSING",
       severity: "error",
-      message: "SUPABASE_SERVICE_ROLE_KEY ausente em produção.",
+      message: "SUPABASE_SECRET_KEY/SUPABASE_SERVICE_ROLE_KEY ausente em produção.",
     });
   }
 
@@ -51,11 +53,11 @@ export function getUnsafeProductionWarnings(): UnsafeProductionWarning[] {
     });
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabaseClientKey) {
     warnings.push({
       code: "NEXT_PUBLIC_SUPABASE_ANON_KEY_MISSING",
       severity: isProduction ? "error" : "warning",
-      message: "NEXT_PUBLIC_SUPABASE_ANON_KEY ausente.",
+      message: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY ausente.",
     });
   }
 

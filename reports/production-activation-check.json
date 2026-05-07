@@ -1,0 +1,218 @@
+{
+  "generatedAt": "2026-05-07T17:22:29.782Z",
+  "appUrl": "https://raadarbase.vercel.app",
+  "environment": "production-active",
+  "health": {
+    "ok": true,
+    "status": 200,
+    "sensitiveMarkersFound": [],
+    "secretValuesFound": [],
+    "piiFound": [],
+    "mockModeFalse": true,
+    "databaseReady": true,
+    "metaIntegrationReady": true,
+    "webhookRuntimeReady": true,
+    "webhookEnabledTrue": true,
+    "productionShadowSafeFalse": true
+  },
+  "routes": [
+    {
+      "route": "/",
+      "expectedAccess": "public",
+      "status": 307,
+      "redirectsToLogin": false,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/recibo/escuta",
+      "expectedAccess": "public",
+      "status": 200,
+      "redirectsToLogin": false,
+      "publiclyAccessible": true,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/escuta/bairro",
+      "expectedAccess": "public",
+      "status": 200,
+      "redirectsToLogin": false,
+      "publiclyAccessible": true,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/voluntarios/quero-ajudar",
+      "expectedAccess": "public",
+      "status": 200,
+      "redirectsToLogin": false,
+      "publiclyAccessible": true,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/dashboard",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/integracoes/meta",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/operacao",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/operacao/meta-reconciliacao",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/radar/silencios",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/radar/silencios/acoes",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/radar/silencios/impacto",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/campo",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/voluntarios",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/voluntarios/inscricoes",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    },
+    {
+      "route": "/voluntarios/revisao-periodica",
+      "expectedAccess": "internal",
+      "status": 307,
+      "redirectsToLogin": true,
+      "publiclyAccessible": false,
+      "ok": true,
+      "sensitiveMarkersFound": [],
+      "secretValuesFound": [],
+      "piiFound": []
+    }
+  ],
+  "exports": [
+    {
+      "path": "/api/voluntarios/export?include_contact=true",
+      "status": 401,
+      "blocked": true
+    },
+    {
+      "path": "/api/voluntarios/inscricoes/export?include_contact=true",
+      "status": 401,
+      "blocked": true
+    },
+    {
+      "path": "/api/contacts/export",
+      "status": 401,
+      "blocked": true
+    }
+  ],
+  "supabase": {
+    "configured": true,
+    "responds": true,
+    "rlsBasicOk": true,
+    "serviceReadOk": true
+  },
+  "findings": {
+    "sensitiveMarkersFound": 0,
+    "secretValuesFound": 0,
+    "piiFound": 0,
+    "internalRoutesPublic": 0,
+    "protectedExportLeaks": 0
+  },
+  "failures": [],
+  "webhookEnabled": true,
+  "recommendation": "ACTIVATION_READY"
+}

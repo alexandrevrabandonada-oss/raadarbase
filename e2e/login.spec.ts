@@ -14,5 +14,6 @@ test("healthcheck nao expoe segredos", async ({ request }) => {
   expect(text).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   const body = JSON.parse(text);
   expect(body).toHaveProperty("stuck_sync_runs_count");
-  expect(body).toHaveProperty("supabase_configured");
+  expect(body).toHaveProperty("database_ready");
+  expect(body).not.toHaveProperty("supabase_configured");
 });

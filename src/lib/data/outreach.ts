@@ -23,6 +23,7 @@ export async function listOutreachTasks(): Promise<OutreachTaskWithPerson[]> {
       notes: task.notes,
       dueAt: task.due_at,
       completedAt: task.completed_at,
+      responsibleId: task.responsible_id ?? null,
       person: peopleById.get(task.person_id)
         ? {
             id: peopleById.get(task.person_id)!.id,
@@ -34,4 +35,9 @@ export async function listOutreachTasks(): Promise<OutreachTaskWithPerson[]> {
   } catch (error) {
     handleSupabaseReadError("listOutreachTasks", error);
   }
+}
+
+export async function listOutreachTasksForPerson(personId: string): Promise<OutreachTaskWithPerson[]> {
+  const tasks = await listOutreachTasks();
+  return tasks.filter((task) => task.personId === personId);
 }
