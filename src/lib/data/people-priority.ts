@@ -272,6 +272,21 @@ function buildPriorityPerson(
   const isPendingResponse = boardColumnIsPendingResponse(task?.column) || person.status === "abordado";
   const hasReferral = person.status === "contato_confirmado" || person.themes.some(t => t.startsWith("quer_"));
   const priorityScore = computePriorityScore(person, interactions, task, hasReferral, now);
+  
+  const scoreLabel = priorityScore >= 12 ? "Muito quente" : 
+                    priorityScore >= 8 ? "Quente" : 
+                    priorityScore >= 4 ? "Morno" : "Observar";
+  
+  const scoreIntensity = Math.min(100, Math.max(0, (priorityScore / 15) * 100));
+
+  const scoreTooltip = [
+    `Score: ${priorityScore}`,
+    latest ? `Última interação: ${latest.type}` : null,
+    hasPendingTask ? "Possui tarefa aberta (+3)" : null,
+    !hasReferral ? "Sem encaminhamento (+2)" : null,
+    riskFlags.recentOutreach ? "Penalização: contato recente" : null
+  ].filter(Boolean).join(" · ");
+
   const suggestedTemplate = getSuggestedTemplate(task, person, mainTheme, templates);
   const priorityEligible = person.status !== "nao_abordar" && !person.doNotContactReason;
 
@@ -301,6 +316,9 @@ function buildPriorityPerson(
     isPendingResponse,
     hasReferral,
     priorityEligible,
+    scoreLabel,
+    scoreIntensity,
+    scoreTooltip,
     riskFlags,
   };
 }

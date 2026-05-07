@@ -2,32 +2,63 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, Copy, ExternalLink, MoveLeft, MoveRight } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { 
+  AlertCircle, 
+  Copy, 
+  ExternalLink, 
+  MoveLeft, 
+  MoveRight, 
+  Flame, 
+  User, 
+  Instagram, 
+  MessageSquare, 
+  CheckCircle2, 
+  Clock, 
+  ShieldAlert,
+  Users,
+  Search,
+  Filter,
+  Check
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDateTime } from "@/lib/mock-data";
-import { assumeTaskResponsible, createOutreachTask, recordPersonResponse, updateOutreachTaskStatus, type ActionResult } from "@/app/actions";
+import { assumeTaskResponsible, recordPersonResponse, updateOutreachTaskStatus } from "@/app/actions";
 import { PERSON_RESPONSE_OPTIONS } from "@/lib/data/person-profile";
 import { normalizeOutreachColumn, nextBoardColumn, outreachBoardColumns, outreachColumnLabels, type BoardColumnId } from "@/lib/outreach-workflow";
 import type { OutreachTask, PersonResponseKind, PriorityPerson } from "@/lib/types";
-import { balanceTasks, bulkAssignTasks } from "./team-actions";
+import { balanceTasks } from "./team-actions";
+import { cn } from "@/lib/utils";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 
 type BoardTask = OutreachTask & {
   boardColumn: BoardColumnId;
   priority: PriorityPerson | null;
+  isStale: boolean; // Over 48h
 };
 
 function mapTasks(initialTasks: OutreachTask[], priorityPeople: PriorityPerson[]): BoardTask[] {
   const priorityByPersonId = new Map(priorityPeople.map((person) => [person.id, person]));
-  return initialTasks.map((task) => ({
-    ...task,
-    boardColumn: normalizeOutreachColumn(task.column),
-    priority: priorityByPersonId.get(task.personId) ?? null,
-  }));
+  const now = new Date().getTime();
+  const fortyEightHours = 48 * 60 * 60 * 1000;
+
+  return initialTasks.map((task) => {
+    const updatedAt = new Date(task.updatedAt || task.createdAt).getTime();
+    return {
+      ...task,
+      boardColumn: normalizeOutreachColumn(task.column),
+      priority: priorityByPersonId.get(task.personId) ?? null,
+      isStale: (now - updatedAt) > fortyEightHours && task.column !== "concluido" && task.column !== "nao_abordar"
+    };
+  });
 }
 
 export function KanbanClient({
@@ -40,33 +71,50 @@ export function KanbanClient({
   operators?: Operator[];
 }) {
   const [tasks, setTasks] = useState<BoardTask[]>(() => mapTasks(initialTasks, priorityPeople));
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [responseValues, setResponseValues] = useState<Record<string, PersonResponseKind>>({});
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [responsibleFilter, setResponsibleFilter] = useState<string>("todos");
+  const [filterType, setFilterType] = useState<"todos" | "meus" | "sem_responsavel" | "stale" | "encaminhar">("todos");
+  const [operatorFilter, setOperatorFilter] = useState<string>("todos");
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [isDistributing, setIsDistributing] = useState(false);
+
+  // Derived stats for header
+  const stats = useMemo(() => {
+    const active = tasks.filter(t => t.column !== "concluido" && t.column !== "nao_abordar");
+    return {
+      total: active.length,
+      unassigned: active.filter(t => !t.responsibleId).length,
+      waiting: active.filter(t => t.boardColumn === "esperando_resposta").length,
+      needReferral: active.filter(t => t.boardColumn === "precisa_encaminhar").length,
+      stale: active.filter(t => t.isStale).length
+    };
+  }, [tasks]);
 
   const groupedColumns = useMemo(
     () =>
       outreachBoardColumns.map((column) => {
-        let filteredTasks = tasks.filter((task) => task.boardColumn === column);
-        if (responsibleFilter === "sem_responsavel") {
-          filteredTasks = filteredTasks.filter(task => !task.responsibleId);
-        } else if (responsibleFilter === "meus") {
-          // This would need session info, but for now lets assume filter by specific ID or placeholder
-          filteredTasks = filteredTasks.filter(task => !!task.responsibleId);
-        } else if (responsibleFilter !== "todos") {
-          filteredTasks = filteredTasks.filter(task => task.responsibleId === responsibleFilter);
+        let filtered = tasks.filter((task) => task.boardColumn === column);
+        
+        // Apply Header Filters
+        if (filterType === "meus") filtered = filtered.filter(t => t.responsibleId === "me"); // Placeholder for session
+        if (filterType === "sem_responsavel") filtered = filtered.filter(t => !t.responsibleId);
+        if (filterType === "stale") filtered = filtered.filter(t => t.isStale);
+        if (filterType === "encaminhar") filtered = filtered.filter(t => t.boardColumn === "precisa_encaminhar");
+
+        // Apply Operator Filter
+        if (operatorFilter !== "todos") {
+           filtered = filtered.filter(t => t.responsibleId === operatorFilter);
         }
+
         return {
           column,
           label: outreachColumnLabels[column],
-          tasks: filteredTasks,
+          tasks: filtered,
         };
       }),
-    [tasks, responsibleFilter],
+    [tasks, filterType, operatorFilter],
   );
 
   async function updateTaskColumn(taskId: string, nextColumnValue: BoardColumnId) {
@@ -80,20 +128,21 @@ export function KanbanClient({
     const result = await updateOutreachTaskStatus(taskId, nextColumnValue);
     if (!result.ok) {
       setTasks(previous);
-      setFeedback(result.error);
+      setFeedback({ text: result.error, type: "error" });
     } else {
-      setFeedback(result.message);
+      setFeedback({ text: result.message, type: "success" });
     }
     setSavingTaskId(null);
+    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function runResponse(task: BoardTask) {
     const responseType = responseValues[task.id] ?? "revisar_depois";
     setSavingTaskId(task.id);
-    setFeedback(null);
     const result = await recordPersonResponse(task.personId, responseType);
+    
     if (!result.ok) {
-      setFeedback(result.error);
+      setFeedback({ text: result.error, type: "error" });
       setSavingTaskId(null);
       return;
     }
@@ -120,336 +169,329 @@ export function KanbanClient({
     })();
 
     setTasks((current) =>
-      current.map((item) => (item.id === task.id ? { ...item, boardColumn, column: boardColumn } : item)),
+      current.map((item) => (item.id === task.id ? { ...item, boardColumn, column: boardColumn, updatedAt: new Date().toISOString() } : item)),
     );
-    setFeedback(result.message);
+    setFeedback({ text: result.message, type: "success" });
     setSavingTaskId(null);
+    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function copyMessage(task: BoardTask) {
     if (!task.priority?.suggestedMessage) return;
     await navigator.clipboard.writeText(task.priority.suggestedMessage);
     setCopiedTaskId(task.id);
-    setFeedback("Mensagem sugerida copiada.");
-    window.setTimeout(() => setCopiedTaskId((current) => (current === task.id ? null : current)), 2000);
-  }
-
-  async function ensureTask(task: BoardTask) {
-    if (task.id) return;
-    const result: ActionResult = await createOutreachTask(task.personId);
-    setFeedback(result.ok ? result.message : result.error);
+    setFeedback({ text: "Mensagem copiada para o clipboard.", type: "success" });
+    window.setTimeout(() => setCopiedTaskId(null), 2000);
+    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function runAssumeTask(taskId: string) {
     setSavingTaskId(taskId);
-    setFeedback(null);
     const result = await assumeTaskResponsible(taskId);
     if (!result.ok) {
-      setFeedback(result.error);
+      setFeedback({ text: result.error, type: "error" });
     } else {
-      setFeedback(result.message);
-      setTasks(current => current.map(t => t.id === taskId ? { ...t, responsibleId: "me", priority: { ...t.priority!, responsibleName: "Você" } } : t));
+      setFeedback({ text: result.message, type: "success" });
+      setTasks(current => current.map(t => t.id === taskId ? { ...t, responsibleId: "me" } : t));
     }
     setSavingTaskId(null);
+    setTimeout(() => setFeedback(null), 3000);
   }
 
   async function runBalance() {
     if (selectedOperators.length === 0) {
-      setFeedback("Selecione operadores para balancear.");
+      setFeedback({ text: "Selecione operadores para balancear.", type: "error" });
       return;
     }
     setIsDistributing(true);
     const result = await balanceTasks(selectedOperators);
     if (result.ok) {
-      setFeedback(result.message);
-      window.location.reload(); // Simplest way to refresh all data with updated responsible names
+      setFeedback({ text: result.message, type: "success" });
+      window.location.reload();
     } else {
-      setFeedback(result.error);
+      setFeedback({ text: result.error, type: "error" });
     }
     setIsDistributing(false);
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-emerald-500/20 bg-emerald-50/10">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm text-emerald-900">Prontas para Agir</CardTitle>
-          </CardHeader>
-          <CardContent className="py-0 px-4 pb-3">
-            <p className="text-2xl font-bold text-emerald-700">{tasks.filter(t => t.boardColumn === "respondeu" || t.boardColumn === "precisa_encaminhar").length}</p>
-            <p className="text-[10px] text-emerald-600 uppercase">Pessoas que responderam bem</p>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-500/20 bg-amber-50/10">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm text-amber-900">Aguardando Resposta</CardTitle>
-          </CardHeader>
-          <CardContent className="py-0 px-4 pb-3">
-            <p className="text-2xl font-bold text-amber-700">{tasks.filter(t => t.boardColumn === "esperando_resposta").length}</p>
-            <p className="text-[10px] text-amber-600 uppercase">DMs enviadas recentemente</p>
-          </CardContent>
-        </Card>
-        <Card className="border-red-500/20 bg-red-50/10">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm text-red-900">Não Abordar</CardTitle>
-          </CardHeader>
-          <CardContent className="py-0 px-4 pb-3">
-            <p className="text-2xl font-bold text-red-700">{tasks.filter(t => t.boardColumn === "nao_abordar").length}</p>
-            <p className="text-[10px] text-red-600 uppercase">Respeitar pedido de privacidade</p>
-          </CardContent>
-        </Card>
-        <Card className="border-sky-700/20 bg-sky-50 shadow-sm col-span-1 md:col-span-2">
-          <CardContent className="p-3">
-            <div className="flex flex-wrap justify-between items-start gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <h2 className="text-sm font-bold text-sky-950 mb-1">Rotina Simplificada</h2>
-                <p className="text-xs text-sky-900 leading-relaxed">
-                  1. Encontre a pessoa no quadro. 2. Copie a mensagem sugerida. 3. Abra o Instagram e cole. 4. Mova o card.
-                </p>
+    <div className="space-y-8 pb-10">
+      {/* 1. Cabeçalho Operacional */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: "Tarefas Ativas", value: stats.total, icon: Users, color: "zinc" },
+          { label: "Sem Responsável", value: stats.unassigned, icon: AlertCircle, color: "orange" },
+          { label: "Aguardando Resposta", value: stats.waiting, icon: Clock, color: "amber" },
+          { label: "Precisa Encaminhar", value: stats.needReferral, icon: ExternalLink, color: "emerald" },
+          { label: "Paradas > 48h", value: stats.stale, icon: ShieldAlert, color: "rose" },
+        ].map((s) => (
+          <Card key={s.label} className={cn("border-none shadow-sm", `bg-${s.color}-50 text-${s.color}-900`)}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <s.icon className={cn("h-4 w-4", `text-${s.color}-600`)} />
+                <span className="text-2xl font-black">{s.value}</span>
               </div>
-              <div className="w-48">
-                <label className="text-[10px] font-bold uppercase text-sky-800 block mb-1">Filtrar por Responsável</label>
-                <select
-                  className="w-full rounded-md border-sky-200 bg-white px-2 py-1 text-xs text-sky-900"
-                  value={responsibleFilter}
-                  onChange={(e) => setResponsibleFilter(e.target.value)}
-                >
-                  <option value="todos">Todos</option>
-                  <option value="sem_responsavel">Sem responsável</option>
-                  <option value="meus">Meus (Todos atribuídos)</option>
-                  <optgroup label="Operadores">
-                    {operators.map(op => (
-                      <option key={op.id} value={op.id}>{op.full_name || op.email}</option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card className="border-indigo-950/10 bg-indigo-50/30">
-        <CardHeader className="py-3 px-4">
-          <CardTitle className="text-sm flex items-center justify-between">
-            <span>Gestão de Equipe (Piloto)</span>
-            <Badge variant="outline" className="text-[10px] uppercase">{tasks.filter(t => !t.responsibleId).length} tarefas órfãs</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-0 px-4 pb-3">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[300px]">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-2">Selecionar Operadores para Balanceamento</label>
-              <div className="flex flex-wrap gap-2">
-                {operators.map(op => (
-                  <button
-                    key={op.id}
-                    type="button"
-                    onClick={() => setSelectedOperators(prev => 
-                      prev.includes(op.id) ? prev.filter(id => id !== op.id) : [...prev, op.id]
-                    )}
-                    className={`px-2 py-1 rounded-md border text-xs transition-colors ${
-                      selectedOperators.includes(op.id) 
-                        ? "bg-indigo-600 text-white border-indigo-700" 
-                        : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-                    }`}
-                  >
-                    {op.full_name || op.email.split("@")[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Button 
-              size="sm" 
-              className="bg-indigo-900 text-white"
-              onClick={runBalance}
-              disabled={isDistributing || selectedOperators.length === 0}
-            >
-              {isDistributing ? "Distribuindo..." : "Balancear Tarefas Órfãs"}
-            </Button>
+      {/* 2. Filtros e Gestão */}
+      <div className="flex flex-col lg:flex-row gap-4 items-end">
+        <div className="flex-1 space-y-2">
+          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+            <Filter className="h-3 w-3" /> Filtros Operacionais
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "todos", label: "Tudo" },
+              { id: "meus", label: "Minhas" },
+              { id: "sem_responsavel", label: "Órfãs" },
+              { id: "stale", label: "Atrasadas" },
+              { id: "encaminhar", label: "Encaminhar" },
+            ].map(f => (
+              <Button
+                key={f.id}
+                variant={filterType === f.id ? "default" : "outline"}
+                size="sm"
+                className={cn("h-8 font-bold px-4 rounded-full", filterType === f.id ? "bg-black" : "border-zinc-200")}
+                onClick={() => setFilterType(f.id as typeof filterType)}
+              >
+                {f.label}
+              </Button>
+            ))}
           </div>
+        </div>
+
+        <div className="w-full lg:w-64 space-y-2">
+          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Por Operador</label>
+          <select
+            className="w-full h-8 rounded-full border border-zinc-200 bg-white px-4 text-xs font-bold"
+            value={operatorFilter}
+            onChange={(e) => setOperatorFilter(e.target.value)}
+          >
+            <option value="todos">Todos os Operadores</option>
+            {operators.map(op => (
+              <option key={op.id} value={op.id}>{op.full_name || op.email.split("@")[0]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* 5. Painel de Balanceamento */}
+      <Card className="border-indigo-100 bg-indigo-50/20">
+        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-indigo-950 flex items-center gap-2">
+              <Users className="h-4 w-4" /> Balanceamento de Equipe
+            </h3>
+            <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione os operadores para distribuir as {stats.unassigned} tarefas órfãs.</p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 justify-center">
+            {operators.map(op => {
+               const isSelected = selectedOperators.includes(op.id);
+               return (
+                  <Button
+                    key={op.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedOperators(prev => 
+                      isSelected ? prev.filter(id => id !== op.id) : [...prev, op.id]
+                    )}
+                    className={cn(
+                      "h-8 px-3 text-[10px] font-black uppercase transition-all rounded-lg",
+                      isSelected ? "bg-indigo-600 text-white border-indigo-700 shadow-md" : "bg-white border-zinc-200 text-zinc-600"
+                    )}
+                  >
+                    {isSelected && <Check className="mr-1 h-3 w-3" />}
+                    {op.full_name || op.email.split("@")[0]}
+                  </Button>
+               );
+            })}
+          </div>
+
+          <Button 
+            onClick={runBalance} 
+            disabled={isDistributing || selectedOperators.length === 0}
+            className="bg-black text-white font-black h-10 px-8 shadow-lg shadow-black/10"
+          >
+            {isDistributing ? "Distribuindo..." : "Distribuir Agora"}
+          </Button>
         </CardContent>
       </Card>
 
-      <div className="rounded-md border border-red-500/30 bg-red-50/30 p-3 text-xs text-red-900 flex flex-col gap-1">
-        <strong>Atenção: Regras de Ouro do Piloto</strong>
-        <ul className="list-disc pl-5">
-          <li>A pessoa precisa sentir que foi escutada, não capturada.</li>
-          <li>Contato manual, humano e contextual.</li>
-          <li>Sem pedido de voto na pré-campanha.</li>
-          <li>Respeite não contato. Toda recusa deve virar &quot;Não Abordar&quot;.</li>
-        </ul>
-      </div>
-
-      {feedback ? <p className="text-sm text-muted-foreground">{feedback}</p> : null}
-
-      {tasks.length === 0 && (
-        <Alert className="border-amber-200 bg-amber-50/60 mb-2">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800">Nenhuma tarefa aberta</AlertTitle>
-          <AlertDescription className="text-amber-700">
-            O quadro de abordagem está vazio. Para começar, acesse a aba &quot;Pessoas&quot; e adicione tarefas de abordagem para os perfis prioritários.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="overflow-x-auto pb-3">
-        <div className="grid min-w-[1800px] grid-cols-10 gap-4">
+      {/* Kanban Board */}
+      <div className="overflow-x-auto pb-6 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-200">
+        <div className="flex gap-4 min-w-[2000px]">
           {groupedColumns.map(({ column, label, tasks: columnTasks }) => (
-            <Card key={column} className={column === "nao_abordar" ? "min-h-64 border-red-800/20 bg-red-50/60" : "min-h-64"}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  {label} <span className="text-sm text-muted-foreground">({columnTasks.length})</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {columnTasks.map((task) => {
-                  const person = task.person;
-                  const priority = task.priority;
-                  return (
-                    <div key={task.id} className={`rounded-md border bg-background p-3 ${task.boardColumn === "nao_abordar" ? "border-red-800/30" : ""}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-bold">@{person?.username ?? "sem-usuario"}</p>
-                          <p className="mt-1 text-sm">{task.title}</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {priority?.themes.includes("quer_evento_campo") && <Badge variant="outline" className="text-[9px] bg-emerald-50 text-emerald-700 border-emerald-200">QUER EVENTO</Badge>}
-                            {priority?.themes.includes("quer_voluntariado") && <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">QUER VOLUNTARIADO</Badge>}
-                            {priority?.themes.includes("quer_missao_eluta") && <Badge variant="outline" className="text-[9px] bg-purple-50 text-purple-700 border-purple-200">QUER ÉLUTA</Badge>}
-                          </div>
+            <div key={column} className="w-[300px] shrink-0 space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                  {label} <span className="ml-1 text-zinc-400">({columnTasks.length})</span>
+                </h3>
+                {columnTasks.some(t => t.isStale) && (
+                   <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                           <ShieldAlert className="h-3 w-3 text-rose-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>Há tarefas paradas nesta coluna.</TooltipContent>
+                      </Tooltip>
+                   </TooltipProvider>
+                )}
+              </div>
+
+              <div className={cn(
+                "space-y-3 p-2 rounded-2xl min-h-[500px] transition-colors",
+                column === "nao_abordar" ? "bg-rose-50/50" : "bg-zinc-50/50"
+              )}>
+                {columnTasks.map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className={cn(
+                      "border shadow-sm group hover:border-indigo-400 transition-all",
+                      task.isStale ? "border-rose-200 shadow-rose-100/50" : "border-zinc-100"
+                    )}
+                  >
+                    <CardContent className="p-3 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0">
+                           <p className="text-xs font-black text-indigo-950 truncate">@{task.person?.username || "usuario"}</p>
+                           <p className="text-[10px] font-bold text-zinc-500 truncate mt-0.5">{task.title}</p>
                         </div>
-                        {priority?.temperature ? (
-                          <span className="rounded-md border px-2 py-1 text-[11px] font-medium">
-                            {priority.temperature === "quente" ? "Quente" : priority.temperature === "morno" ? "Morno" : "Frio"}
-                          </span>
-                        ) : null}
+                        <div className="flex items-center gap-1">
+                           {task.priority?.temperature === "quente" && <Flame className="h-3 w-3 text-orange-500 fill-orange-500" />}
+                           <Badge variant="outline" className="text-[9px] font-black tracking-tighter h-4 px-1">
+                             {task.priority?.priorityScore || 0}
+                           </Badge>
+                        </div>
                       </div>
 
-                      <div className="mt-3 space-y-2 text-xs text-muted-foreground">
-                        <p><strong className="text-foreground">Motivo:</strong> {priority?.priorityReason ?? "Sem motivo calculado ainda."}</p>
-                        <p><strong className="text-foreground">Próxima ação:</strong> {(priority?.nextAction ?? task.notes) || "Sem próxima ação definida."}</p>
-                        <p className="flex items-center gap-1">
-                          <strong className="text-foreground">Responsável:</strong> {priority?.responsibleName ?? "Nenhum"}
-                          {!priority?.responsibleName && (
+                      <div className="space-y-1.5 py-2 border-y border-zinc-50">
+                        <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+                           <span>Responsável</span>
+                           <span className={cn(task.responsibleId ? "text-indigo-600" : "text-rose-500")}>
+                             {task.priority?.responsibleName || "Órfã"}
+                           </span>
+                        </div>
+                        <p className="text-[10px] font-medium leading-tight text-zinc-600 line-clamp-2 italic">
+                          &quot;{(task.priority?.nextAction || task.notes) || "Sem próxima ação"}&quot;
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                         <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-indigo-600">
+                                    <Link href={`/pessoas/${task.personId}`}><Search className="h-3 w-3" /></Link>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Abrir Ficha</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-pink-600">
+                                    <a href={`https://instagram.com/${task.person?.username}`} target="_blank" rel="noreferrer"><Instagram className="h-3 w-3" /></a>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Abrir Instagram</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-6 w-6 text-zinc-400 hover:text-emerald-600"
+                                    onClick={() => copyMessage(task)}
+                                    disabled={!task.priority?.suggestedMessage}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Copiar DM</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                         </div>
+
+                         {!task.responsibleId && (
                             <Button 
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm" 
-                              className="h-5 px-1.5 text-[9px]"
+                              className="h-6 px-2 text-[9px] font-black uppercase text-indigo-600 hover:bg-indigo-50"
                               onClick={() => runAssumeTask(task.id)}
-                              disabled={savingTaskId === task.id}
                             >
                               Assumir
                             </Button>
-                          )}
-                        </p>
-                        <p><strong className="text-foreground">Última interação:</strong> {priority?.latestInteractionLabel ?? "Sem registro recente"}</p>
-                        <p><strong className="text-foreground">Prazo:</strong> {task.dueAt ? formatDateTime(task.dueAt) : "Sem prazo"}</p>
+                         )}
                       </div>
 
-                      <div className="mt-3 grid gap-2">
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
-                            disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === 0}
-                          >
-                            <MoveLeft data-icon="inline-start" />
-                            Voltar
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
-                            disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === outreachBoardColumns.length - 1}
-                          >
-                            <MoveRight data-icon="inline-start" />
-                            Avançar
-                          </Button>
-                        </div>
-
-                        <select
-                          className="h-9 rounded-md border bg-background px-2 text-sm"
-                          value={task.boardColumn}
-                          onChange={(event) => updateTaskColumn(task.id, event.target.value as BoardColumnId)}
-                          disabled={savingTaskId === task.id}
+                      <div className="grid grid-cols-2 gap-1 pt-1 border-t border-zinc-50">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[9px] font-black uppercase"
+                          onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
+                          disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === 0}
                         >
-                          {outreachBoardColumns.map((option) => (
-                            <option key={option} value={option}>
-                              {outreachColumnLabels[option]}
-                            </option>
+                          <MoveLeft className="mr-1 h-3 w-3" /> Voltar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-[9px] font-black uppercase"
+                          onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
+                          disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === outreachBoardColumns.length - 1}
+                        >
+                          Avançar <MoveRight className="ml-1 h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2 pt-2 bg-zinc-50/80 -mx-3 -mb-3 p-3 rounded-b-xl border-t border-zinc-100">
+                        <select
+                          className="w-full h-8 rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold"
+                          value={responseValues[task.id] ?? "revisar_depois"}
+                          onChange={(e) => setResponseValues(prev => ({ ...prev, [task.id]: e.target.value as PersonResponseKind }))}
+                        >
+                          {PERSON_RESPONSE_OPTIONS.map(opt => (
+                            <option key={opt.key} value={opt.key}>{opt.label}</option>
                           ))}
                         </select>
-
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {person ? (
-                            <Button nativeButton={false} size="sm" variant="outline" render={<Link href={`/pessoas/${person.id}`} />}>
-                              Ver pessoa
-                            </Button>
-                          ) : null}
-                          {priority?.instagramUrl ? (
-                            <Button
-                              nativeButton={false}
-                              size="sm"
-                              variant="outline"
-                              render={<Link href={priority.instagramUrl} target="_blank" rel="noreferrer" />}
-                            >
-                              <ExternalLink data-icon="inline-start" />
-                              Abrir Instagram
-                            </Button>
-                          ) : null}
-                        </div>
-
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyMessage(task)}
-                          disabled={savingTaskId === task.id || !priority?.suggestedMessage}
+                        <Button 
+                          size="sm" 
+                          className="w-full h-8 text-[10px] font-black uppercase bg-zinc-800 hover:bg-black"
+                          onClick={() => runResponse(task)}
+                          disabled={savingTaskId === task.id}
                         >
-                          <Copy data-icon="inline-start" />
-                          {copiedTaskId === task.id ? "Mensagem copiada" : "Copiar mensagem"}
+                          Confirmar Resposta
                         </Button>
-
-                        <div className="grid gap-2">
-                          <select
-                            className="h-9 rounded-md border bg-background px-2 text-sm"
-                            value={responseValues[task.id] ?? "revisar_depois"}
-                            onChange={(event) =>
-                              setResponseValues((current) => ({
-                                ...current,
-                                [task.id]: event.target.value as PersonResponseKind,
-                              }))
-                            }
-                            disabled={savingTaskId === task.id}
-                          >
-                            {PERSON_RESPONSE_OPTIONS.map((option) => (
-                              <option key={option.key} value={option.key}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <Button type="button" size="sm" className="w-full" onClick={() => runResponse(task)} disabled={savingTaskId === task.id}>
-                            Confirmar Resultado
-                          </Button>
-                        </div>
-
-                        {!task.id ? (
-                          <Button type="button" size="sm" variant="outline" onClick={() => ensureTask(task)}>
-                            Criar tarefa persistida
-                          </Button>
-                        ) : null}
                       </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
+
+      {feedback && (
+        <div className={cn(
+          "fixed bottom-6 right-6 px-6 py-3 rounded-2xl shadow-2xl font-black text-sm z-50 animate-in fade-in slide-in-from-bottom-4",
+          feedback.type === "error" ? "bg-rose-600 text-white" : "bg-black text-white"
+        )}>
+          {feedback.text}
+        </div>
+      )}
     </div>
   );
 }

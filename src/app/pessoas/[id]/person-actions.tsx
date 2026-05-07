@@ -2,16 +2,41 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Copy, ExternalLink, Flag, MessageCircle, ShieldCheck, User } from "lucide-react";
+import { 
+  Copy, 
+  ExternalLink, 
+  Flag, 
+  MessageCircle, 
+  ShieldCheck, 
+  User, 
+  Flame, 
+  CheckCircle2, 
+  Clock, 
+  AlertTriangle, 
+  Info, 
+  ArrowRight,
+  ClipboardCheck,
+  Instagram,
+  UserPlus,
+  MessageSquare,
+  History,
+  Send,
+  Milestone
+} from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ActionResult } from "@/app/actions";
 import {
-  createOutreachTask,
   markContactConfirmed,
   markDoNotContact,
   recordPersonReferral,
@@ -21,20 +46,21 @@ import {
   updatePersonReferralStatus,
   assumePersonResponsible,
 } from "@/app/actions";
-import { formatDateTime, statusLabels } from "@/lib/mock-data";
+import { formatDateTime } from "@/lib/mock-data";
 import { PERSON_RESPONSE_OPTIONS, type PersonOperationalProfile } from "@/lib/data/person-profile";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-function timelineBadgeClassName(type: PersonOperationalProfile["timeline"][number]["type"]) {
-  switch (type) {
-    case "instagram":
-      return "border-sky-700/20 bg-sky-50 text-sky-950";
-    case "tarefa":
-      return "border-yellow-500/30 bg-yellow-100 text-yellow-950";
-    default:
-      return "border-zinc-500/30 bg-zinc-100 text-zinc-800";
-  }
+function timelineIcon(type: PersonOperationalProfile["timeline"][number]["type"], title: string) {
+  const t = title.toLowerCase();
+  if (t.includes("coment")) return <MessageSquare className="h-4 w-4" />;
+  if (t.includes("story")) return <History className="h-4 w-4" />;
+  if (t.includes("dm") || t.includes("mensagem")) return <Send className="h-4 w-4" />;
+  if (t.includes("encaminha") || t.includes("referral")) return <Milestone className="h-4 w-4" />;
+  if (t.includes("tarefa")) return <ClipboardCheck className="h-4 w-4" />;
+  if (t.includes("éLuta")) return <Flame className="h-4 w-4" />;
+  return <Info className="h-4 w-4" />;
 }
 
 export function PersonActions({
@@ -92,348 +118,376 @@ export function PersonActions({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:col-span-2">
-      <div className="space-y-6">
-        <Card className="border-indigo-950/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Responsável pelo vínculo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {profile.priority.responsibleName ? (
-              <p className="text-sm font-medium">{profile.priority.responsibleName}</p>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">Esta pessoa ainda não possui um responsável de equipe.</p>
+    <div className="space-y-8 pb-20">
+      {/* 1. Cabeçalho da Ficha */}
+      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-2xl border shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-black flex items-center justify-center text-white shrink-0 shadow-lg">
+            <User className="h-8 w-8" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black tracking-tight truncate">
+              {person.displayName || person.username}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <Badge variant="secondary" className="font-bold">@{person.username}</Badge>
+              <StatusBadge status={status} />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="cursor-help border-orange-200 bg-orange-50 text-orange-700 font-black">
+                      Score {profile.priority.priorityScore}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {profile.priority.scoreTooltip}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              {profile.priority.responsibleName ? (
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100">
+                  Responsável: {profile.priority.responsibleName}
+                </Badge>
+              ) : (
                 <Button 
-                  type="button" 
-                  variant="outline" 
                   size="sm" 
-                  className="w-full text-xs h-8"
+                  variant="ghost" 
+                  className="h-6 px-2 text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                   onClick={() => runAction(() => assumePersonResponsible(person.id), { successText: "Você assumiu este vínculo." })}
                   disabled={isPending}
                 >
-                  Assumir Vínculo
+                  <UserPlus className="mr-1 h-3 w-3" /> Assumir Vínculo
                 </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-red-950/10">
-          <CardHeader>
-            <CardTitle>Próxima melhor ação</CardTitle>
-            <CardDescription>Deixe a decisão operacional visível antes de abrir qualquer conversa.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={profile.priority.temperature === "quente" ? "border-red-800/20 bg-red-50 text-red-950" : ""}>
-                {profile.priority.temperature === "quente" ? "Prioridade Alta" : profile.priority.temperature === "morno" ? "Prioridade Média" : "Prioridade Baixa"}
-              </Badge>
-              <StatusBadge status={status} />
-              {profile.priority.mainTheme ? <Badge variant="secondary">{profile.priority.mainTheme}</Badge> : null}
-            </div>
-            <div className="text-xl font-bold leading-snug text-primary">{nextActionLabel}</div>
-            <div className="grid gap-3 text-sm md:grid-cols-3">
-              <div>
-                <div className="text-xs uppercase tracking-normal text-muted-foreground">Pode abordar?</div>
-                <div>{canApproach ? "Sim, manualmente." : "Não."}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-normal text-muted-foreground">Última interação</div>
-                <div>{profile.priority.latestInteractionLabel}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-normal text-muted-foreground">Status de abordagem</div>
-                <div>{profile.priority.outreachStatusLabel}</div>
-              </div>
-            </div>
-            <div className="space-y-2 mt-4">
-              {profile.priority.riskFlags.doNotContact && (
-                <Alert variant="destructive">
-                  <AlertTitle>Não abordar!</AlertTitle>
-                  <AlertDescription>
-                    {person.doNotContactReason ?? "Esta pessoa pediu para não receber contato. Respeite a privacidade."}
-                  </AlertDescription>
-                </Alert>
-              )}
-              {profile.priority.riskFlags.noReferralAfterResponse && (
-                <Alert className="border-amber-500/50 bg-amber-50 text-amber-900">
-                  <AlertTitle>Falta Encaminhamento</AlertTitle>
-                  <AlertDescription>
-                    A pessoa respondeu mas ainda não foi encaminhada para nenhuma ação ou grupo.
-                  </AlertDescription>
-                </Alert>
-              )}
-              {profile.priority.riskFlags.recentOutreach && (
-                <Alert className="border-blue-500/50 bg-blue-50 text-blue-900">
-                  <AlertTitle>Contato Muito Recente</AlertTitle>
-                  <AlertDescription>
-                    Uma mensagem foi enviada há menos de 24 horas. Evite parecer spam.
-                  </AlertDescription>
-                </Alert>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Por que está no radar?</CardTitle>
-            <CardDescription>Explique a importância da pessoa com base em sinais públicos e registros operacionais.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-md border bg-muted/40 p-3 text-sm">{profile.priority.priorityReason}</div>
-            <ul className="space-y-2 text-sm">
-              {profile.reasons.map((reason) => (
-                <li key={reason} className="rounded-md border bg-background px-3 py-2">
-                  {reason}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap gap-2">
+          {person.username && (
+            <Button asChild variant="outline" className="font-black border-zinc-200">
+              <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">
+                <Instagram className="mr-2 h-4 w-4" /> Instagram
+              </a>
+            </Button>
+          )}
+          <Button variant="outline" className="font-black border-zinc-200" onClick={copyMessage} disabled={!profile.priority.suggestedMessage}>
+            <Copy className="mr-2 h-4 w-4" /> Copiar DM
+          </Button>
+          {!profile.priority.responsibleName && (
+             <Button className="font-black bg-indigo-600 hover:bg-indigo-700 shadow-md" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
+               Assumir
+             </Button>
+          )}
+        </div>
+      </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Mensagem sugerida</CardTitle>
-            <CardDescription>Revise antes de enviar. Não mande em massa.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <Badge variant="outline">{profile.compatibleTemplate?.name ?? "Sem template compatível"}</Badge>
-              {profile.compatibleTemplate?.theme ? <Badge variant="secondary">{profile.compatibleTemplate.theme}</Badge> : null}
-            </div>
-            <div className="rounded-md border bg-background p-4 text-sm leading-relaxed">
-              {profile.priority.suggestedMessage ?? "Ainda não há mensagem sugerida compatível para esta pessoa."}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={copyMessage} disabled={isPending || !profile.priority.suggestedMessage}>
-                <Copy data-icon="inline-start" />
-                {copied === "mensagem" ? "Mensagem copiada" : "Copiar mensagem"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Histórico de relação</CardTitle>
-            <CardDescription>Interações, tarefas e registros manuais organizados em uma linha do tempo única.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {profile.timeline.length === 0 ? (
-              <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-                Ainda não há histórico suficiente além do cadastro básico.
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* 2. Próxima Melhor Ação - Card Destaque */}
+          <Card className="border-2 border-indigo-600 shadow-xl overflow-hidden">
+            <div className="bg-indigo-600 px-4 py-2 flex items-center justify-between">
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Próxima Melhor Ação</span>
+              <div className="flex items-center gap-2">
+                {profile.priority.temperature === "quente" && <Flame className="h-4 w-4 text-orange-400 fill-orange-400" />}
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">{profile.priority.scoreLabel}</span>
               </div>
-            ) : (
-              profile.timeline.map((item) => (
-                <article key={item.id} className="rounded-md border bg-background p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{item.title}</p>
-                      {item.badge ? (
-                        <Badge variant="outline" className={timelineBadgeClassName(item.type)}>
-                          {item.badge}
-                        </Badge>
-                      ) : null}
+            </div>
+            <CardContent className="p-6">
+              <div className="text-2xl font-black text-indigo-950 leading-tight mb-4">
+                {nextActionLabel}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-zinc-100">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Motivo</span>
+                  <p className="text-xs font-bold text-zinc-700">{profile.priority.priorityReason}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Urgência</span>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-12 bg-zinc-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-500" style={{ width: `${profile.priority.scoreIntensity}%` }} />
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatDateTime(item.occurredAt)}</p>
+                    <span className="text-xs font-black text-orange-600">{Math.round(profile.priority.scoreIntensity)}%</span>
                   </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
-                </article>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>O que a pessoa disse?</CardTitle>
-            <CardDescription>Registre o resultado da conversa para manter a base atualizada.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {PERSON_RESPONSE_OPTIONS.map((option) => (
-              <Button
-                key={option.key}
-                type="button"
-                variant="outline"
-                className="h-auto items-start justify-start py-3 text-left"
-                disabled={isPending}
-                onClick={() =>
-                  runAction(() => recordPersonResponse(person.id, option.key), {
-                    successText: `${option.label} registrado.`,
-                    nextStatus:
-                      option.key === "nao_quer_contato"
-                        ? "nao_abordar"
-                        : option.key === "nao_respondeu" || option.key === "revisar_depois"
-                          ? "abordado"
-                          : "respondeu",
-                  })
-                }
-              >
-                <span>
-                  <span className="block font-medium">{option.label}</span>
-                  <span className="block text-xs text-muted-foreground">{option.hint}</span>
-                </span>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Ações rápidas</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            <Button
-              nativeButton={false}
-              variant="outline"
-              render={<a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer" />}
-            >
-              <ExternalLink data-icon="inline-start" />
-              Abrir Instagram
-            </Button>
-            <Button type="button" variant="outline" onClick={copyMessage} disabled={isPending || !profile.priority.suggestedMessage}>
-              <Copy data-icon="inline-start" />
-              Copiar mensagem
-            </Button>
-            <Button type="button" variant="outline" onClick={() => runAction(() => createOutreachTask(person.id))} disabled={isPending}>
-              <Flag data-icon="inline-start" />
-              Criar tarefa de abordagem
-            </Button>
-            <Button
-              type="button"
-              onClick={() => runAction(() => registerManualDm(person.id), { nextStatus: "abordado" })}
-              disabled={isPending || !canApproach}
-            >
-              <MessageCircle data-icon="inline-start" />
-              Registrar DM enviada
-            </Button>
-            <Button
-              type="button"
-              onClick={() => runAction(() => markContactConfirmed(person.id, "Instagram"), { nextStatus: "contato_confirmado" })}
-              className="bg-emerald-900 text-white hover:bg-emerald-950"
-              disabled={isPending || !canApproach}
-            >
-              <ShieldCheck data-icon="inline-start" />
-              Marcar contato confirmado
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => runAction(() => markDoNotContact(person.id), { nextStatus: "nao_abordar" })}
-              disabled={isPending}
-            >
-              Marcar como não abordar
-            </Button>
-            <div className="pt-2 border-t mt-2">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-2">Encaminhar para</label>
-              <div className="grid gap-2">
-                <select 
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={selectedTarget}
-                  onChange={(e) => setSelectedTarget(e.target.value as PersonReferralType)}
-                >
-                  <option value="">Selecione o destino...</option>
-                  <option value="evento_campo">Evento / Ação de Campo</option>
-                  <option value="voluntariado">Voluntariado</option>
-                  <option value="grupo_lista">Grupo / Lista de Chamados</option>
-                  <option value="missao_eluta">Missão ÉLuta</option>
-                  <option value="missao_simples">Missão Simples Online</option>
-                  <option value="revisar_depois">Revisar depois</option>
-                  <option value="nao_abordar">Não abordar</option>
-                </select>
-
-                {selectedTarget === "evento_campo" && (
-                  <select 
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={selectedEventId}
-                    onChange={(e) => setSelectedEventId(e.target.value)}
-                  >
-                    <option value="">Selecione o evento...</option>
-                    {availableEvents.map(e => (
-                      <option key={e.id} value={e.id}>{e.title} ({e.neighborhood || "Território"})</option>
-                    ))}
-                  </select>
-                )}
-
-                {selectedTarget && (
-                  <>
-                    <Textarea 
-                      placeholder="Notas do encaminhamento..." 
-                      className="text-xs min-h-[60px]"
-                      value={referralNotes}
-                      onChange={(e) => setReferralNotes(e.target.value)}
-                    />
-                    <Button 
-                      type="button" 
-                      onClick={() => {
-                        runAction(() => recordPersonReferral(person.id, selectedTarget as PersonReferralType, { 
-                          targetId: selectedEventId, 
-                          notes: referralNotes 
-                        }), { successText: "Encaminhamento registrado." });
-                        setSelectedTarget("");
-                        setSelectedEventId("");
-                        setReferralNotes("");
-                      }}
-                      disabled={isPending || (selectedTarget === "evento_campo" && !selectedEventId)}
-                    >
-                      Confirmar Encaminhamento
-                    </Button>
-                  </>
-                )}
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Alertas</span>
+                  <div className="flex flex-wrap gap-1">
+                    {profile.priority.riskFlags.recentOutreach && (
+                      <Badge className="bg-blue-100 text-blue-700 border-none text-[9px] font-black">CONTATO RECENTE</Badge>
+                    )}
+                    {profile.priority.riskFlags.doNotContact && (
+                      <Badge className="bg-rose-100 text-rose-700 border-none text-[9px] font-black">NÃO ABORDAR</Badge>
+                    )}
+                    {profile.priority.riskFlags.noReferralAfterResponse && (
+                      <Badge className="bg-amber-100 text-amber-700 border-none text-[9px] font-black">FALTA ENCAMINHAR</Badge>
+                    )}
+                    {!profile.priority.riskFlags.recentOutreach && !profile.priority.riskFlags.doNotContact && !profile.priority.riskFlags.noReferralAfterResponse && (
+                      <Badge className="bg-emerald-100 text-emerald-700 border-none text-[9px] font-black">CAMINHO LIVRE</Badge>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {referrals.length > 0 && (
-              <div className="pt-4 border-t mt-4">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground block mb-2">Encaminhamentos Ativos</label>
-                <div className="space-y-3">
-                  {referrals.map(ref => (
-                    <div key={ref.id} className="rounded-md border p-3 text-xs bg-muted/20">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold uppercase">{ref.targetType.replace("_", " ")}</span>
-                        <Badge variant="outline" className="text-[9px] h-4">
-                          {ref.status}
+          {/* 3. Por que está no radar? */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-black flex items-center gap-2">
+              <Info className="h-5 w-5 text-zinc-400" />
+              Por que está no radar?
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {profile.reasons.map((reason, i) => (
+                <div key={i} className="flex items-start gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                  <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
+                  <p className="text-xs font-bold text-zinc-700 leading-relaxed">{reason}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 4. Mensagem Sugerida */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-black flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-indigo-600" />
+              Mensagem sugerida
+            </h2>
+            <Card className="bg-indigo-50/50 border-indigo-100">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="outline" className="font-black bg-white border-indigo-200 text-indigo-700">
+                    CATEGORIA: {profile.compatibleTemplate?.name || "PERSONALIZADA"}
+                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <AlertTriangle className="h-4 w-4 text-amber-600 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Revise antes de enviar. Nunca automatize.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm text-sm font-medium leading-relaxed mb-4">
+                  {profile.priority.suggestedMessage || "Sem mensagem sugerida para este contexto."}
+                </div>
+                <div className="flex items-center justify-between">
+                   <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest flex items-center gap-1">
+                     <AlertTriangle className="h-3 w-3" /> Revise antes de enviar
+                   </p>
+                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage} className="bg-black text-white font-black h-9 px-6">
+                     <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado" : "Copiar Texto"}
+                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* 5. Histórico do Vínculo */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-black flex items-center gap-2">
+              <History className="h-5 w-5 text-zinc-400" />
+              Histórico do vínculo
+            </h2>
+            <div className="relative space-y-4 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-100">
+              {profile.timeline.map((item) => (
+                <div key={item.id} className="relative pl-12">
+                  <div className="absolute left-0 top-1 h-10 w-10 rounded-full bg-white border-2 border-zinc-100 flex items-center justify-center z-10 text-zinc-500">
+                    {timelineIcon(item.type, item.title)}
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border shadow-sm group hover:border-indigo-200 transition-colors">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-black text-zinc-950">{item.title}</p>
+                      <time className="text-[10px] font-bold text-zinc-400 uppercase">{formatDateTime(item.occurredAt)}</time>
+                    </div>
+                    <p className="text-xs text-zinc-600 leading-relaxed">{item.description}</p>
+                    {item.badge && (
+                      <Badge variant="outline" className="mt-2 text-[9px] font-black tracking-widest uppercase border-zinc-200">
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right Column */}
+        <aside className="lg:col-span-4 space-y-8">
+          {/* 6. Ações de Conversa */}
+          <Card className="shadow-lg border-zinc-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-black">Resultado da conversa</CardTitle>
+              <CardDescription className="text-xs">Registre o que a pessoa disse.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {PERSON_RESPONSE_OPTIONS.map((option) => (
+                <Button
+                  key={option.key}
+                  variant="outline"
+                  className="h-auto flex flex-col items-start p-3 text-left border-zinc-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+                  disabled={isPending}
+                  onClick={() =>
+                    runAction(() => recordPersonResponse(person.id, option.key), {
+                      successText: `${option.label} registrado.`,
+                      nextStatus:
+                        option.key === "nao_quer_contato"
+                          ? "nao_abordar"
+                          : option.key === "nao_respondeu" || option.key === "revisar_depois"
+                            ? "abordado"
+                            : "respondeu",
+                    })
+                  }
+                >
+                  <span className="font-black text-sm group-hover:text-indigo-700">{option.label}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">{option.hint}</span>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Ações Rápidas */}
+          <Card className="border-none bg-black text-white shadow-xl">
+             <CardHeader>
+               <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Ações Rápidas</CardTitle>
+             </CardHeader>
+             <CardContent className="grid gap-2">
+                <Button
+                  asChild
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 font-black h-12"
+                >
+                  <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">
+                    <Instagram className="mr-3 h-5 w-5" /> Abrir no App
+                  </a>
+                </Button>
+                
+                <Button 
+                  className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black h-12 border-none"
+                  onClick={() => runAction(() => registerManualDm(person.id), { nextStatus: "abordado" })}
+                  disabled={isPending || !canApproach}
+                >
+                  <Send className="mr-3 h-5 w-5" /> Registrar DM enviada
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black h-12"
+                  onClick={() => runAction(() => markContactConfirmed(person.id, "Instagram"), { nextStatus: "contato_confirmado" })}
+                  disabled={isPending || !canApproach}
+                >
+                  <ShieldCheck className="mr-3 h-5 w-5" /> Confirmar Contato
+                </Button>
+
+                <Button 
+                   variant="ghost"
+                   className="w-full text-zinc-500 hover:text-white hover:bg-rose-600/20 font-bold text-xs h-10"
+                   onClick={() => runAction(() => markDoNotContact(person.id), { nextStatus: "nao_abordar" })}
+                   disabled={isPending}
+                >
+                  Marcar como não abordar
+                </Button>
+             </CardContent>
+          </Card>
+
+          {/* 7. Encaminhamentos Ativos */}
+          <section className="space-y-4">
+             <h2 className="text-base font-black flex items-center gap-2">
+               <Milestone className="h-5 w-5 text-indigo-600" />
+               Encaminhamentos
+             </h2>
+             <div className="space-y-4">
+                <div className="grid gap-2">
+                   <select 
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm font-bold shadow-sm"
+                      value={selectedTarget}
+                      onChange={(e) => setSelectedTarget(e.target.value as PersonReferralType)}
+                    >
+                      <option value="">Novo encaminhamento...</option>
+                      <option value="evento_campo">Evento / Ação de Campo</option>
+                      <option value="voluntariado">Voluntariado</option>
+                      <option value="grupo_lista">Grupo / Lista</option>
+                      <option value="missao_eluta">Missão ÉLuta</option>
+                    </select>
+
+                    {selectedTarget === "evento_campo" && (
+                      <select 
+                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm font-bold shadow-sm"
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                      >
+                        <option value="">Selecione o evento...</option>
+                        {availableEvents.map(e => (
+                          <option key={e.id} value={e.id}>{e.title}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {selectedTarget && (
+                      <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                        <Textarea 
+                          placeholder="Por que está encaminhando?" 
+                          className="text-xs min-h-[80px] rounded-xl border-zinc-200"
+                          value={referralNotes}
+                          onChange={(e) => setReferralNotes(e.target.value)}
+                        />
+                        <Button 
+                          className="w-full font-black bg-black h-10"
+                          onClick={() => {
+                            runAction(() => recordPersonReferral(person.id, selectedTarget as PersonReferralType, { 
+                              targetId: selectedEventId, 
+                              notes: referralNotes 
+                            }), { successText: "Encaminhamento registrado." });
+                            setSelectedTarget("");
+                            setSelectedEventId("");
+                            setReferralNotes("");
+                          }}
+                          disabled={isPending || (selectedTarget === "evento_campo" && !selectedEventId)}
+                        >
+                          Confirmar
+                        </Button>
+                      </div>
+                    )}
+                </div>
+
+                {referrals.map(ref => (
+                  <Card key={ref.id} className="border-indigo-100 bg-indigo-50/20 overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black uppercase text-indigo-700 tracking-widest">
+                          {ref.targetType.replace("_", " ")}
+                        </span>
+                        <Badge className="bg-indigo-600 text-[9px] font-black h-4">
+                          {ref.status.toUpperCase()}
                         </Badge>
                       </div>
+                      
                       {ref.targetId && (
-                        <p className="text-muted-foreground mb-1">
-                          Evento: {availableEvents.find(e => e.id === ref.targetId)?.title || "Carregando..."}
+                        <p className="text-xs font-bold text-zinc-900 mb-1">
+                          {availableEvents.find(e => e.id === ref.targetId)?.title || "Carregando..."}
                         </p>
                       )}
-                      {ref.notes && <p className="italic text-muted-foreground mb-2 line-clamp-2">&quot;{ref.notes}&quot;</p>}
                       
-                      {ref.targetType === "missao_eluta" && ref.lastEventType && (
-                        <div className="mb-2 p-2 rounded bg-indigo-50 border border-indigo-100 text-[10px]">
-                          <p className="font-bold text-indigo-900 uppercase flex items-center gap-1">
-                            Último evento Missão ÉLuta: {ref.lastEventType.replace("mission_eluta_", "").replace(/_/g, " ")}
-                          </p>
-                          <p className="text-indigo-700/70">
-                            Em {formatDateTime(ref.lastEventAt || ref.updatedAt)} ({ref.lastEventSource === "webhook" ? "Via Webhook" : "Manual"})
-                          </p>
-                          {!!ref.metadata?.mission_slug && (
-                            <p className="mt-1 font-medium">Missão: {String(ref.metadata.mission_slug)}</p>
-                          )}
-                        </div>
-                      )}
+                      {ref.notes && <p className="text-[11px] text-zinc-500 italic leading-relaxed mb-3">&quot;{ref.notes}&quot;</p>}
                       
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1 mt-2 border-t border-indigo-100 pt-3">
                         {(ref.targetType === "missao_eluta" 
-                          ? ["recebeu_link", "acessou", "fez_primeira_missao", "colaborador", "pode_puxar_missao"]
+                          ? ["recebeu_link", "acessou", "fez_primeira_missao", "colaborador"]
                           : ["convidado", "confirmou", "compareceu", "recusou"]
                         ).map(s => (
                           <Button 
                             key={s}
-                            type="button" 
                             variant="ghost" 
-                            size="sm" 
-                            className="h-6 px-2 text-[9px] uppercase"
+                            className={cn(
+                              "h-7 px-2 text-[9px] font-black uppercase tracking-tighter",
+                              ref.status === s ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-indigo-600 hover:bg-indigo-100"
+                            )}
                             onClick={() => runAction(() => updatePersonReferralStatus(ref.id, person.id, s as PersonReferralStatus))}
                             disabled={isPending}
                           >
@@ -442,54 +496,45 @@ export function PersonActions({
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Button nativeButton={false} variant="outline" render={<Link href="/campo" />}>
-                Abrir Campo
+                  </Card>
+                ))}
+             </div>
+          </section>
+
+          {/* 8. Notas e Cuidado */}
+          <Card className="border-dashed border-zinc-300 bg-zinc-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-black flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-zinc-400" />
+                Cuidado da base
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-[10px] font-bold text-zinc-500 leading-tight">
+                Anote apenas o necessário para o vínculo. Proibido registrar dados sensíveis ou inferências pessoais.
+              </p>
+              <Textarea
+                className="min-h-[120px] bg-white text-xs font-medium border-zinc-200 focus:ring-black"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Ex: Teve interesse na plenária de amanhã..."
+              />
+              <Button onClick={saveNotes} disabled={isPending} variant="secondary" className="w-full font-black h-10 border shadow-sm">
+                Salvar Histórico
               </Button>
-              <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios" />}>
-                Abrir Voluntários
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Notas e cuidado da base</CardTitle>
-            <CardDescription>Anote apenas o necessário para cuidar da relação. Não registre dados sensíveis ou inferências pessoais.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={status} />
-              {profile.priority.mainTheme ? <Badge variant="secondary">{profile.priority.mainTheme}</Badge> : null}
-              <Badge variant="outline">{statusLabels[status]}</Badge>
-            </div>
-            <Textarea
-              className="min-h-40"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              aria-label="Notas internas"
-            />
-            <Button type="button" onClick={saveNotes} disabled={isPending}>
-              Salvar notas
-            </Button>
-          </CardContent>
-        </Card>
-
-        {person.contact?.consent_status === "confirmed" ? (
-          <div className="rounded-md border border-emerald-700/30 bg-emerald-50 p-4 text-sm text-emerald-950">
-            Consentimento registrado para {person.contact.contact_channel}: {person.contact.consent_purpose}
-          </div>
-        ) : null}
-
-        {feedback ? (
-          <p className={`text-sm ${feedback.type === "error" ? "text-red-700" : "text-emerald-700"}`}>{feedback.text}</p>
-        ) : null}
+            </CardContent>
+          </Card>
+        </aside>
       </div>
+
+      {feedback && (
+        <div className={cn(
+          "fixed bottom-6 right-6 px-6 py-3 rounded-2xl shadow-2xl font-black text-sm z-50 animate-in fade-in slide-in-from-bottom-4",
+          feedback.type === "error" ? "bg-rose-600 text-white" : "bg-black text-white"
+        )}>
+          {feedback.text}
+        </div>
+      )}
     </div>
   );
 }

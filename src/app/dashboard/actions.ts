@@ -1,11 +1,9 @@
 "use server";
 
-/**
- * Dashboard Actions — Server Actions para métricas do dashboard
- */
-
 import { countWebhookEventsByStatus, getStaleQuarantineEvents, getInvalidSignatureEvents } from "@/lib/meta/webhook-processing";
 import { isWebhookEnabled, isWebhookConfigured } from "@/lib/meta/webhook-security";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { shouldUseMockData } from "@/lib/config";
 
 /**
  * Obtém estatísticas de webhooks para o dashboard
@@ -23,5 +21,28 @@ export async function getWebhookStatsAction() {
     invalidSignatureCount: invalidSignatureEvents.length,
     webhookEnabled: isWebhookEnabled(),
     webhookConfigured: isWebhookConfigured(),
+  };
+}
+
+/**
+ * Obtém alertas operacionais para o dashboard
+ */
+export async function getOperationalAlertsAction() {
+  if (shouldUseMockData()) {
+    return {
+      webhookQuarantineCount: 2,
+      missingTemplates: ["Denúncia Urgente"],
+    };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const [webhookCounts, templates] = await Promise.all([
+    countWebhookEventsByStatus().catch(() => ({ quarantined: 0 })),
+    supabase.from("message_templates").select("id").eq("active", true),
+  ]);
+
+  return {
+    webhookQuarantineCount: webhookCounts.quarantined || 0,
+    missingTemplates: (templates.data?.length ?? 0) === 0 ? ["Nenhum template ativo"] : [],
   };
 }

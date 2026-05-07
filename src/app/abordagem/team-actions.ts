@@ -33,6 +33,40 @@ export async function getActiveOperators() {
 }
 
 /**
+ * Retorna estatísticas de distribuição de tarefas por operador.
+ */
+export async function getTeamDistributionStats() {
+  await requireRole(["admin", "operador"]);
+
+  if (shouldUseMockData()) {
+    return [
+      { operatorId: "user-1", count: 12 },
+      { operatorId: "user-2", count: 8 },
+    ];
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("outreach_tasks")
+    .select("responsible_id")
+    .is("completed_at", null);
+
+  if (error) throw new Error(error.message);
+
+  const statsMap = new Map<string, number>();
+  (data || []).forEach(task => {
+    if (task.responsible_id) {
+      statsMap.set(task.responsible_id, (statsMap.get(task.responsible_id) || 0) + 1);
+    }
+  });
+
+  return Array.from(statsMap.entries()).map(([operatorId, count]) => ({
+    operatorId,
+    count
+  }));
+}
+
+/**
  * Atribui várias tarefas a um operador em lote.
  */
 export async function bulkAssignTasks(taskIds: string[], internalUserId: string | null): Promise<ActionResult> {

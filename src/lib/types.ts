@@ -344,6 +344,9 @@ export type PriorityPerson = PersonWithContact & {
   isPendingResponse: boolean;
   hasReferral: boolean;
   priorityEligible: boolean;
+  scoreLabel: string;
+  scoreIntensity: number; // 0-100
+  scoreTooltip: string;
   riskFlags: {
     noReferralAfterResponse: boolean;
     recentOutreach: boolean;
