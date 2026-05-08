@@ -229,6 +229,8 @@ export type OutreachTaskWithPerson = {
   notes: string;
   dueAt: string | null;
   completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
   responsibleId: string | null;
   person: Pick<PersonWithContact, "id" | "username" | "status"> | null;
 };

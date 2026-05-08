@@ -8,7 +8,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col lg:flex-row">
-        <Sidebar userEmail={user?.email} useMocks={USE_MOCKS} />
+        <Sidebar userEmail={user?.email ?? undefined} useMocks={USE_MOCKS} />
         <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 overflow-x-hidden">
           {children}
         </main>

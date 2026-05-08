@@ -107,6 +107,8 @@ function upsertMockTask(
     notes: payload.notes ?? "",
     dueAt: null,
     completedAt: payload.completedAt ?? null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     responsibleId: null,
     person: null,
   });

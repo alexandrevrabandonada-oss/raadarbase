@@ -23,6 +23,8 @@ export async function listOutreachTasks(): Promise<OutreachTaskWithPerson[]> {
       notes: task.notes,
       dueAt: task.due_at,
       completedAt: task.completed_at,
+      createdAt: task.created_at,
+      updatedAt: task.updated_at,
       responsibleId: task.responsible_id ?? null,
       person: peopleById.get(task.person_id)
         ? {

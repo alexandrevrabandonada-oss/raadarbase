@@ -281,12 +281,12 @@ export const interactions: IgInteraction[] = [
 ];
 
 export const outreachTasks: OutreachTask[] = [
-  { id: "t-1", personId: "p-marco", column: "para_abordar", title: "Entender demanda da rua", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-marco", username: "marco_vr", status: "novo" } },
-  { id: "t-2", personId: "p-ana", column: "para_abordar", title: "Responder sobre mutirão", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-ana", username: "ana.vr", status: "responder" } },
-  { id: "t-3", personId: "p-joao", column: "mensagem_enviada", title: "Perguntar ponto exato", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-joao", username: "joaopedreiro", status: "abordado" } },
-  { id: "t-4", personId: "p-lu", column: "precisa_encaminhar", title: "Pedir consentimento para grupo", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-lu", username: "lu.da.vila", status: "respondeu" } },
-  { id: "t-5", personId: "p-cida", column: "entrou_na_base", title: "Adicionar na lista confirmada", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-cida", username: "cida_comunidade", status: "contato_confirmado" } },
-  { id: "t-6", personId: "p-nina", column: "nao_abordar", title: "Respeitar pedido de privacidade", notes: "", dueAt: null, completedAt: null, responsibleId: null, person: { id: "p-nina", username: "nina.artes", status: "nao_abordar" } },
+  { id: "t-1", personId: "p-marco", column: "para_abordar", title: "Entender demanda da rua", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-01T10:00:00Z", updatedAt: "2026-05-01T10:00:00Z", responsibleId: null, person: { id: "p-marco", username: "marco_vr", status: "novo" } },
+  { id: "t-2", personId: "p-ana", column: "para_abordar", title: "Responder sobre mutirão", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-02T11:00:00Z", updatedAt: "2026-05-02T11:00:00Z", responsibleId: null, person: { id: "p-ana", username: "ana.vr", status: "responder" } },
+  { id: "t-3", personId: "p-joao", column: "mensagem_enviada", title: "Perguntar ponto exato", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-03T12:00:00Z", updatedAt: "2026-05-03T12:00:00Z", responsibleId: null, person: { id: "p-joao", username: "joaopedreiro", status: "abordado" } },
+  { id: "t-4", personId: "p-lu", column: "precisa_encaminhar", title: "Pedir consentimento para grupo", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-04T13:00:00Z", updatedAt: "2026-05-04T13:00:00Z", responsibleId: null, person: { id: "p-lu", username: "lu.da.vila", status: "respondeu" } },
+  { id: "t-5", personId: "p-cida", column: "entrou_na_base", title: "Adicionar na lista confirmada", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-05T14:00:00Z", updatedAt: "2026-05-05T14:00:00Z", responsibleId: null, person: { id: "p-cida", username: "cida_comunidade", status: "contato_confirmado" } },
+  { id: "t-6", personId: "p-nina", column: "nao_abordar", title: "Respeitar pedido de privacidade", notes: "", dueAt: null, completedAt: null, createdAt: "2026-05-06T15:00:00Z", updatedAt: "2026-05-06T15:00:00Z", responsibleId: null, person: { id: "p-nina", username: "nina.artes", status: "nao_abordar" } },
 ];
 
 export const messageTemplates: MessageTemplate[] = [

@@ -190,7 +190,7 @@ export function PeopleClient({
                     </div>
                     <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <div className="flex flex-col items-end gap-1 cursor-help">
                             <span className="text-[10px] font-black text-orange-600">{person.scoreLabel}</span>
                             <div className="h-1.5 w-12 bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
@@ -225,7 +225,7 @@ export function PeopleClient({
                     </p>
                     
                     <div className="flex gap-2 pt-2">
-                      <Button asChild size="sm" className="flex-1 font-bold h-9">
+                      <Button  size="sm" className="flex-1 font-bold h-9">
                         <Link href={`/pessoas/${person.id}`}>
                           Abrir Ficha
                         </Link>
@@ -234,7 +234,7 @@ export function PeopleClient({
                       {person.responsibleId ? (
                         <TooltipProvider>
                           <Tooltip>
-                            <TooltipTrigger asChild>
+                            <TooltipTrigger>
                               <div className="h-9 w-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700">
                                 <Users className="h-4 w-4" />
                               </div>
@@ -285,7 +285,7 @@ export function PeopleClient({
               />
             </div>
             
-            <Button asChild variant="outline" className="h-10 border-indigo-200 text-indigo-700 bg-indigo-50/30 hover:bg-indigo-50">
+            <Button  variant="outline" className="h-10 border-indigo-200 text-indigo-700 bg-indigo-50/30 hover:bg-indigo-50">
               <Link href="/pessoas/importar">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Importar
@@ -355,7 +355,7 @@ export function PeopleClient({
                     <StatusBadge status={person.status} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button asChild size="sm" variant="ghost" className="hover:bg-indigo-50 hover:text-indigo-700 font-bold h-8">
+                    <Button  size="sm" variant="ghost" className="hover:bg-indigo-50 hover:text-indigo-700 font-bold h-8">
                       <Link href={`/pessoas/${person.id}`}>
                         Gerenciar
                       </Link>

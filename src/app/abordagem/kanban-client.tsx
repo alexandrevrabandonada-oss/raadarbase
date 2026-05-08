@@ -52,11 +52,12 @@ function mapTasks(initialTasks: OutreachTask[], priorityPeople: PriorityPerson[]
 
   return initialTasks.map((task) => {
     const updatedAt = new Date(task.updatedAt || task.createdAt).getTime();
+    const boardColumn = normalizeOutreachColumn(task.column);
     return {
       ...task,
-      boardColumn: normalizeOutreachColumn(task.column),
+      boardColumn,
       priority: priorityByPersonId.get(task.personId) ?? null,
-      isStale: (now - updatedAt) > fortyEightHours && task.column !== "concluido" && task.column !== "nao_abordar"
+      isStale: (now - updatedAt) > fortyEightHours && boardColumn !== "entrou_na_base" && boardColumn !== "nao_abordar"
     };
   });
 }
@@ -82,7 +83,7 @@ export function KanbanClient({
 
   // Derived stats for header
   const stats = useMemo(() => {
-    const active = tasks.filter(t => t.column !== "concluido" && t.column !== "nao_abordar");
+    const active = tasks.filter(t => t.boardColumn !== "entrou_na_base" && t.boardColumn !== "nao_abordar");
     return {
       total: active.length,
       unassigned: active.filter(t => !t.responsibleId).length,
@@ -385,8 +386,8 @@ export function KanbanClient({
                          <div className="flex gap-1">
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-indigo-600">
+                                <TooltipTrigger>
+                                  <Button  size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-indigo-600">
                                     <Link href={`/pessoas/${task.personId}`}><Search className="h-3 w-3" /></Link>
                                   </Button>
                                 </TooltipTrigger>
@@ -396,8 +397,8 @@ export function KanbanClient({
 
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button asChild size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-pink-600">
+                                <TooltipTrigger>
+                                  <Button  size="icon" variant="ghost" className="h-6 w-6 text-zinc-400 hover:text-pink-600">
                                     <a href={`https://instagram.com/${task.person?.username}`} target="_blank" rel="noreferrer"><Instagram className="h-3 w-3" /></a>
                                   </Button>
                                 </TooltipTrigger>
@@ -407,7 +408,7 @@ export function KanbanClient({
 
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger>
                                   <Button 
                                     size="icon" 
                                     variant="ghost" 

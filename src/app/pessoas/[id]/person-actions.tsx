@@ -134,7 +134,7 @@ export function PersonActions({
               <StatusBadge status={status} />
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger asChild>
+                  <TooltipTrigger>
                     <Badge variant="outline" className="cursor-help border-orange-200 bg-orange-50 text-orange-700 font-black">
                       Score {profile.priority.priorityScore}
                     </Badge>
@@ -165,7 +165,7 @@ export function PersonActions({
 
         <div className="flex flex-wrap gap-2">
           {person.username && (
-            <Button asChild variant="outline" className="font-black border-zinc-200">
+            <Button  variant="outline" className="font-black border-zinc-200">
               <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">
                 <Instagram className="mr-2 h-4 w-4" /> Instagram
               </a>
@@ -265,7 +265,7 @@ export function PersonActions({
                   </Badge>
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <AlertTriangle className="h-4 w-4 text-amber-600 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
@@ -360,7 +360,7 @@ export function PersonActions({
              </CardHeader>
              <CardContent className="grid gap-2">
                 <Button
-                  asChild
+                  
                   className="w-full bg-indigo-600 hover:bg-indigo-700 font-black h-12"
                 >
                   <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">

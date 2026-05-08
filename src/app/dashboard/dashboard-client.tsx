@@ -56,7 +56,7 @@ export function DashboardClient({
             <Flame className="h-6 w-6 text-orange-600 fill-orange-600" />
             <h2 className="text-xl font-black tracking-tight">Top Pessoas Quentes</h2>
           </div>
-          <Button asChild variant="ghost" size="sm" className="font-bold text-indigo-700">
+          <Button  variant="ghost" size="sm" className="font-bold text-indigo-700">
             <Link href="/pessoas">
               Ver todas <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -86,7 +86,7 @@ export function DashboardClient({
                   </div>
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger>
                         <div className="flex flex-col items-end gap-1">
                           <span className="text-[10px] font-black text-orange-600">{person.scoreLabel}</span>
                           <div className="h-1 w-10 bg-zinc-200 rounded-full overflow-hidden">
@@ -119,11 +119,11 @@ export function DashboardClient({
                   </p>
                   
                   <div className="flex gap-1.5 pt-1">
-                    <Button asChild size="sm" className="h-7 px-2 text-[10px] font-black flex-1">
+                    <Button  size="sm" className="h-7 px-2 text-[10px] font-black flex-1">
                       <Link href={`/pessoas/${person.id}`}>Ficha</Link>
                     </Button>
                     {person.instagramUrl && (
-                      <Button asChild variant="outline" size="icon" className="h-7 w-7">
+                      <Button  variant="outline" size="icon" className="h-7 w-7">
                         <a href={person.instagramUrl} target="_blank" rel="noreferrer">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </a>
@@ -313,31 +313,31 @@ export function DashboardClient({
           <section className="space-y-4">
             <h2 className="text-lg font-black">Ações Rápidas</h2>
             <div className="grid grid-cols-1 gap-2">
-              <Button asChild className="w-full justify-start font-black bg-indigo-600 hover:bg-indigo-700 h-12 shadow-sm">
+              <Button  className="w-full justify-start font-black bg-indigo-600 hover:bg-indigo-700 h-12 shadow-sm">
                 <Link href="/pessoas">
                   <Flame className="mr-3 h-5 w-5" />
                   Pessoas Prioritárias
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
+              <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
                 <Link href="/abordagem">
                   <LayoutDashboard className="mr-3 h-5 w-5 text-zinc-500" />
                   Quadro de Vínculos
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
+              <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
                 <Link href="/mensagens">
                   <MessageSquare className="mr-3 h-5 w-5 text-zinc-500" />
                   Biblioteca de DMs
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="w-full justify-start font-black h-12 border-zinc-200 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
+              <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
                 <Link href="/relatorios">
                   <TrendingUp className="mr-3 h-5 w-5" />
                   Painel do Piloto
                 </Link>
               </Button>
-              <Button asChild variant="ghost" className="w-full justify-start font-black h-12 text-muted-foreground">
+              <Button  variant="ghost" className="w-full justify-start font-black h-12 text-muted-foreground">
                 <Link href="/pessoas/importar">
                   <PlusCircle className="mr-3 h-5 w-5" />
                   Importar Pessoas

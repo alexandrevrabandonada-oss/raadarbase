@@ -279,6 +279,12 @@ function buildPriorityPerson(
   
   const scoreIntensity = Math.min(100, Math.max(0, (priorityScore / 15) * 100));
 
+  const riskFlags = {
+    noReferralAfterResponse: (person.status === "respondeu" || task?.column === "precisa_encaminhar") && !hasReferral,
+    recentOutreach: latest?.type === "dm_manual" && daysBetween(latest.occurredAt, now) < 1,
+    doNotContact: person.status === "nao_abordar" || Boolean(person.doNotContactReason),
+  };
+
   const scoreTooltip = [
     `Score: ${priorityScore}`,
     latest ? `Última interação: ${latest.type}` : null,
@@ -289,12 +295,6 @@ function buildPriorityPerson(
 
   const suggestedTemplate = getSuggestedTemplate(task, person, mainTheme, templates);
   const priorityEligible = person.status !== "nao_abordar" && !person.doNotContactReason;
-
-  const riskFlags = {
-    noReferralAfterResponse: (person.status === "respondeu" || task?.column === "precisa_encaminhar") && !hasReferral,
-    recentOutreach: latest?.type === "dm_manual" && daysBetween(latest.occurredAt, now) < 1,
-    doNotContact: person.status === "nao_abordar" || Boolean(person.doNotContactReason),
-  };
 
   return {
     ...person,
@@ -404,6 +404,8 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
       notes: task.notes,
       dueAt: task.due_at,
       completedAt: task.completed_at,
+      createdAt: task.created_at,
+      updatedAt: task.updated_at,
       responsibleId: task.responsible_id ?? null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       internal_users: (task as any).internal_users,
