@@ -1,13 +1,13 @@
 # Radar de Base: Piloto Operacional 7 Dias
 
-Este documento descreve a rotina do primeiro piloto controlado de operação do Radar de Base. O piloto ocorrerá por 7 dias seguidos e envolverá a equipe interna operando ativamente a plataforma.
+Este documento descreve a rotina do primeiro piloto controlado de operação do Radar de Base. O piloto ocorrerá por 7 dias seguidos e envolverá a equipe interna operando ativamente a plataforma usando o **Radar Design System (UX10)**.
 
 ## Objetivo do Piloto
 Validar se o fluxo do Radar de Base suporta uma operação diária orgânica, permitindo que a equipe capture, distribua e acompanhe pessoas de interesse através das redes, transformando simples interações em conversas significativas e encaminhamentos efetivos, sem spam.
 
 ## Participantes
-- **Coordenação**: Seleciona e importa os dados diários (ou garante o webhook) e mede o progresso.
-- **Operadores (Mobilizadores)**: Entram todos os dias para "Assumir" tarefas e responder contatos orgânicos.
+- **Coordenação**: Seleciona e importa os dados diários (ou garante o webhook) e mede o progresso através do **Painel de Monitoramento** (`/relatorios`).
+- **Operadores (Mobilizadores)**: Entram todos os dias para "Assumir" tarefas e responder contatos orgânicos via **Quadro de Vínculos** (`/abordagem`).
 
 ## Rotina Diária
 
@@ -17,59 +17,50 @@ Cada pessoa da operação deve cumprir a seguinte rotina, preferencialmente semp
    - Extrair do Instagram oficial as 10 interações mais quentes do dia (pessoas que comentaram denúncias, responderam stories com dúvidas ou querem ajudar).
    - Usar `/pessoas/importar` para carregar esses usuários de forma segura.
 
-2. **Ver 10 Pessoas do Dia**
-   - Abrir o app e navegar para a aba `/pessoas`. 
-   - Ler os cards de prioridade e entender a dor/motivo da prioridade.
+2. **Ver 10 Pessoas do Dia (Top 10)**
+   - Abrir o app e navegar para o **Hoje no Radar** (`/dashboard`). 
+   - Ler os cards de prioridade (Position #1 a #10) e entender a dor/motivo da prioridade.
 
-3. **Distribuir Responsáveis**
-   - Para as pessoas listadas na aba `/pessoas` ou em `/abordagem`, o operador deve clicar em **"Assumir"** nos vínculos que conseguir dar conta no dia. 
+3. **Assumir Vínculos**
+   - No Dashboard ou no Quadro de Vínculos, o operador deve clicar em **"Assumir"** nos vínculos que conseguir dar conta no dia. 
    - Apenas o responsável lida com aquele cidadão para manter o vínculo humano.
 
 4. **Mandar Mensagens Manuais**
-   - Acessar o Kanban em `/abordagem`.
-   - Copiar a **Mensagem Sugerida** do sistema.
-   - Abrir o Instagram manualmente no app ou web e colar a mensagem. 
+   - Acessar o Quadro em `/abordagem`.
+   - Clicar no ícone de **Copiar DM** do card.
+   - Clicar no ícone do **Instagram** para abrir o perfil manualmente. 
    - *Nunca* mandar mensagem genérica, adapte a sugestão para a realidade.
 
 5. **Registrar Respostas**
    - Assim que a pessoa responder, ou no dia seguinte, voltar ao quadro `/abordagem`.
-   - Mover o card da coluna para "Respondeu bem" ou qualquer outro status de resposta pertinente.
+   - Selecionar o status da resposta no seletor do card e clicar em **Confirmar Resposta**.
 
 6. **Encaminhar Interessados**
-   - Na aba da pessoa `/pessoas/[id]`, se a resposta for positiva, preencher a seção **"Encaminhar Para"** (ex: Voluntariado, Evento de Campo, etc).
+   - Na ficha da pessoa (`/pessoas/[id]`), se a resposta for positiva, preencher a seção **"Encaminhar Para"** (ex: Voluntariado, Evento de Campo, etc).
 
 7. **Marcar "Não Abordar" Quando Necessário**
-   - Se a pessoa disser que não quer falar ou for hostil, usar a resposta "Não quer contato". O sistema moverá a pessoa para a coluna "Não Abordar" garantindo privacidade permanente.
+   - Se a pessoa disser que não quer falar ou for hostil, registrar a resposta "Não quer contato". O sistema aplicará bloqueios visuais permanentes.
 
 8. **Fechar Pendências (Fim do Dia)**
-   - O coordenador olha `/relatorios` para ver as Estatísticas do Piloto: se sobraram pessoas "Sem responsável" ou se faltou bater meta diária de mensagens.
+   - O coordenador olha `/relatorios` -> **Painel do Piloto**: se sobraram pessoas "Órfãs" ou se há tarefas paradas há mais de 48h.
 
 ## Gestão de Equipe e Responsáveis
-Para garantir que o piloto flua sem gargalos, a coordenação deve utilizar o painel de **Gestão de Equipe** em `/abordagem`:
-- **Balanceamento**: Use a função "Balancear Tarefas" para distribuir automaticamente as tarefas órfãs entre os operadores logados.
-- **Limite por Operador**: Recomendamos no máximo **10 tarefas ativas** por operador simultaneamente. Isso garante que cada conversa receba a atenção necessária.
-- **Prevenção de Conflitos**: Sempre verifique se o card tem um responsável antes de iniciar uma conversa no Instagram. Se o card estiver em "Minhas Tarefas", ele é seu.
+Para garantir que o piloto flua sem gargalos, a coordenação deve utilizar o painel de **Balanceamento de Equipe** em `/abordagem`:
+- **Balanceamento**: Selecione os operadores ativos e clique em **"Distribuir Agora"**. O sistema dividirá as tarefas sem dono de forma igualitária.
+- **Limite por Operador**: Recomendamos no máximo **10 tarefas ativas** por operador simultaneamente.
+- **Prevenção de Conflitos**: Cards com o badge **"Órfã"** em vermelho precisam de dono.
 
 ## Como Fechar o Dia (Coordenador)
 Ao final de cada turno, o coordenador deve acessar `/relatorios` -> **Painel do Piloto**:
-1.  **Verificar Pendências**: Olhar o alerta de "Pendência de Encaminhamento". Ninguém deve terminar o dia em status "Respondeu" sem um encaminhamento ou nota de "Revisar Depois".
-2.  **Monitorar Tarefas Paradas**: Se houver tarefas paradas há mais de 48h, redistribuí-las para outros operadores ou marcar como "Não Abordar" se a pessoa parou de responder.
+1.  **Verificar Pendências**: Olhar o card **"A Encaminhar"**. Ninguém deve terminar o dia sem um destino.
+2.  **Monitorar Tarefas Paradas**: Cards parados há mais de 48h terão o alerta 🔴 **CONTATO RECENTE**. Redistribua-os.
 3.  **Indicadores de Sucesso**:
-    - **Taxa de Conversão**: (Encaminhados / Responderam). O esperado é acima de 30%.
-    - **Carga de Trabalho**: Garantir que nenhum operador tenha mais de 10 tarefas abertas simultaneamente.
-4.  **Export de Segurança**: Baixar o CSV diário e arquivar no drive da coordenação como evidência operacional.
+     - **Taxa de Conversão**: Visível no Funil de Vínculo. O esperado é acima de 30%.
+     - **Carga de Trabalho**: Garantir que nenhum operador esteja sobrecarregado (indicado na tabela por operador).
+4.  **Export de Segurança**: Clicar em **"Baixar CSV do Piloto"** para arquivamento externo.
 
-## Retrospectiva Diária
-A cada 24h, faça uma reunião de 15 min com os operadores:
-- O que as pessoas mais estão perguntando? (Ajustar templates).
-- Algum tema novo surgiu nas conversas? (Criar novas tags).
-- Algum operador está com dificuldade técnica no Instagram? (Suporte).
-
-## Diretrizes e Microcopy (Atenção!)
-- *“A pessoa precisa sentir que foi escutada, não capturada.”*
-- *“Contato manual, humano e contextual.”*
-- *“Sem pedido de voto na pré-campanha.”*
-- *“Respeite não contato.”*
+---
+*Radar de Base - Tecnologia para a Mobilização Real.*
 
 ## Critérios de Sucesso do Piloto
 A validação de que a tecnologia funciona e pode ser escalada se dará caso os seguintes indicadores sejam batidos ao final de 7 dias:
@@ -80,3 +71,4 @@ A validação de que a tecnologia funciona e pode ser escalada se dará caso os 
 - [ ] Pelo menos **10 respostas** da população foram registradas ativamente no sistema.
 - [ ] Pelo menos **5 encaminhamentos** (referrals) para ações de campo ou missões online foram gerados.
 - [ ] **Zero pessoas** marcadas como "Não Abordar" foram re-abordadas erroneamente.
+

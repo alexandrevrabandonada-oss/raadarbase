@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { 
   Flame, 
   ArrowRight, 
-  ExternalLink, 
   Users, 
   MessageSquare, 
   CheckCircle2, 
@@ -12,24 +12,23 @@ import {
   AlertTriangle,
   LayoutDashboard,
   Target,
-  FileText,
-  UserPlus,
   PlusCircle,
   TrendingUp,
-  Inbox
+  Inbox,
+  Ghost
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
 import type { PilotDashboardData } from "@/lib/data/pilot-stats";
+
+// Radar Design System
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { RadarMetricCard } from "@/components/radar/radar-metric-card";
+import { PersonPriorityCard } from "@/components/radar/person-priority-card";
+import { OperationalAlert } from "@/components/radar/operational-alert";
 
 type DashboardClientProps = {
   priorityPeople: PriorityPerson[];
@@ -49,91 +48,52 @@ export function DashboardClient({
 
   return (
     <div className="space-y-8 pb-12">
+      <RadarPageHeader 
+        title="Painel de Controle"
+        description="Acompanhamento operacional em tempo real da base Vila Rica."
+        actions={
+          <Link 
+            href="/pessoas/importar" 
+            className={cn(buttonVariants({ size: "sm" }), "font-bold bg-indigo-600")}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> Importar Dados
+          </Link>
+        }
+      />
+
       {/* 1. Hero: Top Pessoas Quentes */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flame className="h-6 w-6 text-orange-600 fill-orange-600" />
-            <h2 className="text-xl font-black tracking-tight">Top Pessoas Quentes</h2>
+            <Flame className="h-5 w-5 text-orange-600 fill-orange-600" />
+            <h2 className="text-lg font-black tracking-tight">Top Pessoas Quentes</h2>
           </div>
-          <Button  variant="ghost" size="sm" className="font-bold text-indigo-700">
-            <Link href="/pessoas">
+          <Button variant="ghost" size="sm" className="font-bold text-indigo-700 h-8">
+            <Link href="/pessoas" className="flex items-center">
               Ver todas <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {topPeople.map((person, index) => (
-            <Card 
-              key={person.id} 
-              className={cn(
-                "relative transition-all hover:shadow-lg border-2",
-                person.temperature === "quente" ? "border-orange-100 bg-orange-50/20" : "border-zinc-100"
-              )}
-            >
-              <div className="absolute -top-2 -left-2 h-6 w-6 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black z-10">
-                #{index + 1}
-              </div>
-              
-              <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-start">
-                  <div className="min-w-0">
-                    <CardTitle className="text-sm font-black truncate">@{person.username}</CardTitle>
-                    <CardDescription className="text-[10px] font-bold uppercase truncate">
-                      {person.mainTheme || "Geral"}
-                    </CardDescription>
-                  </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-[10px] font-black text-orange-600">{person.scoreLabel}</span>
-                          <div className="h-1 w-10 bg-zinc-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-orange-500" 
-                              style={{ width: `${person.scoreIntensity}%` }}
-                            />
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        Score: {person.priorityScore}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-4 pt-0 space-y-3">
-                <p className="text-[10px] leading-tight text-muted-foreground line-clamp-2 h-7">
-                  {person.priorityReason}
-                </p>
-                
-                <div className="pt-2 border-t border-zinc-100 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase text-zinc-400">Próxima Ação</span>
-                  </div>
-                  <p className="text-[11px] font-black text-indigo-700 truncate">
-                    {person.nextAction.split(":")[0]}
-                  </p>
-                  
-                  <div className="flex gap-1.5 pt-1">
-                    <Button  size="sm" className="h-7 px-2 text-[10px] font-black flex-1">
-                      <Link href={`/pessoas/${person.id}`}>Ficha</Link>
-                    </Button>
-                    {person.instagramUrl && (
-                      <Button  variant="outline" size="icon" className="h-7 w-7">
-                        <a href={person.instagramUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          {topPeople.length > 0 ? (
+            topPeople.map((person, index) => (
+              <PersonPriorityCard 
+                key={person.id}
+                person={person}
+                index={index}
+                layout="card"
+              />
+            ))
+          ) : (
+            <div className="col-span-full py-12 flex flex-col items-center justify-center bg-zinc-50 border-2 border-dashed border-zinc-100 rounded-2xl">
+               <Flame className="h-10 w-10 text-zinc-200 mb-3" />
+               <p className="text-sm font-bold text-zinc-400">Ninguém priorizado para hoje ainda.</p>
+               <Button variant="link" size="sm" className="text-indigo-600 font-bold">
+                 <Link href="/pessoas/importar">Importar novas pessoas</Link>
+               </Button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -142,80 +102,46 @@ export function DashboardClient({
         <div className="lg:col-span-8 space-y-8">
           {/* 2. Situação do Dia Cards */}
           <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Card className="bg-orange-50 border-orange-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Flame className="h-4 w-4 text-orange-600" />
-                  <Badge variant="outline" className="text-orange-700 border-orange-200 bg-white">HOJE</Badge>
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-orange-950">{pilotStats.summary.prioritizedToday}</p>
-                  <p className="text-xs font-bold text-orange-700 uppercase">Prioritárias</p>
-                </div>
-              </CardContent>
-            </Card>
+            <RadarMetricCard 
+              label="Novas no Radar"
+              value={pilotStats.summary.prioritizedToday}
+              tone="hot"
+              icon={Flame}
+              helper="Identificadas hoje"
+            />
+            <RadarMetricCard 
+              label="Tarefas Abertas"
+              value={pilotStats.summary.openTasks}
+              tone="info"
+              icon={Inbox}
+              href="/abordagem"
+            />
+            <RadarMetricCard 
+              label="Sem Responsável"
+              value={pilotStats.summary.tasksWithoutResponsible}
+              tone="neutral"
+              icon={Ghost}
+              href="/abordagem?filter=sem_responsavel"
+            />
 
-            <Card className="bg-indigo-50 border-indigo-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Inbox className="h-4 w-4 text-indigo-600" />
-                  <Badge variant="outline" className="text-indigo-700 border-indigo-200 bg-white">FILA</Badge>
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-indigo-950">{pilotStats.summary.openTasks}</p>
-                  <p className="text-xs font-bold text-indigo-700 uppercase">Tarefas Abertas</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-zinc-50 border-zinc-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <Users className="h-4 w-4 text-zinc-600" />
-                  <Badge variant="outline" className="text-zinc-700 border-zinc-300 bg-white">EQUIPE</Badge>
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-zinc-950">{pilotStats.summary.tasksWithoutResponsible}</p>
-                  <p className="text-xs font-bold text-zinc-700 uppercase">Sem Responsável</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-amber-50 border-amber-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <MessageSquare className="h-4 w-4 text-amber-600" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-amber-950">{pilotStats.summary.pendingReferralsCount}</p>
-                  <p className="text-xs font-bold text-amber-700 uppercase">A Encaminhar</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-emerald-50 border-emerald-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-emerald-950">{pilotStats.summary.responsesRecorded}</p>
-                  <p className="text-xs font-bold text-emerald-700 uppercase">Respostas</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-rose-50 border-rose-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <AlertTriangle className="h-4 w-4 text-rose-600" />
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-black text-rose-950">{pilotStats.summary.doNotContactCount}</p>
-                  <p className="text-xs font-bold text-rose-700 uppercase">Não Abordar</p>
-                </div>
-              </CardContent>
-            </Card>
+            <RadarMetricCard 
+              label="A Encaminhar"
+              value={pilotStats.summary.pendingReferralsCount}
+              tone="warning"
+              icon={MessageSquare}
+            />
+            <RadarMetricCard 
+              label="Respostas"
+              value={pilotStats.summary.responsesRecorded}
+              tone="success"
+              icon={CheckCircle2}
+            />
+            <RadarMetricCard 
+              label="Não Abordar"
+              value={pilotStats.summary.doNotContactCount}
+              tone="danger"
+              icon={AlertTriangle}
+            />
           </section>
 
           {/* 3. Funil do Dia */}
@@ -257,51 +183,31 @@ export function DashboardClient({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pilotStats.summary.tasksWithoutResponsible > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-white border border-rose-100 rounded-xl shadow-sm">
-                  <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                    <Users className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-rose-950">{pilotStats.summary.tasksWithoutResponsible} tarefas sem dono</p>
-                    <p className="text-xs text-rose-700/70">A equipe está perdendo oportunidades de contato.</p>
-                  </div>
-                </div>
+                <OperationalAlert 
+                  type="sem_responsavel" 
+                  message={`${pilotStats.summary.tasksWithoutResponsible} tarefas sem dono. A equipe está perdendo oportunidades.`} 
+                />
               )}
               
               {pilotStats.summary.pendingReferralsCount > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-white border border-amber-100 rounded-xl shadow-sm">
-                  <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                    <ArrowRight className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-amber-950">{pilotStats.summary.pendingReferralsCount} respostas travadas</p>
-                    <p className="text-xs text-amber-700/70">Pessoas responderam mas não foram encaminhadas.</p>
-                  </div>
-                </div>
+                <OperationalAlert 
+                  type="precisa_encaminhar" 
+                  message={`${pilotStats.summary.pendingReferralsCount} respostas travadas aguardando encaminhamento.`} 
+                />
               )}
 
               {pilotStats.summary.staleTasksCount > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-white border border-rose-100 rounded-xl shadow-sm">
-                  <div className="h-10 w-10 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
-                    <Clock className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-rose-950">{pilotStats.summary.staleTasksCount} tarefas atrasadas</p>
-                    <p className="text-xs text-rose-700/70">Paradas há mais de 48 horas.</p>
-                  </div>
-                </div>
+                <OperationalAlert 
+                  type="contato_recente" 
+                  message={`${pilotStats.summary.staleTasksCount} tarefas paradas há mais de 48 horas.`} 
+                />
               )}
 
               {operationalAlerts.webhookQuarantineCount > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-white border border-indigo-100 rounded-xl shadow-sm">
-                  <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                    <Inbox className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-indigo-950">{operationalAlerts.webhookQuarantineCount} webhooks em quarentena</p>
-                    <p className="text-xs text-indigo-700/70">Dados do Meta aguardando revisão técnica.</p>
-                  </div>
-                </div>
+                <OperationalAlert 
+                  type="webhook_quarentena" 
+                  message={`${operationalAlerts.webhookQuarantineCount} webhooks em quarentena aguardando revisão.`} 
+                />
               )}
             </div>
           </section>

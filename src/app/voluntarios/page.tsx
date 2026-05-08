@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,9 @@ import { canManageContacts } from "@/lib/authz/roles";
 import { getVolunteerStats, listSquads, listVolunteers, type VolunteerStatus } from "@/lib/data/volunteers";
 import { getVolunteerReviewDashboard } from "@/lib/data/volunteer-review-dashboard";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
+import { Users } from "lucide-react";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +45,11 @@ export default async function VolunteersPage({
 
   return (
     <AppShell>
-      <PageHeader
-        title="Voluntários"
-        description="Organize pessoas que consentiram explicitamente em ajudar, sem importar ninguém da base de interações do Instagram."
-        action={
+      <RadarPageHeader
+        eyebrow="Rede de Apoio"
+        title="Base de Voluntários"
+        description="Organize pessoas que consentiram explicitamente em ajudar. Este banco é separado da base do Instagram."
+        actions={
           <div className="flex gap-2">
             <Button nativeButton={false} variant="outline" render={<Link href="/api/voluntarios/export" />}>
               Exportar seguro
@@ -58,12 +62,13 @@ export default async function VolunteersPage({
                 Exportar com contato
               </Button>
             ) : null}
-            <Button nativeButton={false} render={<Link href="/voluntarios/novo" />}>
+            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/voluntarios/novo" />}>
               Novo voluntário
             </Button>
           </div>
         }
       />
+
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader><CardTitle>Total</CardTitle></CardHeader><CardContent className="text-3xl font-black">{stats.totalCount}</CardContent></Card>
@@ -99,9 +104,26 @@ export default async function VolunteersPage({
             <CardHeader>
               <CardTitle>Base consentida</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto">
+
               {volunteers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum voluntário consentido cadastrado ainda. O banco vazio não bloqueia a página.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-100">
+                    <Users className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <h3 className="font-bold text-lg text-emerald-950 mb-2">Sua base consentida está vazia</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                    A base de voluntários reúne apenas pessoas que confirmaram consentimento e engajamento constante. Ninguém é importado do Instagram automaticamente.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <Button nativeButton={false} render={<Link href="/voluntarios/inscricoes" />}>
+                      Revisar inscrições
+                    </Button>
+                    <Button variant="outline" nativeButton={false} render={<Link href="/pessoas" />}>
+                      Buscar nas Pessoas Prioritárias
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>

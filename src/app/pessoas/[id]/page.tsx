@@ -12,6 +12,9 @@ import { listPersonReferralsForPerson } from "@/lib/data/referrals";
 import { buildPersonOperationalProfile } from "@/lib/data/person-profile";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { PersonActions } from "./person-actions";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+
 
 export const dynamic = "force-dynamic";
 
@@ -56,21 +59,26 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   } catch (error) {
     return (
       <AppShell>
-        <PageHeader title={`@${person.username}`} description="Historico de abordagem e consentimento." />
-        <RuntimeAlert
-          title="Falha ao carregar historico"
-          description={error instanceof Error ? error.message : "Nao foi possivel carregar o historico."}
-        />
+        <RadarPageHeader title="Pessoa" description="Historico de abordagem e consentimento." />
+        <div className="p-8">
+          <OperationalAlert
+            type="webhook_quarentena" // Proxy for error/info
+            message={error instanceof Error ? error.message : "Nao foi possivel carregar o historico."}
+          />
+        </div>
       </AppShell>
+
     );
   }
 
   return (
     <AppShell>
-      <PageHeader
+      <RadarPageHeader
+        eyebrow="Ficha de Vínculo"
         title={person.displayName ? `${person.displayName} (@${person.username})` : `@${person.username}`}
-        description="Ficha de Vínculo: Revise o histórico, mande a DM manual e registre o encaminhamento se houver interesse."
+        description="Revise o histórico, mande a DM manual e registre o encaminhamento se houver interesse."
       />
+
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <PersonActions
           person={person}

@@ -1,71 +1,67 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Users, MessageSquare, Reply, UserPlus, ShieldAlert, Clock, ArrowRight } from "lucide-react";
+import { AlertTriangle, Users, MessageSquare, Reply, UserPlus, ShieldAlert, Clock, ArrowRight, LayoutDashboard, History } from "lucide-react";
 import type { PilotDashboardData } from "@/lib/data/pilot-stats";
+
+// Radar Design System
+import { RadarMetricCard } from "@/components/radar/radar-metric-card";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+
 
 export function PilotDashboardClient({ data }: { data: PilotDashboardData }) {
   const { summary, responsibleBreakdown, funnel } = data;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Alertas Operacionais */}
       <div className="grid gap-4 md:grid-cols-2">
         {summary.pendingReferralsCount > 0 && (
-          <Alert variant="default" className="border-amber-500 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">Pendência de Encaminhamento</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              Há <strong>{summary.pendingReferralsCount}</strong> pessoas que responderam e ainda não foram encaminhadas para uma ação ou grupo.
-            </AlertDescription>
-          </Alert>
+          <OperationalAlert 
+            type="precisa_encaminhar" 
+            className="border-amber-100 bg-amber-50/50"
+          />
         )}
         {summary.tasksWithoutResponsible > 0 && (
-          <Alert variant="default" className="border-indigo-500 bg-indigo-50">
-            <Users className="h-4 w-4 text-indigo-600" />
-            <AlertTitle className="text-indigo-800">Tarefas Órfãs</AlertTitle>
-            <AlertDescription className="text-indigo-700">
-              Há <strong>{summary.tasksWithoutResponsible}</strong> tarefas abertas sem responsável atribuído.
-            </AlertDescription>
-          </Alert>
+          <OperationalAlert 
+            type="sem_responsavel" 
+            className="border-indigo-100 bg-indigo-50/50"
+          />
         )}
         {summary.staleTasksCount > 0 && (
-          <Alert variant="destructive" className="border-red-500 bg-red-50 text-red-900">
-            <Clock className="h-4 w-4 text-red-600" />
-            <AlertTitle className="text-red-800">Tarefas Paradas</AlertTitle>
-            <AlertDescription className="text-red-700">
-              Há <strong>{summary.staleTasksCount}</strong> tarefas sem atualização há mais de 48 horas.
-            </AlertDescription>
-          </Alert>
+          <OperationalAlert 
+            type="contato_recente" // Using this as a proxy for stale tasks if needed or add a new one
+            className="border-rose-100 bg-rose-50/50"
+          />
         )}
-        <Alert className="border-blue-500 bg-blue-50">
-          <ShieldAlert className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">Lembrete de Privacidade</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            Respeite sempre as pessoas marcadas como &quot;Não Abordar&quot;. Evite contatos repetitivos em janelas curtas.
-          </AlertDescription>
-        </Alert>
+        <OperationalAlert 
+          type="webhook_quarentena" // Placeholder for general info/guardrail
+          className="border-blue-100 bg-blue-50/50"
+        />
       </div>
 
       {/* Indicadores do Dia */}
-      <div>
-        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+      <div className="space-y-4">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
           Indicadores do Dia (Piloto 7 Dias)
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Priorizadas Hoje" value={summary.prioritizedToday} icon={<Users className="w-4 h-4" />} />
-          <StatCard title="Tarefas Abertas" value={summary.openTasks} icon={<MessageSquare className="w-4 h-4" />} />
-          <StatCard title="DMs Enviadas" value={summary.messagesSent} icon={<ArrowRight className="w-4 h-4" />} />
-          <StatCard title="Respostas" value={summary.responsesRecorded} icon={<Reply className="w-4 h-4" />} />
-          <StatCard title="Encaminhamentos" value={summary.referralsCreated} icon={<UserPlus className="w-4 h-4" />} color="text-emerald-600" />
-          <StatCard title="Não Abordar" value={summary.doNotContactCount} icon={<ShieldAlert className="w-4 h-4" />} color="text-red-600" />
-          <StatCard title="Órfãs" value={summary.tasksWithoutResponsible} icon={<Users className="w-4 h-4" />} color="text-indigo-600" />
-          <StatCard title="Paradas >48h" value={summary.staleTasksCount} icon={<Clock className="w-4 h-4" />} color="text-amber-600" />
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <RadarMetricCard label="Priorizadas Hoje" value={summary.prioritizedToday} icon={Users} tone="neutral" />
+          <RadarMetricCard label="Tarefas Abertas" value={summary.openTasks} icon={MessageSquare} tone="neutral" />
+          <RadarMetricCard label="DMs Enviadas" value={summary.messagesSent} icon={ArrowRight} tone="info" />
+          <RadarMetricCard label="Respostas" value={summary.responsesRecorded} icon={Reply} tone="success" />
+          <RadarMetricCard label="Encaminhamentos" value={summary.referralsCreated} icon={UserPlus} tone="success" />
+          <RadarMetricCard label="Não Abordar" value={summary.doNotContactCount} icon={ShieldAlert} tone="danger" />
+          <RadarMetricCard label="Órfãs" value={summary.tasksWithoutResponsible} icon={Users} tone="indigo" href="/abordagem?filter=sem_responsavel" />
+
+          <RadarMetricCard label="Paradas >48h" value={summary.staleTasksCount} icon={History} tone="warning" />
         </div>
       </div>
+
 
       {/* Funil de Conversão */}
       <Card className="bg-slate-50 border-slate-200">

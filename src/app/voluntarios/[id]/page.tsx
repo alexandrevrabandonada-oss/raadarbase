@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,25 +41,27 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
 
   return (
     <AppShell>
-      <PageHeader
+      <RadarPageHeader
+        eyebrow="Base Consentida"
         title={detail.volunteer.displayName}
-        description="Detalhe seguro de voluntário consentido para organização interna, sem microtargeting e sem vínculo automático com Instagram."
-        action={
+        description="Detalhe seguro de voluntário para organização interna, sem microtargeting e sem vínculo automático com Instagram."
+        actions={
           manageable ? (
             <div className="flex gap-2">
-              <Button nativeButton={false} variant="outline" render={<Link href={`/voluntarios/${params.id}/editar`} />}>
+              <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href={`/voluntarios/${params.id}/editar`} />}>
                 Editar
               </Button>
               <form action={pauseVolunteerAction.bind(null, params.id)}>
-                <Button type="submit" variant="outline">Pausar</Button>
+                <Button type="submit" variant="outline" className="font-bold border-zinc-200">Pausar</Button>
               </form>
               <form action={archiveVolunteerAction.bind(null, params.id)}>
-                <Button type="submit" variant="outline">Arquivar</Button>
+                <Button type="submit" variant="outline" className="font-bold border-zinc-200">Arquivar</Button>
               </form>
             </div>
           ) : null
         }
       />
+
 
       <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">

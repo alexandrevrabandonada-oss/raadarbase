@@ -1,16 +1,17 @@
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listStrategicMemories } from "@/lib/data/strategic-memory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Search, Calendar, MapPin, Tag, ArrowRight } from "lucide-react";
+import { Search, Calendar, MapPin, Tag, ArrowRight, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { MemoryNavActions } from "./memory-nav-actions";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
 
 export const dynamic = "force-dynamic";
+
 
 export default async function MemoriaPage({
   searchParams,
@@ -27,16 +28,25 @@ export default async function MemoriaPage({
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <PageHeader
-            title="Memória Estratégica"
-            description="Acúmulo de aprendizados coletivos para guiar as próximas ações da organização."
-          />
-          <MemoryNavActions />
-        </div>
+      <RadarPageHeader
+        eyebrow="Inteligência Coletiva"
+        title="Memória Estratégica"
+        description="Acúmulo de aprendizados coletivos para guiar as próximas ações da organização."
+        actions={
+          <div className="flex gap-2">
+            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/memoria/nova" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo aprendizado
+            </Button>
+            <MemoryNavActions />
+          </div>
+        }
+      />
 
+
+      <div className="mt-8">
         <Card className="border-indigo-100 bg-indigo-50/20">
+
           <CardContent className="pt-6">
             <form className="flex gap-3">
               <div className="relative flex-1">
@@ -113,5 +123,8 @@ export default async function MemoriaPage({
         </div>
       </div>
     </AppShell>
+
+
+
   );
 }

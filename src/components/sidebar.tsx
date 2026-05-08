@@ -89,7 +89,7 @@ export function Sidebar({ userEmail, useMocks }: { userEmail: string | undefined
   };
 
   return (
-    <aside className="border-border/80 bg-card/80 px-4 py-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-r flex flex-col overflow-y-auto scrollbar-none">
+    <aside className="border-border/80 bg-card/80 px-4 py-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-r flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200">
       <Link href="/dashboard" className="flex items-center gap-3 mb-6 shrink-0">
         <div className="flex size-11 items-center justify-center rounded-xl bg-black text-white font-black text-lg shadow-lg">
           RB
@@ -119,7 +119,7 @@ export function Sidebar({ userEmail, useMocks }: { userEmail: string | undefined
             {!collapsedGroups[group.label] && (
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
                   return (
                     <Link
                       key={item.href}

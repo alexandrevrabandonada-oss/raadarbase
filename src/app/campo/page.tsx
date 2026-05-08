@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,9 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listFieldAgendaEvents } from "@/lib/data/field-agenda";
 import { MapPin, Calendar, Plus, ArrowRight, History, Lightbulb } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+
 
 export const dynamic = "force-dynamic";
 
@@ -32,31 +35,32 @@ export default async function FieldAgendaPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <RadarPageHeader
+
+        eyebrow="Presença Territorial"
         title="Agenda de Campo"
-        description="Organize e registre atividades presenciais e coletivas da pré-campanha: rodas de escuta, reuniões de bairro e plenárias."
+        description="Organize rodas de escuta, reuniões de bairro e plenárias presenciais."
+        actions={
+          <div className="flex gap-2">
+            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/campo/novo" />}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova ação
+            </Button>
+            <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href="/radar/silencios" />}>
+              <History className="mr-2 h-4 w-4" />
+              Radar de Silêncios
+            </Button>
+          </div>
+        }
       />
 
-      <div className="mb-6 flex gap-2">
-        <Button nativeButton={false} render={<Link href="/campo/novo" />}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova ação de campo
-        </Button>
-        <Button nativeButton={false} variant="outline" render={<Link href="/radar/silencios" />}>
-          <History className="mr-2 h-4 w-4" />
-          Radar de Silêncios
-        </Button>
-        <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios/inscricoes" />}>
-          Convidar voluntários consentidos
-        </Button>
+      <div className="mt-8 mb-8">
+        <OperationalAlert 
+          type="webhook_quarentena" // Proxy for info
+          message="Esta agenda organiza ações de grupo. Não use para listar alvos individuais ou abordagens personalizadas sem consentimento. Foco em bairros e pautas agregadas."
+        />
       </div>
 
-      <Alert className="mb-8 border-blue-200 bg-blue-50/60">
-        <AlertTitle>Ação Coletiva e Pública</AlertTitle>
-        <AlertDescription>
-          Esta agenda organiza ações de grupo. **Não use para listar alvos individuais ou abordagens personalizadas sem consentimento.** Foco em bairros e pautas agregadas.
-        </AlertDescription>
-      </Alert>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">

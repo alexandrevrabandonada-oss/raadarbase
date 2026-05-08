@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,8 @@ import { FileText, Plus, LayoutDashboard } from "lucide-react";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { PilotDashboardClient } from "./pilot-dashboard-client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+
 
 type FeaturedReportSnapshot = {
   totals?: {
@@ -54,7 +56,9 @@ export default async function RelatoriosPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <RadarPageHeader
+        eyebrow="Observabilidade"
+
         title="Painel de Monitoramento"
         description="Acompanhamento diário do piloto e relatórios consolidados de mobilização."
       />
@@ -267,7 +271,8 @@ export default async function RelatoriosPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
+
           <Table>
             <TableHeader>
               <TableRow>

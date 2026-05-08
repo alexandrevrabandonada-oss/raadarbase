@@ -4,30 +4,28 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { 
   Copy, 
-  ExternalLink, 
   Flag, 
   MessageCircle, 
   ShieldCheck, 
-  User, 
   Flame, 
   CheckCircle2, 
   Clock, 
   AlertTriangle, 
   Info, 
-  ArrowRight,
   ClipboardCheck,
   Instagram,
   UserPlus,
   MessageSquare,
   History,
   Send,
-  Milestone
+  Milestone,
+  ArrowLeft
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -35,22 +33,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// Types & Actions
 import type { ActionResult } from "@/app/actions";
 import {
+  updatePersonNotes,
+  assumePersonResponsible,
+  recordPersonResponse,
+  registerManualDm,
   markContactConfirmed,
   markDoNotContact,
   recordPersonReferral,
-  recordPersonResponse,
-  registerManualDm,
-  updatePersonNotes,
   updatePersonReferralStatus,
-  assumePersonResponsible,
 } from "@/app/actions";
 import { formatDateTime } from "@/lib/mock-data";
 import { PERSON_RESPONSE_OPTIONS, type PersonOperationalProfile } from "@/lib/data/person-profile";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+// Radar Design System
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { PersonScoreBadge } from "@/components/radar/person-score-badge";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+import { TemperatureBadge } from "@/components/radar/temperature-badge";
 
 function timelineIcon(type: PersonOperationalProfile["timeline"][number]["type"], title: string) {
   const t = title.toLowerCase();
@@ -119,45 +125,43 @@ export function PersonActions({
 
   return (
     <div className="space-y-8 pb-20">
-      {/* 1. Cabeçalho da Ficha */}
-      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-2xl border shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-black flex items-center justify-center text-white shrink-0 shadow-lg">
-            <User className="h-8 w-8" />
+      <RadarPageHeader 
+        eyebrow={`@${person.username}`}
+        title={person.displayName || person.username}
+        description={`Ficha operacional completa. Status atual: ${status.replace(/_/g, ' ').toUpperCase()}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/pessoas" 
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "font-bold text-zinc-500")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Link>
+            {!profile.priority.responsibleName && (
+              <Button size="sm" className="font-black bg-indigo-600 hover:bg-indigo-700" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
+                Assumir Vínculo
+              </Button>
+            )}
           </div>
+        }
+      />
+
+      {/* 1. Cabeçalho da Ficha (Info complementar) */}
+      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-2xl border shadow-sm -mt-4">
+        <div className="flex items-center gap-4">
           <div className="min-w-0">
-            <h1 className="text-2xl font-black tracking-tight truncate">
-              {person.displayName || person.username}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <Badge variant="secondary" className="font-bold">@{person.username}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
               <StatusBadge status={status} />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="outline" className="cursor-help border-orange-200 bg-orange-50 text-orange-700 font-black">
-                      Score {profile.priority.priorityScore}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {profile.priority.scoreTooltip}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {profile.priority.responsibleName ? (
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100">
+              <PersonScoreBadge 
+                score={profile.priority.priorityScore} 
+                temperature={profile.priority.temperature} 
+                tooltipText={profile.priority.scoreTooltip}
+                riskFlags={profile.priority.riskFlags}
+              />
+              {profile.priority.responsibleName && (
+                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 font-black text-[10px] uppercase">
                   Responsável: {profile.priority.responsibleName}
                 </Badge>
-              ) : (
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-6 px-2 text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-                  onClick={() => runAction(() => assumePersonResponsible(person.id), { successText: "Você assumiu este vínculo." })}
-                  disabled={isPending}
-                >
-                  <UserPlus className="mr-1 h-3 w-3" /> Assumir Vínculo
-                </Button>
               )}
             </div>
           </div>
@@ -165,19 +169,14 @@ export function PersonActions({
 
         <div className="flex flex-wrap gap-2">
           {person.username && (
-            <Button  variant="outline" className="font-black border-zinc-200">
-              <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">
-                <Instagram className="mr-2 h-4 w-4" /> Instagram
-              </a>
+            <Button variant="outline" className="font-black border-zinc-200" onClick={() => window.open(`https://instagram.com/${person.username}`, '_blank')}>
+              <Instagram className="mr-2 h-4 w-4" /> Instagram
             </Button>
           )}
-          <Button variant="outline" className="font-black border-zinc-200" onClick={copyMessage} disabled={!profile.priority.suggestedMessage}>
-            <Copy className="mr-2 h-4 w-4" /> Copiar DM
-          </Button>
-          {!profile.priority.responsibleName && (
-             <Button className="font-black bg-indigo-600 hover:bg-indigo-700 shadow-md" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
-               Assumir
-             </Button>
+          {profile.priority.suggestedMessage && (
+            <Button variant="outline" className="font-black border-zinc-200" onClick={copyMessage}>
+              <Copy className="mr-2 h-4 w-4" /> {copied === 'mensagem' ? 'Copiado!' : 'Copiar DM'}
+            </Button>
           )}
         </div>
       </section>
@@ -216,18 +215,18 @@ export function PersonActions({
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Alertas</span>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-col gap-2">
                     {profile.priority.riskFlags.recentOutreach && (
-                      <Badge className="bg-blue-100 text-blue-700 border-none text-[9px] font-black">CONTATO RECENTE</Badge>
+                      <OperationalAlert type="contato_recente" />
                     )}
                     {profile.priority.riskFlags.doNotContact && (
-                      <Badge className="bg-rose-100 text-rose-700 border-none text-[9px] font-black">NÃO ABORDAR</Badge>
+                      <OperationalAlert type="nao_abordar" />
                     )}
                     {profile.priority.riskFlags.noReferralAfterResponse && (
-                      <Badge className="bg-amber-100 text-amber-700 border-none text-[9px] font-black">FALTA ENCAMINHAR</Badge>
+                      <OperationalAlert type="precisa_encaminhar" />
                     )}
                     {!profile.priority.riskFlags.recentOutreach && !profile.priority.riskFlags.doNotContact && !profile.priority.riskFlags.noReferralAfterResponse && (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-none text-[9px] font-black">CAMINHO LIVRE</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 border-none text-[9px] font-black w-fit">CAMINHO LIVRE</Badge>
                     )}
                   </div>
                 </div>

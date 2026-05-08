@@ -1,6 +1,5 @@
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,8 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listTopicCategories } from "@/lib/data/topics";
 import { shouldUseMockData } from "@/lib/config";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { ListChecks } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -30,18 +31,21 @@ export default async function TemasPage() {
     }, {});
   }
 
+  
   return (
     <AppShell>
-      <PageHeader
+      <RadarPageHeader
+        eyebrow="Taxonomia Territorial"
         title="Temas e Pautas"
-        description="Taxonomia de assuntos públicos detectados nas interações. Foco no conteúdo, não na pessoa."
+        description="Assuntos públicos detectados nas interações. Foco no conteúdo, não no cidadão."
+        actions={
+          <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/temas/revisao" />}>
+            <ListChecks className="mr-2 h-4 w-4" />
+            Revisar tags pendentes
+          </Button>
+        }
       />
 
-      <div className="mb-6 flex gap-4">
-        <Button nativeButton={false} render={<Link href="/temas/revisao" />}>
-          Abrir fila de revisão
-        </Button>
-      </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
