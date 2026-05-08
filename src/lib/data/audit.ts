@@ -93,3 +93,24 @@ export async function listAuditLogsForEntity(entityType: string, entityId: strin
     handleSupabaseReadError("listAuditLogsForEntity", error);
   }
 }
+
+export async function getOperationalTelemetry(days = 7): Promise<AuditLogEntry[]> {
+  if (shouldUseMockData()) return [];
+  try {
+    const supabase = getSupabaseAdminClient();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .or(`entity_type.eq.operational_telemetry,action.eq.contact.response_recorded,action.eq.contact.referral_recorded`)
+      .gte("created_at", startDate.toISOString())
+      .order("created_at", { ascending: true });
+      
+    if (error) throw error;
+    return (data ?? []).map(mapAuditEntry);
+  } catch (error) {
+    handleSupabaseReadError("getOperationalTelemetry", error);
+  }
+}

@@ -16,11 +16,14 @@ import {
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listMobilizationReports } from "@/lib/data/reports";
 import { formatDateTime } from "@/lib/mock-data";
-import { FileText, Plus, LayoutDashboard } from "lucide-react";
+import { FileText, Plus, LayoutDashboard, Activity } from "lucide-react";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { PilotDashboardClient } from "./pilot-dashboard-client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { DailyClosure } from "@/components/radar/reports/daily-closure";
+import { getOperationalTelemetry } from "@/lib/data/audit";
+import { TelemetryDashboard } from "./telemetry-dashboard";
 
 
 type FeaturedReportSnapshot = {
@@ -41,6 +44,7 @@ export default async function RelatoriosPage() {
 
   const reports = await listMobilizationReports();
   const pilotData = await getPilotDashboardData();
+  const telemetryData = await getOperationalTelemetry(7);
   const generatedReports = reports.filter((report) => report.status === "generated");
   const firstRealReport = generatedReports
     .slice()
@@ -58,7 +62,6 @@ export default async function RelatoriosPage() {
     <AppShell>
       <RadarPageHeader
         eyebrow="Observabilidade"
-
         title="Painel de Monitoramento"
         description="Acompanhamento diário do piloto e relatórios consolidados de mobilização."
       />
@@ -68,13 +71,40 @@ export default async function RelatoriosPage() {
           <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Painel do Piloto (7 Dias)
           </TabsTrigger>
+          <TabsTrigger value="fechamento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            Fechamento do Dia
+          </TabsTrigger>
           <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Relatórios de Pautas
+          </TabsTrigger>
+          <TabsTrigger value="telemetria" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            Telemetria de Uso
           </TabsTrigger>
           <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
             Retrospectiva Semanal
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="fechamento" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-600" />
+              Fechamento Diário Operacional
+            </h2>
+          </div>
+          <DailyClosure 
+            stats={{
+              workedToday: pilotData.funnel.approached + pilotData.funnel.responded,
+              dmsSent: pilotData.funnel.approached,
+              responsesRecorded: pilotData.summary.responsesRecorded,
+              referralsCreated: pilotData.funnel.referred,
+              doNotContact: pilotData.summary.doNotContactCount,
+              unassigned: pilotData.summary.tasksWithoutResponsible,
+              pendingReferrals: pilotData.summary.pendingReferralsCount,
+              stale: pilotData.summary.staleTasksCount
+            }}
+          />
+        </TabsContent>
 
         <TabsContent value="retrospectiva" className="space-y-6">
           <div className="flex justify-between items-center">
@@ -82,25 +112,7 @@ export default async function RelatoriosPage() {
               <FileText className="w-5 h-5 text-indigo-600" />
               Retrospectiva e Aprendizado do Piloto
             </h2>
-            <Button variant="outline" size="sm" onClick={() => {
-              const content = `# Retrospectiva Radar de Base - ${new Date().toLocaleDateString()}\n\n` +
-                `## Funil de Conversão\n` +
-                `- Priorizados: ${pilotData.funnel.prioritized}\n` +
-                `- Abordados: ${pilotData.funnel.approached}\n` +
-                `- Responderam: ${pilotData.funnel.responded}\n` +
-                `- Encaminhados: ${pilotData.funnel.referred}\n\n` +
-                `## Temas com Melhor Resposta\n` +
-                (pilotData.retrospective?.responseRateByTheme.map(t => `- ${t.theme}: ${t.rate}% (${t.count} casos)`).join('\n') || 'Sem dados') + `\n\n` +
-                `## Motivos de Não Contato\n` +
-                (pilotData.retrospective?.nonContactReasons.map(r => `- ${r.reason}: ${r.count}`).join('\n') || 'Sem dados');
-              
-              const blob = new Blob([content], { type: 'text/markdown' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `retrospectiva-${new Date().toISOString().split('T')[0]}.md`;
-              a.click();
-            }} className="hidden md:flex">
+            <Button variant="outline" size="sm" className="hidden md:flex">
               Exportar Markdown
             </Button>
           </div>
@@ -194,6 +206,16 @@ export default async function RelatoriosPage() {
           <PilotDashboardClient data={pilotData} />
         </TabsContent>
 
+        <TabsContent value="telemetria" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Telemetria Operacional Agregada
+            </h2>
+          </div>
+          <TelemetryDashboard telemetryData={telemetryData || []} />
+        </TabsContent>
+
         <TabsContent value="relatorios" className="space-y-6">
           <div className="flex justify-between items-center">
             <div className="text-sm text-muted-foreground italic">
@@ -203,134 +225,132 @@ export default async function RelatoriosPage() {
               <Plus className="mr-2 h-4 w-4" /> Novo Relatório
             </Button>
           </div>
-          {/* Keep the original report list and cards here */}
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="space-y-3 pt-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-primary">Primeiro relatório real do Instagram</p>
-                <h2 className="mt-1 text-2xl font-black">{firstRealReport ? firstRealReport.title : "Ainda não gerado"}</h2>
-              </div>
-              <Badge variant={firstRealReport ? "default" : "outline"}>{firstRealReport ? "gerado" : "pendente"}</Badge>
-            </div>
+              <CardContent className="space-y-3 pt-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary">Primeiro relatório real do Instagram</p>
+                    <h2 className="mt-1 text-2xl font-black">{firstRealReport ? firstRealReport.title : "Ainda não gerado"}</h2>
+                  </div>
+                  <Badge variant={firstRealReport ? "default" : "outline"}>{firstRealReport ? "gerado" : "pendente"}</Badge>
+                </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-md border bg-background p-3">
-                <p className="text-xs uppercase text-muted-foreground">Posts analisados</p>
-                <p className="text-xl font-black">{firstMetrics.postsAnalyzed ?? 0}</p>
-              </div>
-              <div className="rounded-md border bg-background p-3">
-                <p className="text-xs uppercase text-muted-foreground">Interações</p>
-                <p className="text-xl font-black">{firstMetrics.interactionsAnalyzed ?? 0}</p>
-              </div>
-              <div className="rounded-md border bg-background p-3">
-                <p className="text-xs uppercase text-muted-foreground">Pessoas únicas</p>
-                <p className="text-xl font-black">{firstMetrics.uniquePeople ?? 0}</p>
-              </div>
-              <div className="rounded-md border bg-background p-3">
-                <p className="text-xs uppercase text-muted-foreground">Temas detectados</p>
-                <p className="text-xl font-black">{firstMetrics.themesDetected ?? 0}</p>
-              </div>
-              <div className="rounded-md border bg-background p-3">
-                <p className="text-xs uppercase text-muted-foreground">Pendências</p>
-                <p className="text-xl font-black">{firstMetrics.pendingThemes ?? 0}</p>
-              </div>
-            </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Posts analisados</p>
+                    <p className="text-xl font-black">{firstMetrics.postsAnalyzed ?? 0}</p>
+                  </div>
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Interações</p>
+                    <p className="text-xl font-black">{firstMetrics.interactionsAnalyzed ?? 0}</p>
+                  </div>
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Pessoas únicas</p>
+                    <p className="text-xl font-black">{firstMetrics.uniquePeople ?? 0}</p>
+                  </div>
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Temas detectados</p>
+                    <p className="text-xl font-black">{firstMetrics.themesDetected ?? 0}</p>
+                  </div>
+                  <div className="rounded-md border bg-background p-3">
+                    <p className="text-xs uppercase text-muted-foreground">Pendências</p>
+                    <p className="text-xl font-black">{firstMetrics.pendingThemes ?? 0}</p>
+                  </div>
+                </div>
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              {firstRealReport ? (
-                <>
-                  <Button nativeButton={false} render={<Link href={`/relatorios/${firstRealReport.id}`} />}>Abrir relatório</Button>
-                  <Button variant="outline" nativeButton={false} render={<Link href={`/acoes/novo?reportId=${firstRealReport.id}`} />}>Criar plano público</Button>
-                </>
-              ) : (
-                <Button nativeButton={false} render={<Link href="/relatorios/novo" />}>Gerar primeiro relatório</Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {firstRealReport ? (
+                    <>
+                      <Button nativeButton={false} render={<Link href={`/relatorios/${firstRealReport.id}`} />}>Abrir relatório</Button>
+                      <Button variant="outline" nativeButton={false} render={<Link href={`/acoes/novo?reportId=${firstRealReport.id}`} />}>Criar plano público</Button>
+                    </>
+                  ) : (
+                    <Button nativeButton={false} render={<Link href="/relatorios/novo" />}>Gerar primeiro relatório</Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border-emerald-700/20 bg-emerald-50/50">
-          <CardContent className="pt-6 h-full flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Estatísticas do Piloto (7 Dias)</p>
-              <h2 className="mt-1 text-lg font-black text-emerald-950">Exportar Base Diária</h2>
-              <div className="text-sm text-emerald-900 mt-2 italic leading-relaxed">
-                Baixe o acompanhamento diário da operação (CSV).<br/>
-                Para saber quem assumiu cada tarefa, quantos foram encaminhados e o progresso real das abordagens.
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} className="bg-emerald-700 hover:bg-emerald-800 text-white">
-                Baixar CSV do Piloto
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-emerald-700/20 bg-emerald-50/50">
+              <CardContent className="pt-6 h-full flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Estatísticas do Piloto (7 Dias)</p>
+                  <h2 className="mt-1 text-lg font-black text-emerald-950">Exportar Base Diária</h2>
+                  <div className="text-sm text-emerald-900 mt-2 italic leading-relaxed">
+                    Baixe o acompanhamento diário da operação (CSV).<br/>
+                    Para saber quem assumiu cada tarefa, quantos foram encaminhados e o progresso real das abordagens.
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} className="bg-emerald-700 hover:bg-emerald-800 text-white">
+                    Baixar CSV do Piloto
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Período</TableHead>
-                <TableHead>Gerado em</TableHead>
-                <TableHead>Criado por</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell className="font-semibold">
-                    <Link href={`/relatorios/${report.id}`} className="flex items-center hover:underline">
-                      <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                      {report.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        report.status === 'generated' ? 'default' : 
-                        report.status === 'archived' ? 'secondary' : 'outline'
-                      }
-                    >
-                      {report.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {report.period_start} a {report.period_end}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {report.generated_at ? formatDateTime(report.generated_at) : "-"}
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {report.created_by_email}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/relatorios/${report.id}`} />}>
-                      Ver
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {reports.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
-                    Nenhum relatório criado ainda.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      </TabsContent>
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Gerado em</TableHead>
+                    <TableHead>Criado por</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell className="font-semibold">
+                        <Link href={`/relatorios/${report.id}`} className="flex items-center hover:underline">
+                          <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                          {report.title}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={
+                            report.status === 'generated' ? 'default' : 
+                            report.status === 'archived' ? 'secondary' : 'outline'
+                          }
+                        >
+                          {report.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {report.period_start} a {report.period_end}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {report.generated_at ? formatDateTime(report.generated_at) : "-"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {report.created_by_email}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/relatorios/${report.id}`} />}>
+                          Ver
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {reports.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                        Nenhum relatório criado ainda.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </AppShell>
   );

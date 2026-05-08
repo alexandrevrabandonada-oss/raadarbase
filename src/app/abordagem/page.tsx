@@ -34,6 +34,8 @@ export default async function AbordagemPage() {
   return (
     <AppShell>
       <PageHeader
+        compact
+        eyebrow="Fila de Abordagem"
         title="Quadro de Vínculos"
         description="Gestão central de contatos: acompanhe convites, respostas e o progresso de cada vínculo estabelecido."
       />

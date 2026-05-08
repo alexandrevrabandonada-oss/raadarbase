@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import Link from "next/link";
-import { Copy, Instagram, MessageSquare, UserPlus, FileText } from "lucide-react";
+import { Copy, Instagram, MessageSquare, UserPlus, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -16,10 +16,12 @@ interface ActionButtonGroupProps {
   onAssume?: () => void;
   onCopyDM?: () => void;
   onRegisterResponse?: () => void;
+  onReferral?: () => void;
   isAssuming?: boolean;
   canAssume?: boolean;
   canCopyDM?: boolean;
   canRegisterResponse?: boolean;
+  canReferral?: boolean;
   className?: string;
 }
 
@@ -29,16 +31,18 @@ export function ActionButtonGroup({
   onAssume,
   onCopyDM,
   onRegisterResponse,
+  onReferral,
   isAssuming,
   canAssume,
   canCopyDM,
   canRegisterResponse,
+  canReferral,
   className
 }: ActionButtonGroupProps) {
   return (
     <div className={cn("flex items-center gap-1.5 flex-wrap", className)}>
       
-      {/* 1. Assumir Responsabilidade */}
+      {/* 1. Assumir */}
       {canAssume && onAssume && (
         <Button 
           size="sm" 
@@ -75,7 +79,7 @@ export function ActionButtonGroup({
                 <Copy className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Copiar template de DM</TooltipContent>
+            <TooltipContent>Copiar DM</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
@@ -89,12 +93,26 @@ export function ActionButtonGroup({
                 <MessageSquare className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Registrar resposta</TooltipContent>
+            <TooltipContent>Registrar Resposta</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       )}
 
-      {/* 5. Ver Ficha (Primary Action) */}
+      {/* 5. Encaminhar */}
+      {canReferral && onReferral && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-amber-600 p-0" onClick={onReferral}>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Encaminhar</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {/* 6. Ver Ficha (Primary Action) */}
       {personId && (
         <Button size="sm" className="h-8 text-xs font-bold px-3 p-0 ml-1">
           <Link href={`/pessoas/${personId}`} className="w-full h-full flex items-center justify-center px-3">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 type ToastProps = {
   title?: string;
@@ -9,10 +9,10 @@ type ToastProps = {
 export function useToast() {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  function toast({ title, description, variant }: ToastProps) {
+  const toast = useCallback(({ title, description, variant }: ToastProps) => {
     setToasts((prev) => [...prev, { title, description, variant }]);
     // console.log(`[Toast ${variant || "default"}]: ${title} - ${description}`);
-  }
+  }, []);
 
   return { toast, toasts };
 }

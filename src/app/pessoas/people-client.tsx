@@ -15,17 +15,19 @@ import {
   List, 
   AlertCircle,
   Clock,
-  ShieldAlert,
   PlusCircle,
   Info,
 } from "lucide-react";
-import { assumePersonResponsible } from "@/app/actions";
+import { assumePersonResponsible, trackOperationalEvent } from "@/app/actions";
+import { useToast } from "@/hooks/use-toast";
 
 // Radar Design System
-import { RadarPageHeader } from "@/components/radar/radar-page-header";
-import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { PersonPriorityCard } from "@/components/radar/person-priority-card";
 import { EmptyState } from "@/components/radar/empty-state";
+import { OperationalStatusBar } from "@/components/radar/operational-status-bar";
+import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
+import { PersonOperationalList } from "@/components/radar/person-operational-list";
+import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboarding";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 
@@ -46,18 +48,26 @@ export function PeopleClient({
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
 }) {
+  const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<PersonStatus | "todos">("todos");
-  const [priorityFilter, setPriorityFilter] = useState<PeoplePriorityQuickFilter | string>("todos");
-  const [viewMode, setViewMode] = useState<"cards" | "list">("cards");
+  const [priorityFilter, setPriorityFilter] = useState<string>("todos");
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    const saved = localStorage.getItem("radar_pessoas_view_mode");
-    if (saved === "list" || saved === "cards") {
-      setViewMode(saved);
+  const [viewMode, setViewMode] = useState<"cards" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("radar_pessoas_view_mode");
+      if (saved === "list" || saved === "cards") return saved;
     }
-  }, []);
+    return "cards";
+  });
+
+  const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const handleOpenDetails = (person: PriorityPerson) => {
+    setSelectedPerson(person);
+    setIsSheetOpen(true);
+  };
 
   const toggleViewMode = (mode: "cards" | "list") => {
     setViewMode(mode);
@@ -91,8 +101,18 @@ export function PeopleClient({
             return true;
         }
       })
-      .slice(0, viewMode === "cards" ? 10 : 50);
-  }, [operators, priorityFilter, priorityPeople, viewMode]);
+      .slice(0, 100);
+  }, [operators, priorityFilter, priorityPeople]);
+
+  // Auto-switch to list mode if many results
+  useEffect(() => {
+    const hasExplicitPreference = localStorage.getItem("radar_pessoas_view_mode");
+    if (!hasExplicitPreference && filteredPriorityPeople.length > 10 && viewMode === "cards") {
+      startTransition(() => {
+        setViewMode("list");
+      });
+    }
+  }, [filteredPriorityPeople.length, viewMode]);
 
   const filteredPeople = useMemo(() => {
     return people
@@ -124,81 +144,71 @@ export function PeopleClient({
     };
   }, [priorityPeople]);
 
+
+  const handleNextPerson = () => {
+    if (!selectedPerson) return;
+    const currentIndex = filteredPriorityPeople.findIndex(p => p.id === selectedPerson.id);
+    if (currentIndex !== -1 && currentIndex < filteredPriorityPeople.length - 1) {
+      setSelectedPerson(filteredPriorityPeople[currentIndex + 1]);
+    } else {
+      setIsSheetOpen(false);
+      setSelectedPerson(null);
+      toast({ title: "Fim da lista", description: "Você concluiu todas as tarefas deste filtro." });
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-8 pb-20">
-      <RadarPageHeader 
-        eyebrow="Priorização Diária"
-        title="Ranking de Vínculos"
-        description="Pessoas com maior potencial de engajamento baseadas em interações recentes e temas estratégicos."
+    <div className="flex flex-col gap-4 pb-20">
+      <GuidedOnboarding compact />
+
+      <OperationalStatusBar
+        activeFilter={priorityFilter}
+        onFilter={(id) => setPriorityFilter(id)}
+        metrics={[
+          { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
+          { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
+          { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
+          { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
+          { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
+        ]}
         actions={
           <Link 
             href="/pessoas/importar" 
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "font-bold border-zinc-200")}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 font-black uppercase text-[10px] border-zinc-200")}
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> Importar
+            <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Importar
           </Link>
         }
       />
 
-
-      {/* Indicadores do Topo */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <RadarMetricCard label="Pessoas Reais" value={stats.total} icon={Users} tone="neutral" />
-        <RadarMetricCard label="Top Quentes" value={stats.quentes} icon={Flame} tone="hot" />
-        <RadarMetricCard label="Sem Dono" value={stats.semResponsavel} icon={AlertCircle} tone="neutral" />
-        <RadarMetricCard label="Esperando" value={stats.esperando} icon={Clock} tone="warning" />
-        <RadarMetricCard label="A Encaminhar" value={stats.aEncaminhar} icon={CheckCircle2} tone="info" />
-        <RadarMetricCard label="Não Abordar" value={stats.naoAbordar} icon={ShieldAlert} tone="danger" />
-      </div>
-
-      {/* Toolbar Operacional */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-zinc-100 shadow-sm sticky top-0 z-20">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100">
         <div className="relative w-full md:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
           <Input 
-            placeholder="Buscar por @username ou nome..." 
-            className="pl-10 h-10 border-zinc-200"
+            placeholder="Buscar username..." 
+            className="pl-9 h-8 text-xs border-zinc-200 bg-white"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div className="flex items-center gap-1.5 p-1 bg-zinc-100 rounded-lg">
-            {quickFilters.map((f) => (
-              <Button
-                key={f.id}
-                variant={priorityFilter === f.id ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-8 px-3 text-[10px] font-black uppercase tracking-wider",
-                  priorityFilter === f.id ? "bg-white shadow-sm text-indigo-700" : "text-zinc-500"
-                )}
-                onClick={() => setPriorityFilter(f.id)}
-              >
-                {f.label}
-              </Button>
-            ))}
-          </div>
-
-          <div className="h-6 w-px bg-zinc-200 mx-1 hidden md:block" />
-
-          <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-zinc-100 shadow-sm">
             <Button 
               variant={viewMode === "cards" ? "secondary" : "ghost"} 
               size="icon" 
-              className={cn("h-8 w-8", viewMode === "cards" && "bg-white shadow-sm")}
+              className={cn("h-7 w-7", viewMode === "cards" && "bg-zinc-100")}
               onClick={() => toggleViewMode("cards")}
             >
-              <LayoutGrid className={cn("h-4 w-4", viewMode === "cards" ? "text-indigo-600" : "text-zinc-400")} />
+              <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-indigo-600" : "text-zinc-400")} />
             </Button>
             <Button 
               variant={viewMode === "list" ? "secondary" : "ghost"} 
               size="icon" 
-              className={cn("h-8 w-8", viewMode === "list" && "bg-white shadow-sm")}
+              className={cn("h-7 w-7", viewMode === "list" && "bg-zinc-100")}
               onClick={() => toggleViewMode("list")}
             >
-              <List className={cn("h-4 w-4", viewMode === "list" ? "text-indigo-600" : "text-zinc-400")} />
+              <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-indigo-600" : "text-zinc-400")} />
             </Button>
           </div>
         </div>
@@ -207,20 +217,27 @@ export function PeopleClient({
       {/* Conteúdo Principal */}
       <div className="space-y-6">
         {filteredPriorityPeople.length > 0 ? (
-          <div className={cn(
-            viewMode === "cards" 
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6" 
-              : "flex flex-col gap-3"
-          )}>
-            {filteredPriorityPeople.map((person, index) => (
-              <PersonPriorityCard 
-                key={person.id} 
-                person={person} 
-                index={index} 
-                layout={viewMode}
-              />
-            ))}
-          </div>
+          viewMode === "cards" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+              {filteredPriorityPeople.slice(0, 15).map((person, index) => (
+                <PersonPriorityCard 
+                  key={person.id} 
+                  person={person} 
+                  index={index} 
+                  layout="card"
+                  onOpenDetails={handleOpenDetails}
+                  onActionComplete={() => window.location.reload()}
+                />
+              ))}
+            </div>
+          ) : (
+            <PersonOperationalList 
+              people={filteredPriorityPeople}
+              onOpenDetails={handleOpenDetails}
+              onAssume={(id) => handleAssume(id)}
+              isAssuming={isPending}
+            />
+          )
         ) : (
           <EmptyState 
             type="empty_filter"
@@ -235,6 +252,14 @@ export function PeopleClient({
         )}
       </div>
 
+      <PersonQuickSheet 
+        person={selectedPerson}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        onNextPerson={handleNextPerson}
+        onActionComplete={() => window.location.reload()}
+      />
+
       {/* Governance Banner */}
       <footer className="mt-12 p-6 rounded-2xl bg-indigo-900 text-indigo-50 flex flex-col md:flex-row items-center gap-6">
         <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
@@ -245,7 +270,7 @@ export function PeopleClient({
           <p className="text-indigo-200/80 text-sm leading-relaxed">
             O Radar de Base utiliza sinais de interação pública para sugerir a melhor conversa. 
             É proibido o uso destes dados para profiling ideológico ou pressão eleitoral. 
-            Toda conversa deve ser manual e respeitar o pedido de privacidade ("Não Abordar").
+            Toda conversa deve ser manual e respeitar o pedido de privacidade (&quot;Não Abordar&quot;).
           </p>
         </div>
       </footer>

@@ -80,7 +80,15 @@ const navigation: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ userEmail, useMocks }: { userEmail: string | undefined; useMocks: boolean }) {
+export function Sidebar({ 
+  userEmail, 
+  useMocks,
+  className 
+}: { 
+  userEmail: string | undefined; 
+  useMocks: boolean;
+  className?: string;
+}) {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({ "Sistema": true });
 
@@ -89,7 +97,10 @@ export function Sidebar({ userEmail, useMocks }: { userEmail: string | undefined
   };
 
   return (
-    <aside className="border-border/80 bg-card/80 px-4 py-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-r flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200">
+    <aside className={cn(
+      "border-border/80 bg-card/80 px-4 py-4 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:border-r flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-200",
+      className
+    )}>
       <Link href="/dashboard" className="flex items-center gap-3 mb-6 shrink-0">
         <div className="flex size-11 items-center justify-center rounded-xl bg-black text-white font-black text-lg shadow-lg">
           RB

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { trackOperationalEvent } from "@/app/actions";
 import { 
   Flame, 
   ArrowRight, 
@@ -29,6 +30,13 @@ import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { PersonPriorityCard } from "@/components/radar/person-priority-card";
 import { OperationalAlert } from "@/components/radar/operational-alert";
+import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
+
+// Onboarding & Pilot Guidance
+import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboarding";
+import { PilotChecklist } from "@/components/radar/onboarding/pilot-checklist";
+import { OperationalAlarms } from "@/components/radar/onboarding/operational-alarms";
+import { DayZeroChecklist } from "@/components/radar/onboarding/day-zero-checklist";
 
 type DashboardClientProps = {
   priorityPeople: PriorityPerson[];
@@ -44,24 +52,60 @@ export function DashboardClient({
   pilotStats,
   operationalAlerts 
 }: DashboardClientProps) {
-  const topPeople = priorityPeople.slice(0, 5);
+  const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  useEffect(() => {
+    trackOperationalEvent("dashboard_viewed");
+  }, []);
+
+  const handleOpenDetails = (person: PriorityPerson) => {
+    setSelectedPerson(person);
+    setIsSheetOpen(true);
+  };
+
+  const handleNextPerson = () => {
+    if (!selectedPerson) return;
+    const currentIndex = priorityPeople.findIndex(p => p.id === selectedPerson.id);
+    if (currentIndex !== -1 && currentIndex < priorityPeople.length - 1) {
+      setSelectedPerson(priorityPeople[currentIndex + 1]);
+    } else {
+      setIsSheetOpen(false);
+      setSelectedPerson(null);
+    }
+  };
 
   return (
-    <div className="space-y-8 pb-12">
-      <RadarPageHeader 
-        title="Painel de Controle"
-        description="Acompanhamento operacional em tempo real da base Vila Rica."
-        actions={
-          <Link 
-            href="/pessoas/importar" 
-            className={cn(buttonVariants({ size: "sm" }), "font-bold bg-indigo-600")}
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> Importar Dados
-          </Link>
-        }
-      />
+    <div className="space-y-10 pb-12">
+      
+      {/* 0. Readiness Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-8 space-y-4">
+          <OperationalAlarms 
+            stats={{
+              unassignedTasks: pilotStats.summary.tasksWithoutResponsible,
+              myPendingReferrals: pilotStats.summary.pendingReferralsCount,
+              staleTasks: pilotStats.summary.staleTasksCount,
+              notAssumedAnything: pilotStats.summary.openTasks === 0
+            }}
+          />
+          <GuidedOnboarding compact />
+        </div>
+        <div className="lg:col-span-4">
+          <DayZeroChecklist 
+            stats={{
+              teamAccess: true, // Mocked for now
+              templatesActive: operationalAlerts.missingTemplates.length === 0,
+              tasksDistributed: pilotStats.summary.tasksWithoutResponsible === 0,
+              queueWorking: true,
+              quickSheetWorking: true,
+              reportsReady: true
+            }}
+          />
+        </div>
+      </div>
 
-      {/* 1. Hero: Top Pessoas Quentes */}
+      {/* 1. Hero: Top Pessoas */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -76,22 +120,20 @@ export function DashboardClient({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-          {topPeople.length > 0 ? (
-            topPeople.map((person, index) => (
+          {priorityPeople.length > 0 ? (
+            priorityPeople.map((person, index) => (
               <PersonPriorityCard 
                 key={person.id}
                 person={person}
                 index={index}
                 layout="card"
+                onOpenDetails={handleOpenDetails}
               />
             ))
           ) : (
             <div className="col-span-full py-12 flex flex-col items-center justify-center bg-zinc-50 border-2 border-dashed border-zinc-100 rounded-2xl">
                <Flame className="h-10 w-10 text-zinc-200 mb-3" />
                <p className="text-sm font-bold text-zinc-400">Ninguém priorizado para hoje ainda.</p>
-               <Button variant="link" size="sm" className="text-indigo-600 font-bold">
-                 <Link href="/pessoas/importar">Importar novas pessoas</Link>
-               </Button>
             </div>
           )}
         </div>
@@ -174,85 +216,41 @@ export function DashboardClient({
               </CardContent>
             </Card>
           </section>
-
-          {/* 4. Alertas Operacionais */}
-          <section className="space-y-4">
-            <h2 className="text-lg font-black flex items-center gap-2 text-rose-700">
-              <AlertTriangle className="h-5 w-5" />
-              Atenção Requerida
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pilotStats.summary.tasksWithoutResponsible > 0 && (
-                <OperationalAlert 
-                  type="sem_responsavel" 
-                  message={`${pilotStats.summary.tasksWithoutResponsible} tarefas sem dono. A equipe está perdendo oportunidades.`} 
-                />
-              )}
-              
-              {pilotStats.summary.pendingReferralsCount > 0 && (
-                <OperationalAlert 
-                  type="precisa_encaminhar" 
-                  message={`${pilotStats.summary.pendingReferralsCount} respostas travadas aguardando encaminhamento.`} 
-                />
-              )}
-
-              {pilotStats.summary.staleTasksCount > 0 && (
-                <OperationalAlert 
-                  type="contato_recente" 
-                  message={`${pilotStats.summary.staleTasksCount} tarefas paradas há mais de 48 horas.`} 
-                />
-              )}
-
-              {operationalAlerts.webhookQuarantineCount > 0 && (
-                <OperationalAlert 
-                  type="webhook_quarentena" 
-                  message={`${operationalAlerts.webhookQuarantineCount} webhooks em quarentena aguardando revisão.`} 
-                />
-              )}
-            </div>
-          </section>
         </div>
 
         {/* Right Column (4 units) */}
         <aside className="lg:col-span-4 space-y-8">
+          
+          <PilotChecklist 
+            stats={{
+              myTasks: pilotStats.summary.openTasks, // Simplified mapping
+              dmsSent: pilotStats.funnel.approached,
+              responsesRecorded: pilotStats.summary.responsesRecorded,
+              pendingReferrals: pilotStats.summary.pendingReferralsCount,
+              blockedRespected: pilotStats.summary.doNotContactCount
+            }}
+          />
+
           {/* 5. Ações Rápidas */}
           <section className="space-y-4">
             <h2 className="text-lg font-black">Ações Rápidas</h2>
             <div className="grid grid-cols-1 gap-2">
               <Button  className="w-full justify-start font-black bg-indigo-600 hover:bg-indigo-700 h-12 shadow-sm">
-                <Link href="/pessoas">
+                <Link href="/pessoas" className="w-full h-full flex items-center">
                   <Flame className="mr-3 h-5 w-5" />
                   Pessoas Prioritárias
                 </Link>
               </Button>
               <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
-                <Link href="/abordagem">
+                <Link href="/abordagem" className="w-full h-full flex items-center">
                   <LayoutDashboard className="mr-3 h-5 w-5 text-zinc-500" />
                   Quadro de Vínculos
-                </Link>
-              </Button>
-              <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200">
-                <Link href="/mensagens">
-                  <MessageSquare className="mr-3 h-5 w-5 text-zinc-500" />
-                  Biblioteca de DMs
-                </Link>
-              </Button>
-              <Button  variant="outline" className="w-full justify-start font-black h-12 border-zinc-200 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
-                <Link href="/relatorios">
-                  <TrendingUp className="mr-3 h-5 w-5" />
-                  Painel do Piloto
-                </Link>
-              </Button>
-              <Button  variant="ghost" className="w-full justify-start font-black h-12 text-muted-foreground">
-                <Link href="/pessoas/importar">
-                  <PlusCircle className="mr-3 h-5 w-5" />
-                  Importar Pessoas
                 </Link>
               </Button>
             </div>
           </section>
 
-          {/* 6. Atividade Recente (Ex-métrica genérica) */}
+          {/* 6. Atividade Recente */}
           <Card className="bg-zinc-950 text-white border-none shadow-xl">
             <CardHeader>
               <CardTitle className="text-sm font-black uppercase text-zinc-400">Escuta Digital</CardTitle>
@@ -262,29 +260,24 @@ export function DashboardClient({
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-zinc-500 uppercase">Sincronizado</p>
                   <p className="text-2xl font-black">2.4k</p>
-                  <p className="text-[10px] text-zinc-400 font-medium">comentários</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-zinc-500 uppercase">Pessoas</p>
                   <p className="text-2xl font-black">152</p>
-                  <p className="text-[10px] text-zinc-400 font-medium">novos perfis 7d</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-zinc-800">
-                <p className="text-xs font-bold text-zinc-500 uppercase mb-3">Tendência da Semana</p>
-                <div className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
-                    <span className="text-sm font-black italic">Transporte Público</span>
-                  </div>
-                  <Badge className="bg-orange-500/10 text-orange-500 border-none">+12%</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
         </aside>
       </div>
+
+      <PersonQuickSheet 
+        person={selectedPerson}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        onNextPerson={handleNextPerson}
+        onActionComplete={() => window.location.reload()}
+      />
     </div>
   );
 }

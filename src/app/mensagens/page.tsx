@@ -27,7 +27,8 @@ export default async function MensagensPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Mensagens-base"
+        eyebrow="Abordagem Direta"
+        title="Biblioteca de DMs"
         description="Modelos para copiar e colar manualmente no Instagram, com variáveis simples e contexto comunitário."
       />
       <MessagesClient initialTemplates={messageTemplates} />

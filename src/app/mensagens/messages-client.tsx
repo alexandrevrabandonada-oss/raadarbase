@@ -113,15 +113,6 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
   return (
     <div className="flex flex-col gap-8 pb-20">
-      <RadarPageHeader 
-        title="Biblioteca de DMs"
-        description="Templates humanizados para abordar sinais de vínculo no Instagram."
-        actions={
-          <Button size="sm" className="font-bold bg-indigo-600">
-            <PlusCircle className="mr-2 h-4 w-4" /> Novo Template
-          </Button>
-        }
-      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <RadarMetricCard label="Total de DMs" value={stats.total} icon={MessageSquare} tone="neutral" />
@@ -198,7 +189,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
             <CardContent className="flex flex-col gap-4">
               <div className="grid gap-2">
                 <label className="text-xs font-semibold uppercase text-muted-foreground">Título</label>
-                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex: Convite Missão ÉLuta" />
+                <Input id="template-form-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex: Convite Missão ÉLuta" />
               </div>
               <div className="grid gap-2">
                 <label className="text-xs font-semibold uppercase text-muted-foreground">Categoria</label>
@@ -249,9 +240,14 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
           <div className="grid gap-6">
             {activeTemplates.length === 0 ? (
               <EmptyState 
-                type="sem_dados"
-                title="Nenhum template ativo"
-                description="A biblioteca está vazia ou todos os templates estão desativados. Crie novos modelos para facilitar o trabalho da equipe."
+                type="no_data"
+                title="Sua biblioteca está vazia"
+                description="Crie seu primeiro modelo de mensagem para começar a abordar as pessoas de forma humanizada e eficiente."
+                primaryAction={
+                  <Button onClick={() => document.getElementById("template-form-name")?.focus()}>
+                    <Plus className="mr-2 h-4 w-4" /> Criar Primeiro Template
+                  </Button>
+                }
               />
             ) : (
               activeTemplates.map((template) => (

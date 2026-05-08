@@ -32,6 +32,8 @@ export default async function PessoasPage() {
   return (
     <AppShell>
       <PageHeader
+        compact
+        eyebrow="Priorização Diária"
         title="Pessoas Prioritárias"
         description="As pessoas com mais sinais de vínculo, engajamento recente e chance de virar ação concreta."
       />

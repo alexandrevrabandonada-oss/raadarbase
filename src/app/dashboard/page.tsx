@@ -37,6 +37,7 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <PageHeader
+        eyebrow="Painel de Controle"
         title="Hoje no Radar"
         description="Leitura rápida das pessoas, vínculos e ações que precisam de atenção agora."
       />

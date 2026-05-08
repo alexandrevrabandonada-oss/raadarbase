@@ -16,10 +16,11 @@ interface PersonPriorityCardProps {
   index?: number;
   layout?: "card" | "cards" | "list";
   onActionComplete?: () => void;
+  onOpenDetails?: (person: PriorityPerson) => void;
   className?: string;
 }
 
-export function PersonPriorityCard({ person, index, layout = "card", onActionComplete, className }: PersonPriorityCardProps) {
+export function PersonPriorityCard({ person, index, layout = "card", onActionComplete, onOpenDetails, className }: PersonPriorityCardProps) {
   const [isPending, startTransition] = useTransition();
 
   const isList = layout === "list";
@@ -49,7 +50,10 @@ export function PersonPriorityCard({ person, index, layout = "card", onActionCom
             </div>
           )}
           
-          <div className="space-y-0.5 min-w-0 flex-1">
+          <div 
+            className="space-y-0.5 min-w-0 flex-1 cursor-pointer"
+            onClick={() => onOpenDetails?.(person)}
+          >
             <div className="flex items-center gap-2">
               <span className="font-black text-sm truncate" title={person.displayName || `@${person.username}`}>
                 {person.displayName || `@${person.username}`}
@@ -114,7 +118,10 @@ export function PersonPriorityCard({ person, index, layout = "card", onActionCom
 
       <CardHeader className="pb-2 pt-6 shrink-0">
         <div className="flex items-start justify-between gap-2">
-          <div className="space-y-0.5 min-w-0">
+          <div 
+            className="space-y-0.5 min-w-0 cursor-pointer"
+            onClick={() => onOpenDetails?.(person)}
+          >
             <CardTitle className="text-base font-black truncate" title={person.displayName || `@${person.username}`}>
               {person.displayName || `@${person.username}`}
             </CardTitle>

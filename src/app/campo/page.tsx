@@ -11,6 +11,7 @@ import { MapPin, Calendar, Plus, ArrowRight, History, Lightbulb } from "lucide-r
 import { Separator } from "@/components/ui/separator";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { OperationalAlert } from "@/components/radar/operational-alert";
+import { EmptyState } from "@/components/radar/empty-state";
 
 
 export const dynamic = "force-dynamic";
@@ -74,12 +75,21 @@ export default async function FieldAgendaPage() {
             </CardHeader>
             <CardContent>
               {plannedEvents.length === 0 ? (
-                <div className="py-8 text-center border-2 border-dashed rounded-lg">
-                  <p className="text-muted-foreground">Nenhuma atividade planejada.</p>
-                  <Button nativeButton={false} variant="link" render={<Link href="/campo/novo" />}>
-                    Criar primeiro evento
-                  </Button>
-                </div>
+                  <EmptyState
+                    type="no_data"
+                    title="Nenhuma atividade planejada"
+                    description="Organize rodas de escuta, reuniões de bairro ou plenárias presenciais para fortalecer o vínculo territorial."
+                    primaryAction={
+                      <Button nativeButton={false} render={<Link href="/campo/novo" />}>
+                        <Plus className="mr-2 h-4 w-4" /> Criar Primeiro Evento
+                      </Button>
+                    }
+                    secondaryAction={
+                      <Button variant="outline" nativeButton={false} render={<Link href="/radar/silencios" />}>
+                        Ver Radar de Silêncios
+                      </Button>
+                    }
+                  />
               ) : (
                 <div className="space-y-4">
                   {plannedEvents.map(event => (

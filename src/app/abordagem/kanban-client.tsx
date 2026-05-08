@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
   AlertCircle, 
@@ -42,8 +42,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { formatDateTime } from "@/lib/mock-data";
-import { assumeTaskResponsible, recordPersonResponse, updateOutreachTaskStatus } from "@/app/actions";
+import { 
+  assumeTaskResponsible, 
+  recordPersonResponse, 
+  updateOutreachTaskStatus,
+  trackOperationalEvent
+} from "@/app/actions";
 import { PERSON_RESPONSE_OPTIONS } from "@/lib/data/person-profile";
 import { normalizeOutreachColumn, nextBoardColumn, outreachBoardColumns, outreachColumnLabels, type BoardColumnId } from "@/lib/outreach-workflow";
 import type { OutreachTask, PersonResponseKind, PriorityPerson } from "@/lib/types";
@@ -96,6 +102,28 @@ export function KanbanClient({
   const [operatorFilter, setOperatorFilter] = useState<string>("todos");
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [isDistributing, setIsDistributing] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  const hasTrackedMount = useRef(false);
+
+  useEffect(() => {
+    if (!hasTrackedMount.current) {
+      trackOperationalEvent("kanban_viewed");
+      hasTrackedMount.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (hasTrackedMount.current) {
+      trackOperationalEvent("filter_applied", undefined, { filter: filterType });
+    }
+  }, [filterType]);
+
+  const handleOpenDetails = (person: PriorityPerson) => {
+    setSelectedPerson(person);
+    setIsSheetOpen(true);
+  };
 
   // Derived stats for header
   const stats = useMemo(() => {
@@ -108,6 +136,25 @@ export function KanbanClient({
       stale: active.filter(t => t.isStale).length
     };
   }, [tasks]);
+
+  const listPeople = useMemo(() => {
+    return tasks
+      .filter(t => t.boardColumn !== "entrou_na_base" && t.boardColumn !== "nao_abordar")
+      .map(t => t.priority)
+      .filter((p): p is PriorityPerson => p !== null)
+      .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
+  }, [tasks]);
+
+  const handleNextPerson = () => {
+    if (!selectedPerson) return;
+    const currentIndex = listPeople.findIndex(p => p.id === selectedPerson.id);
+    if (currentIndex !== -1 && currentIndex < listPeople.length - 1) {
+      setSelectedPerson(listPeople[currentIndex + 1]);
+    } else {
+      setIsSheetOpen(false);
+      setSelectedPerson(null);
+    }
+  };
 
   const groupedColumns = useMemo(
     () =>
@@ -390,11 +437,11 @@ export function KanbanClient({
                     <CardContent className="p-4 space-y-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                           <Link href={`/pessoas/${task.personId}`} className="hover:underline">
+                           <div className="cursor-pointer hover:underline" onClick={() => task.priority && handleOpenDetails(task.priority)}>
                              <p className="text-sm font-black text-indigo-950 truncate leading-none mb-1">
                                @{task.person?.username || "usuario"}
                              </p>
-                           </Link>
+                           </div>
                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate">
                              {task.title}
                            </p>
@@ -508,6 +555,13 @@ export function KanbanClient({
           {feedback.text}
         </div>
       )}
+      <PersonQuickSheet 
+        person={selectedPerson}
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        onNextPerson={handleNextPerson}
+        onActionComplete={() => window.location.reload()}
+      />
     </div>
   );
 }

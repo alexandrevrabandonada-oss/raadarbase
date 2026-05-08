@@ -998,3 +998,32 @@ export async function executePersonImportBatch(previews: PersonImportPreview[]):
     revalidate: ["/pessoas", "/abordagem"],
   });
 }
+
+export async function getPersonInteractionsAction(personId: string) {
+  const { listInteractions } = await import("@/lib/data/interactions");
+  return listInteractions(personId);
+}
+
+export async function listFieldAgendaEventsAction() {
+  const { listFieldAgendaEvents } = await import("@/lib/data/field-agenda");
+  return listFieldAgendaEvents({ status: "planned" });
+}
+
+export async function trackOperationalEvent(
+  event: string,
+  personId?: string,
+  metadata?: Json
+): Promise<ActionResult> {
+  return performAction({
+    action: "telemetry.event_recorded",
+    entityType: "operational_telemetry",
+    entityId: personId || null,
+    summary: `Evento operacional registrado: ${event}`,
+    metadata: {
+      ...((metadata as Record<string, unknown>) || {}),
+      event,
+      timestamp: new Date().toISOString()
+    },
+    mutate: async () => {}
+  });
+}
