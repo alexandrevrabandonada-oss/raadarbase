@@ -1027,3 +1027,30 @@ export async function trackOperationalEvent(
     mutate: async () => {}
   });
 }
+export async function submitPilotFeedback(payload: {
+  type: string;
+  route: string;
+  description: string;
+  urgency: "low" | "medium" | "high";
+}): Promise<ActionResult> {
+  if (!payload.description.trim()) throw new Error("Descrição é obrigatória.");
+  
+  return performAction({
+    action: "pilot.feedback_submitted",
+    entityType: "pilot_feedback",
+    entityId: null,
+    summary: `Feedback do piloto enviado: ${payload.type} em ${payload.route}`,
+    metadata: {
+      type: payload.type,
+      route: payload.route,
+      description: payload.description,
+      urgency: payload.urgency,
+      timestamp: new Date().toISOString()
+    },
+    mutate: async () => {
+      // O mutate é intencionalmente vazio pois o feedback é persistido no audit_log
+      // através da função performAction.
+    },
+    revalidate: ["/relatorios", "/relatorios/feedback-piloto"]
+  });
+}

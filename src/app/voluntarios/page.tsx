@@ -10,8 +10,12 @@ import { canManageContacts } from "@/lib/authz/roles";
 import { getVolunteerStats, listSquads, listVolunteers, type VolunteerStatus } from "@/lib/data/volunteers";
 import { getVolunteerReviewDashboard } from "@/lib/data/volunteer-review-dashboard";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
-import { Users } from "lucide-react";
+import { Users, PlusCircle, Heart, ShieldCheck, Clock } from "lucide-react";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { RadarMetricCard } from "@/components/radar/radar-metric-card";
+import { OperationalAlert } from "@/components/radar/operational-alert";
+import { cn } from "@/lib/utils";
 
 
 export const dynamic = "force-dynamic";
@@ -48,109 +52,130 @@ export default async function VolunteersPage({
       <RadarPageHeader
         eyebrow="Rede de Apoio"
         title="Base de Voluntários"
-        description="Organize pessoas que consentiram explicitamente em ajudar. Este banco é separado da base do Instagram."
+        description="Pessoas que consentiram explicitamente em ajudar. Este banco é separado da base do Instagram."
         actions={
           <div className="flex gap-2">
-            <Button nativeButton={false} variant="outline" render={<Link href="/api/voluntarios/export" />}>
-              Exportar seguro
+            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200" render={<Link href="/voluntarios/novo" />}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Adicionar Voluntário
             </Button>
-            <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios/inscricoes" />}>
+            <Button nativeButton={false} variant="outline" className="border-zinc-200" render={<Link href="/voluntarios/inscricoes" />}>
               Ver inscrições
-            </Button>
-            {canExportContacts ? (
-              <Button nativeButton={false} variant="outline" render={<Link href="/api/voluntarios/export?include_contact=true" />}>
-                Exportar com contato
-              </Button>
-            ) : null}
-            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/voluntarios/novo" />}>
-              Novo voluntário
             </Button>
           </div>
         }
       />
 
-
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card><CardHeader><CardTitle>Total</CardTitle></CardHeader><CardContent className="text-3xl font-black">{stats.totalCount}</CardContent></Card>
-        <Card><CardHeader><CardTitle>Novos</CardTitle></CardHeader><CardContent className="text-3xl font-black">{stats.newCount}</CardContent></Card>
-        <Card><CardHeader><CardTitle>Ativos</CardTitle></CardHeader><CardContent className="text-3xl font-black">{stats.activeCount}</CardContent></Card>
-        <Card><CardHeader><CardTitle>Pausados</CardTitle></CardHeader><CardContent className="text-3xl font-black">{stats.pausedCount}</CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <RadarMetricCard label="Total Geral" value={stats.totalCount} icon={Users} tone="neutral" />
+        <RadarMetricCard label="Aguardando Boas-vindas" value={stats.newCount} icon={Heart} tone="hot" />
+        <RadarMetricCard label="Mobilizados" value={stats.activeCount} icon={ShieldCheck} tone="success" />
+        <RadarMetricCard label="Em Pausa" value={stats.pausedCount} icon={Clock} tone="warning" />
       </div>
+
+      <OperationalAlert 
+        type="contato_manual" 
+        className="mb-8 border-emerald-100 bg-emerald-50/50"
+      >
+        <p className="text-xs font-medium text-emerald-800">
+          <strong>Lembrete Ético:</strong> Voluntários são pessoas que preencheram o formulário oficial ou confirmaram interesse em ajudar. Nunca use dados do Instagram para cadastrar voluntários sem consentimento direto.
+        </p>
+      </OperationalAlert>
+
+      <ContextHelpCard 
+        title="Como mobilizar voluntários"
+        whatIsThis="Esta é a lista de cidadãos que levantaram a mão para ajudar ativamente na campanha."
+        whyItMatters="É onde você encontra braços para ações presenciais, especialistas para pautas técnicas e apoio em bairros específicos."
+        whatToDoNow="Filtre por bairro ou habilidade para encontrar o apoio necessário para um Plano de Ação ou Evento de Campo."
+        className="mb-8"
+      />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Busca e filtros</CardTitle>
+          <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100">
+            <CardHeader className="pb-3 border-b border-zinc-50">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-500">Busca Estratégica</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <form className="grid gap-3 md:grid-cols-5">
-                <Input name="search" placeholder="Buscar por nome ou bairro" defaultValue={resolvedSearchParams?.search ?? ""} />
-                <Input name="status" placeholder="Status" defaultValue={resolvedSearchParams?.status ?? ""} />
-                <Input name="neighborhood" placeholder="Bairro" defaultValue={resolvedSearchParams?.neighborhood ?? ""} />
-                <Input name="skill" placeholder="Habilidade" defaultValue={resolvedSearchParams?.skill ?? ""} />
-                <Input name="availability" placeholder="Disponibilidade" defaultValue={resolvedSearchParams?.availability ?? ""} />
-                <div className="md:col-span-5 flex gap-2">
-                  <Button type="submit">Filtrar</Button>
-                  <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios" />}>
-                    Limpar
+                <Input name="search" placeholder="Nome ou bairro" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.search ?? ""} />
+                <Input name="status" placeholder="Status" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.status ?? ""} />
+                <Input name="neighborhood" placeholder="Bairro" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.neighborhood ?? ""} />
+                <Input name="skill" placeholder="Habilidade" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.skill ?? ""} />
+                <Input name="availability" placeholder="Disponibilidade" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.availability ?? ""} />
+                <div className="md:col-span-5 flex gap-2 pt-2">
+                  <Button type="submit" className="bg-zinc-900 text-white hover:bg-zinc-800 px-8">Filtrar</Button>
+                  <Button nativeButton={false} variant="outline" className="border-zinc-200" render={<Link href="/voluntarios" />}>
+                    Limpar Filtros
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Base consentida</CardTitle>
+          <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100 overflow-hidden">
+            <CardHeader className="pb-3 border-b border-zinc-50">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-500">Base Consentida</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="p-0 overflow-x-auto">
 
               {volunteers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-100">
-                    <Users className="h-6 w-6 text-emerald-600" />
+                <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                  <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6 border-2 border-dashed border-emerald-200">
+                    <Heart className="h-10 w-10 text-emerald-300" />
                   </div>
-                  <h3 className="font-bold text-lg text-emerald-950 mb-2">Sua base consentida está vazia</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-                    A base de voluntários reúne apenas pessoas que confirmaram consentimento e engajamento constante. Ninguém é importado do Instagram automaticamente.
+                  <h3 className="font-black text-2xl text-emerald-950 mb-3 tracking-tight">Pronto para começar a rede?</h3>
+                  <p className="text-sm text-emerald-900/60 max-w-md mx-auto mb-8 font-medium leading-relaxed">
+                    A base de voluntários é o coração da mobilização. Comece convertendo seguidores engajados do Instagram em apoio real ou revisando as inscrições recebidas.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    <Button nativeButton={false} render={<Link href="/voluntarios/inscricoes" />}>
-                      Revisar inscrições
+                  <div className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
+                    <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold px-10" render={<Link href="/voluntarios/inscricoes" />}>
+                      Revisar Inscrições
                     </Button>
-                    <Button variant="outline" nativeButton={false} render={<Link href="/pessoas" />}>
-                      Buscar nas Pessoas Prioritárias
+                    <Button variant="outline" nativeButton={false} className="border-zinc-200 font-bold" render={<Link href="/pessoas" />}>
+                      Identificar nas Prioridades
                     </Button>
                   </div>
                 </div>
               ) : (
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-zinc-50/50">
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Bairro</TableHead>
-                      <TableHead>Habilidades</TableHead>
-                      <TableHead>Disponibilidade</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Contato</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Nome</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Bairro</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Habilidades</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Disponibilidade</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Status</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {volunteers.map((volunteer) => (
-                      <TableRow key={volunteer.id}>
-                        <TableCell>
-                          <Link href={`/voluntarios/${volunteer.id}`} className="font-semibold underline">
+                      <TableRow key={volunteer.id} className="group hover:bg-zinc-50/50 transition-colors">
+                        <TableCell className="py-4">
+                          <Link href={`/voluntarios/${volunteer.id}`} className="font-black text-indigo-950 hover:text-indigo-600 transition-colors">
                             {volunteer.displayName}
                           </Link>
                         </TableCell>
-                        <TableCell>{volunteer.neighborhood ?? "-"}</TableCell>
-                        <TableCell>{volunteer.skills.join(", ") || "-"}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-xs font-medium text-zinc-600">{volunteer.neighborhood ?? "-"}</TableCell>
+                        <TableCell className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{volunteer.skills.join(", ") || "-"}</TableCell>
+                        <TableCell className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">
                           {[...volunteer.availability.weekdays, ...volunteer.availability.periods].join(", ") || "-"}
                         </TableCell>
-                        <TableCell><Badge variant="outline">{volunteer.status}</Badge></TableCell>
-                        <TableCell>{volunteer.hasContact ? "Oculto por padrão" : "Sem contato"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn(
+                            "font-black text-[9px] uppercase tracking-widest",
+                            volunteer.status === 'ativo' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                            volunteer.status === 'novo' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                          )}>
+                            {volunteer.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                           <Link href={`/voluntarios/${volunteer.id}`} className="text-xs font-black text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                             Perfil →
+                           </Link>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -204,12 +229,12 @@ export default async function VolunteersPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Squads</CardTitle>
+              <CardTitle>Grupos de Trabalho</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="text-sm text-muted-foreground">{squads.length} squads cadastrados.</div>
+              <div className="text-sm text-muted-foreground">{squads.length} grupos cadastrados.</div>
               <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios/squads" />}>
-                Ver squads
+                Ver grupos
               </Button>
             </CardContent>
           </Card>

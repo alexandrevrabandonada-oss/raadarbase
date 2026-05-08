@@ -8,13 +8,13 @@ export async function listOutreachTasks(): Promise<OutreachTaskWithPerson[]> {
   if (shouldUseMockData()) return mockTasks;
   try {
     const supabase = getSupabaseAdminClient();
-    const { data, error } = await supabase.from("outreach_tasks").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("outreach_tasks")
+      .select("*, person:ig_people(id, username, status)")
+      .order("created_at", { ascending: false });
+    
     if (error) throw error;
-    const personIds = [...new Set((data ?? []).map((item) => item.person_id))];
-    const { data: peopleData } = personIds.length
-      ? await supabase.from("ig_people").select("id, username, status").in("id", personIds)
-      : { data: [] };
-    const peopleById = new Map((peopleData ?? []).map((person) => [person.id, person]));
+    
     return (data ?? []).map((task) => ({
       id: task.id,
       personId: task.person_id,
@@ -26,13 +26,15 @@ export async function listOutreachTasks(): Promise<OutreachTaskWithPerson[]> {
       createdAt: task.created_at,
       updatedAt: task.updated_at,
       responsibleId: task.responsible_id ?? null,
-      person: peopleById.get(task.person_id)
-        ? {
-            id: peopleById.get(task.person_id)!.id,
-            username: peopleById.get(task.person_id)!.username,
-            status: peopleById.get(task.person_id)!.status,
-          }
-        : null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      person: (task as any).person ? {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        id: (task as any).person.id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        username: (task as any).person.username,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        status: (task as any).person.status,
+      } : null,
     }));
   } catch (error) {
     handleSupabaseReadError("listOutreachTasks", error);

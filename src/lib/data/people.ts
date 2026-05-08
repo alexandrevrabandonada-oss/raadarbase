@@ -35,12 +35,19 @@ function mapPerson(person: {
   };
 }
 
-export async function listPeople(): Promise<PersonWithContact[]> {
+export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> {
   if (shouldUseMockData()) return mockPeople;
   try {
     const supabase = getSupabaseAdminClient();
+    
+    let peopleQuery = supabase.from("ig_people").select("*, internal_users(full_name)").order("last_interaction_at", { ascending: false });
+    
+    if (cutoff) {
+      peopleQuery = peopleQuery.gte("last_interaction_at", cutoff);
+    }
+
     const [{ data: peopleData, error: peopleError }, { data: contactsData, error: contactsError }] = await Promise.all([
-      supabase.from("ig_people").select("*, internal_users(full_name)").order("last_interaction_at", { ascending: false }),
+      peopleQuery,
       supabase.from("contacts").select("*"),
     ]);
     if (peopleError) throw peopleError;

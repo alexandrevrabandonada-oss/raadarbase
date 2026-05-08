@@ -24,6 +24,11 @@ import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { DailyClosure } from "@/components/radar/reports/daily-closure";
 import { getOperationalTelemetry } from "@/lib/data/audit";
 import { TelemetryDashboard } from "./telemetry-dashboard";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { listPilotFeedback } from "@/lib/data/audit";
+import { PilotFeedbackForm, PilotFeedbackList } from "@/components/radar/reports/pilot-feedback";
+import { getBaseQualityStats, detectPossibleDuplicates } from "@/lib/data/data-quality";
+import { BaseQualityDashboard } from "@/components/radar/reports/base-quality";
 
 
 type FeaturedReportSnapshot = {
@@ -45,6 +50,10 @@ export default async function RelatoriosPage() {
   const reports = await listMobilizationReports();
   const pilotData = await getPilotDashboardData();
   const telemetryData = await getOperationalTelemetry(7);
+  const pilotFeedback = await listPilotFeedback();
+  const qualityStats = await getBaseQualityStats();
+  const duplicates = await detectPossibleDuplicates();
+
   const generatedReports = reports.filter((report) => report.status === "generated");
   const firstRealReport = generatedReports
     .slice()
@@ -61,29 +70,67 @@ export default async function RelatoriosPage() {
   return (
     <AppShell>
       <RadarPageHeader
-        eyebrow="Observabilidade"
-        title="Painel de Monitoramento"
-        description="Acompanhamento diário do piloto e relatórios consolidados de mobilização."
+        eyebrow="Resultados da Operação"
+        title="Acompanhamento do Trabalho"
+        description="Confira o desempenho do piloto e os aprendizados da mobilização."
+      />
+
+      <ContextHelpCard 
+        title="Como analisar os resultados"
+        whatIsThis="Este é o seu centro de inteligência. Aqui os dados individuais se transformam em visão estratégica da campanha."
+        whyItMatters="Permite identificar quais temas estão gerando mais interesse e onde a equipe de campo está tendo mais sucesso."
+        whatToDoNow="Navegue pelas abas para ver o ritmo da equipe hoje ou revise os relatórios de pautas para planejar as próximas ações."
+        className="mb-8"
       />
 
       <Tabs defaultValue="operacional" className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 border border-slate-200">
-          <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            Painel do Piloto (7 Dias)
+        <TabsList className="bg-zinc-100 p-1 border border-zinc-200 h-12">
+          <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            📊 Painel Piloto
           </TabsTrigger>
-          <TabsTrigger value="fechamento" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            Fechamento do Dia
+          <TabsTrigger value="fechamento" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            ✅ Fechamento Dia
           </TabsTrigger>
-          <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            Relatórios de Pautas
+          <TabsTrigger value="qualidade" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            🧹 Qualidade
           </TabsTrigger>
-          <TabsTrigger value="telemetria" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            Telemetria de Uso
+          <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            📝 Pautas
           </TabsTrigger>
-          <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-            Retrospectiva Semanal
+          <TabsTrigger value="telemetria" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            ⚡ Ritmo
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            💬 Voz da Equipe
+          </TabsTrigger>
+          <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            🧠 Retrospectiva
           </TabsTrigger>
         </TabsList>
+
+        <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mb-6">
+           <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                <Activity className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">Dica Estratégica</p>
+                <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                  <strong>O que olhar primeiro?</strong> Comece pelo <strong>Fechamento do Dia</strong> para garantir que nada ficou parado. Depois, use a <strong>Qualidade da Base</strong> para garantir que a equipe está focada nos perfis certos.
+                </p>
+              </div>
+           </div>
+        </div>
+
+        <TabsContent value="qualidade" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Higiene e Qualidade da Base
+            </h2>
+          </div>
+          <BaseQualityDashboard stats={qualityStats} duplicates={duplicates} />
+        </TabsContent>
 
         <TabsContent value="fechamento" className="space-y-6">
           <div className="flex justify-between items-center">
@@ -191,6 +238,25 @@ export default async function RelatoriosPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="feedback" className="space-y-8">
+           <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
+              <div className="space-y-6">
+                <PilotFeedbackForm currentRoute="/relatorios" />
+                <Card className="border-indigo-100 bg-indigo-50/30">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-indigo-700 mb-2">Por que reportar?</h3>
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                      O piloto de 7 dias serve para encontrarmos onde o Radar atrapalha em vez de ajudar. Cada reporte seu vira uma melhoria para a próxima versão.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <PilotFeedbackList feedbacks={pilotFeedback || []} />
+              </div>
+           </div>
+        </TabsContent>
+
         <TabsContent value="operacional" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-black flex items-center gap-2">
@@ -210,7 +276,7 @@ export default async function RelatoriosPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-black flex items-center gap-2">
               <Activity className="w-5 h-5 text-indigo-600" />
-              Telemetria Operacional Agregada
+              Ritmo de Trabalho da Equipe
             </h2>
           </div>
           <TelemetryDashboard telemetryData={telemetryData || []} />

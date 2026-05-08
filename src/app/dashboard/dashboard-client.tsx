@@ -37,6 +37,11 @@ import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboardin
 import { PilotChecklist } from "@/components/radar/onboarding/pilot-checklist";
 import { OperationalAlarms } from "@/components/radar/onboarding/operational-alarms";
 import { DayZeroChecklist } from "@/components/radar/onboarding/day-zero-checklist";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
+import { PilotStatusBanner } from "@/components/radar/onboarding/pilot-status-banner";
+import { ReadinessChecklist } from "@/components/radar/onboarding/readiness-checklist";
+import { getPilotDay, PILOT_DURATION_DAYS } from "@/lib/config";
 
 type DashboardClientProps = {
   priorityPeople: PriorityPerson[];
@@ -59,6 +64,10 @@ export function DashboardClient({
     trackOperationalEvent("dashboard_viewed");
   }, []);
 
+  const currentPilotDay = getPilotDay();
+  const criticalIssuesCount = (operationalAlerts.webhookQuarantineCount > 0 ? 1 : 0) + 
+                             (operationalAlerts.missingTemplates.length > 0 ? 1 : 0);
+
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
     setIsSheetOpen(true);
@@ -77,6 +86,21 @@ export function DashboardClient({
 
   return (
     <div className="space-y-10 pb-12">
+      <LightweightOnboarding 
+        screenId="dashboard"
+        title="Painel de Controle"
+        highlights={[
+          { title: "Onde começar", description: "Confira os indicadores de hoje no topo para entender o pulso da operação.", icon: LayoutDashboard },
+          { title: "Ação principal", description: "Ver 'Pessoas Prioritárias' para identificar quem precisa de atenção imediata.", icon: Target },
+          { title: "Evite este erro", description: "Não ignore tarefas paradas. O vínculo se esfria rápido se não houver continuidade.", icon: AlertTriangle },
+        ]}
+      />
+
+      <PilotStatusBanner 
+        currentDay={currentPilotDay}
+        totalDays={PILOT_DURATION_DAYS}
+        pendingCriticals={criticalIssuesCount}
+      />
       
       {/* 0. Readiness Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -92,32 +116,31 @@ export function DashboardClient({
           <GuidedOnboarding compact />
         </div>
         <div className="lg:col-span-4">
-          <DayZeroChecklist 
-            stats={{
-              teamAccess: true, // Mocked for now
-              templatesActive: operationalAlerts.missingTemplates.length === 0,
-              tasksDistributed: pilotStats.summary.tasksWithoutResponsible === 0,
-              queueWorking: true,
-              quickSheetWorking: true,
-              reportsReady: true
-            }}
-          />
+          <ReadinessChecklist />
         </div>
       </div>
 
+      <ContextHelpCard 
+        title="Como usar o seu Dashboard"
+        whatIsThis="Esta é a sua central de comando diária. Aqui você vê o pulso da operação e quem precisa de atenção imediata."
+        whyItMatters="Garante que você foque nas pessoas certas e não perca prazos de resposta importantes."
+        whatToDoNow="Confira os indicadores de hoje e clique em uma das 'Pessoas Prioritárias' para iniciar um contato."
+        className="mb-8"
+      />
+
       {/* 1. Hero: Top Pessoas */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="h-5 w-5 text-orange-600 fill-orange-600" />
-            <h2 className="text-lg font-black tracking-tight">Top Pessoas Quentes</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className="h-5 w-5 text-orange-600 fill-orange-600" />
+              <h2 className="text-lg font-black tracking-tight">Pessoas Prioritárias para Hoje</h2>
+            </div>
+            <Button variant="ghost" size="sm" className="font-bold text-indigo-700 h-8">
+              <Link href="/pessoas" className="flex items-center">
+                Ver todas <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="font-bold text-indigo-700 h-8">
-            <Link href="/pessoas" className="flex items-center">
-              Ver todas <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
           {priorityPeople.length > 0 ? (
@@ -145,7 +168,7 @@ export function DashboardClient({
           {/* 2. Situação do Dia Cards */}
           <section className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <RadarMetricCard 
-              label="Novas no Radar"
+              label="Novos Contatos"
               value={pilotStats.summary.prioritizedToday}
               tone="hot"
               icon={Flame}

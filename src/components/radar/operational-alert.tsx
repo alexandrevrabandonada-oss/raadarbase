@@ -10,7 +10,17 @@ type AlertType =
   | "templates_ausentes"
   | string;
 
-export function OperationalAlert({ type, message, className }: { type: AlertType, message?: string, className?: string }) {
+export function OperationalAlert({ 
+  type, 
+  message, 
+  children,
+  className 
+}: { 
+  type: AlertType, 
+  message?: string, 
+  children?: React.ReactNode,
+  className?: string 
+}) {
   const config = () => {
     switch (type) {
       case "nao_abordar":
@@ -61,11 +71,11 @@ export function OperationalAlert({ type, message, className }: { type: AlertType
   const { icon: Icon, colorClass, defaultMessage } = config();
 
   return (
-    <div className={cn("flex items-center gap-2 text-xs p-2.5 rounded-lg border", colorClass, className)}>
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="font-medium leading-tight">
-        {message || defaultMessage}
-      </span>
+    <div className={cn("flex items-start gap-3 text-xs p-3 rounded-lg border", colorClass, className)}>
+      <Icon className="h-4 w-4 shrink-0 mt-0.5" />
+      <div className="font-medium leading-tight flex-1">
+        {children || message || defaultMessage}
+      </div>
     </div>
   );
 }

@@ -155,7 +155,8 @@ export type AuditAction =
   | "receipt_distribution_cycle.started"
   | "receipt_distribution_cycle.closed"
   | "receipt_distribution_cycle.log_linked"
-  | "telemetry.event_recorded";
+  | "telemetry.event_recorded"
+  | "pilot.feedback_submitted";
 
 export type ContactRecord = TableRow<"contacts">;
 export type BairroEscutaSubmissionRow = TableRow<"bairro_escuta_submissions">;

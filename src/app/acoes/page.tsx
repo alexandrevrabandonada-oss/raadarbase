@@ -42,6 +42,25 @@ export default async function AcoesPage() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active": return "Em andamento";
+      case "done": return "Concluído";
+      case "archived": return "Arquivado";
+      case "draft": return "Rascunho";
+      default: return status;
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case "high": return "Alta";
+      case "medium": return "Média";
+      case "low": return "Baixa";
+      default: return priority;
+    }
+  };
+
   return (
     <AppShell>
       <PageHeader
@@ -88,12 +107,12 @@ export default async function AcoesPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(plan.status)}>
-                      {plan.status}
+                      {getStatusLabel(plan.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={getPriorityColor(plan.priority)}>
-                      {plan.priority}
+                      {getPriorityLabel(plan.priority)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs font-medium">

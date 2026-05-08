@@ -29,9 +29,9 @@ export default async function MemoriaPage({
   return (
     <AppShell>
       <RadarPageHeader
-        eyebrow="Inteligência Coletiva"
-        title="Memória Estratégica"
-        description="Acúmulo de aprendizados coletivos para guiar as próximas ações da organização."
+        eyebrow="Biblioteca de Saberes"
+        title="Memória da Equipe"
+        description="Acúmulo de aprendizados para guiar nossas próximas ações no território."
         actions={
           <div className="flex gap-2">
             <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/memoria/nova" />}>

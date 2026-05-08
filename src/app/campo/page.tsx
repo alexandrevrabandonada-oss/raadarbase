@@ -49,7 +49,7 @@ export default async function FieldAgendaPage() {
             </Button>
             <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href="/radar/silencios" />}>
               <History className="mr-2 h-4 w-4" />
-              Radar de Silêncios
+              Ações Sugeridas
             </Button>
           </div>
         }
@@ -57,8 +57,8 @@ export default async function FieldAgendaPage() {
 
       <div className="mt-8 mb-8">
         <OperationalAlert 
-          type="webhook_quarentena" // Proxy for info
-          message="Esta agenda organiza ações de grupo. Não use para listar alvos individuais ou abordagens personalizadas sem consentimento. Foco em bairros e pautas agregadas."
+          type="contato_recente" // Proxy for info
+          message="Esta agenda organiza ações coletivas. Foco em fortalecer o vínculo em bairros e pautas do território."
         />
       </div>
 
@@ -192,7 +192,7 @@ export default async function FieldAgendaPage() {
                 O Radar de Silêncios sugere ações em bairros com baixa participação.
               </p>
               <Button nativeButton={false} size="sm" variant="outline" className="w-full text-xs" render={<Link href="/radar/silencios" />}>
-                Ver sugestões →
+                Ver onde precisamos ir →
               </Button>
             </CardContent>
           </Card>

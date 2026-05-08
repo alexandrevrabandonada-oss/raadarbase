@@ -114,3 +114,19 @@ export async function getOperationalTelemetry(days = 7): Promise<AuditLogEntry[]
     handleSupabaseReadError("getOperationalTelemetry", error);
   }
 }
+export async function listPilotFeedback(): Promise<AuditLogEntry[]> {
+  if (shouldUseMockData()) return [];
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .eq("action", "pilot.feedback_submitted")
+      .order("created_at", { ascending: false });
+      
+    if (error) throw error;
+    return (data ?? []).map(mapAuditEntry);
+  } catch (error) {
+    handleSupabaseReadError("listPilotFeedback", error);
+  }
+}

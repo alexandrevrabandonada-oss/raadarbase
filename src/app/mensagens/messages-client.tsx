@@ -34,6 +34,7 @@ import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { EmptyState } from "@/components/radar/empty-state";
 import { OperationalAlert } from "@/components/radar/operational-alert";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
 
 
 export function MessagesClient({ initialTemplates }: { initialTemplates: MessageTemplate[] }) {
@@ -113,6 +114,19 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
   return (
     <div className="flex flex-col gap-8 pb-20">
+      <RadarPageHeader 
+        eyebrow="Biblioteca de Abordagem"
+        title="Modelos de Mensagem"
+        description="Textos base para iniciar conversas humanizadas e éticas no Instagram."
+      />
+
+      <ContextHelpCard 
+        title="Como usar os modelos de forma eficiente"
+        whatIsThis="Esta é sua biblioteca de textos base. Eles servem como ponto de partida para manter a unidade da linguagem e facilitar o início do relacionamento."
+        whyItMatters="Garante que a comunicação seja profissional e acolhedora, evitando que você precise criar textos do zero para cada pessoa."
+        whatToDoNow="O segredo é o fluxo: Copie o modelo → Abra o Instagram → Personalize o texto manualmente → Registre a resposta no Radar."
+        className="max-w-4xl"
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <RadarMetricCard label="Total de DMs" value={stats.total} icon={MessageSquare} tone="neutral" />
@@ -124,21 +138,21 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
       <div className="grid gap-8 xl:grid-cols-[380px_1fr]">
         {/* Sidebar: Roteiro e Guardrails */}
         <div className="flex flex-col gap-6">
-          <Card className="border-none shadow-sm bg-white">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 text-indigo-600">
+          <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100 overflow-hidden">
+            <CardHeader className="pb-3 bg-indigo-600">
+              <div className="flex items-center gap-2 text-white">
                 <Clock className="h-4 w-4" />
-                <CardTitle className="text-sm font-black uppercase tracking-widest">Roteiro operacional</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest">Fluxo do Relacionamento</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {checklistItems.map((item) => (
-                  <li key={item.id} className="flex items-start gap-3 text-xs group cursor-pointer">
-                    <div className="mt-0.5 h-4 w-4 rounded border border-zinc-200 bg-zinc-50 flex items-center justify-center group-hover:border-indigo-400 transition-colors">
-                      <CheckCircle2 className="h-3 w-3 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="pt-6">
+              <ul className="space-y-4">
+                {checklistItems.map((item, i) => (
+                  <li key={item.id} className="flex items-start gap-3 text-xs group">
+                    <div className="mt-0.5 h-5 w-5 rounded-full border-2 border-zinc-100 bg-zinc-50 flex items-center justify-center font-black text-[9px] text-zinc-400 group-hover:border-indigo-200 group-hover:text-indigo-600 transition-all">
+                      {i + 1}
                     </div>
-                    <span className="font-bold text-zinc-500 group-hover:text-zinc-900 transition-colors">
+                    <span className="font-bold text-zinc-600 group-hover:text-zinc-900 transition-colors pt-0.5">
                       {item.label}
                     </span>
                   </li>
@@ -150,7 +164,10 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
           <OperationalAlert 
             type="templates_ausentes" 
             className="border-rose-100 bg-rose-50"
-          />
+          >
+             <p className="text-[10px] font-bold text-rose-900 uppercase tracking-tight mb-1">Atenção: Contato Manual</p>
+             <p className="text-[11px] text-rose-800 leading-tight">O Instagram bloqueia automações. Sempre copie, cole e revise o texto manualmente no app do Instagram.</p>
+          </OperationalAlert>
 
           <Card className="border-none shadow-sm bg-rose-50/30">
             <CardHeader className="pb-2">

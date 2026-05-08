@@ -24,12 +24,14 @@ import {
 import Link from "next/link";
 import { recordPersonResponse, recordPersonReferral } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { cn } from "@/lib/utils";
 
 interface QueueClientProps {
@@ -130,6 +132,21 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-20 space-y-12">
+      <LightweightOnboarding 
+        screenId="minha-fila"
+        title="Trabalhando sua Fila"
+        highlights={[
+          { title: "Onde começar", description: "Assuma a pessoa no topo da lista. Ela foi identificada como sua próxima prioridade.", icon: Users },
+          { title: "Ação principal", description: "Copie a DM sugerida, envie no Instagram e registre a resposta imediatamente.", icon: MessageSquare },
+          { title: "Evite este erro", description: "Nunca envie mensagens sem personalizar o nome e o contexto do comentário.", icon: CheckCircle2 },
+        ]}
+      />
+      <ContextHelpCard 
+        title="Como trabalhar sua fila"
+        whatIsThis="Esta é sua lista de tarefas personalizada. Cada card representa um cidadão que precisa de atenção hoje."
+        whyItMatters="Focar em uma pessoa de cada vez permite um contato mais humano e evita que você se perca em conversas múltiplas."
+        whatToDoNow="Clique no card para abrir a Ficha Rápida, mande a DM sugerida e registre a resposta assim que possível."
+      />
       {/* Header Info */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">

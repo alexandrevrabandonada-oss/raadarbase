@@ -35,6 +35,8 @@ import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { ActionButtonGroup } from "@/components/radar/action-button-group";
 import { PersonScoreBadge } from "@/components/radar/person-score-badge";
 import { OperationalAlert } from "@/components/radar/operational-alert";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 
 import { 
   Tooltip,
@@ -280,24 +282,40 @@ export function KanbanClient({
 
   return (
     <div className="flex flex-col gap-8 pb-20">
+      <LightweightOnboarding 
+        screenId="abordagem"
+        title="Gestão de Conversas"
+        highlights={[
+          { title: "Onde começar", description: "Observe a coluna 'Para Abordar' para novos vínculos identificados pelo Radar.", icon: Instagram },
+          { title: "Ação principal", description: "Arraste os cards para a direita conforme a conversa evolui para o encaminhamento.", icon: MoveRight },
+          { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
+        ]}
+      />
       <RadarPageHeader 
-        title="Quadro de Vínculos"
-        description="Gestão visual do funil de abordagem e encaminhamento."
+        title="Gestão de Conversas"
+        description="Acompanhe o progresso das abordagens e o engajamento dos cidadãos."
         actions={
           <div className="flex items-center gap-2">
              <Button variant="outline" size="sm" className="font-bold border-zinc-200" onClick={() => runBalance()}>
-               Distribuir Carga
+               Dividir Trabalho
              </Button>
           </div>
         }
+      />
+
+      <ContextHelpCard 
+        title="Como gerenciar conversas"
+        whatIsThis="Este é o painel visual do relacionamento com o território, organizado por etapas de evolução."
+        whyItMatters="Permite visualizar gargalos (como muitas pessoas paradas em 'Abordado') e garante que o fluxo de conversão funcione."
+        whatToDoNow="Arraste os cards para a direita conforme a conversa evolui ou clique no card para registrar respostas e encaminhamentos."
       />
 
       {/* Indicadores do Topo */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <RadarMetricCard label="Total Ativos" value={stats.total} icon={LayoutDashboard} tone="neutral" />
         <RadarMetricCard label="Sem Dono" value={stats.unassigned} icon={Users} tone="neutral" />
-        <RadarMetricCard label="Atrasados" value={stats.stale} icon={Clock} tone="danger" />
-        <RadarMetricCard label="Esperando" value={stats.waiting} icon={History} tone="warning" />
+        <RadarMetricCard label="Sem Resposta" value={stats.waiting} icon={History} tone="warning" />
+        <RadarMetricCard label="Paradas" value={stats.stale} icon={Clock} tone="danger" />
         <RadarMetricCard label="A Encaminhar" value={stats.needReferral} icon={CheckCircle2} tone="info" />
       </div>
 
@@ -312,7 +330,7 @@ export function KanbanClient({
               { id: "todos", label: "Tudo" },
               { id: "meus", label: "Minhas" },
               { id: "sem_responsavel", label: "Órfãs" },
-              { id: "stale", label: "Atrasadas" },
+              { id: "stale", label: "Paradas" },
               { id: "encaminhar", label: "Encaminhar" },
             ].map(f => (
               <Button

@@ -32,21 +32,24 @@ export function EmptyState({
           DefaultIcon: FolderSearch,
           iconColor: "text-zinc-400",
           bgColor: "bg-zinc-100",
-          borderColor: "border-zinc-200"
+          borderColor: "border-zinc-200",
+          defaultDescription: "Não encontramos ninguém com estes critérios. Tente limpar os filtros ou buscar por outro termo."
         };
       case "needs_config":
         return {
           DefaultIcon: Settings2,
           iconColor: "text-amber-500",
           bgColor: "bg-amber-100",
-          borderColor: "border-amber-200"
+          borderColor: "border-amber-200",
+          defaultDescription: "Esta funcionalidade precisa de configuração. Verifique as conexões ou modelos necessários para começar."
         };
       case "success":
         return {
           DefaultIcon: ShieldCheck,
           iconColor: "text-emerald-500",
           bgColor: "bg-emerald-100",
-          borderColor: "border-emerald-200"
+          borderColor: "border-emerald-200",
+          defaultDescription: "Tudo certo por aqui! O fluxo foi concluído com sucesso."
         };
       case "no_data":
       default:
@@ -54,12 +57,13 @@ export function EmptyState({
           DefaultIcon: LayoutGrid,
           iconColor: "text-zinc-400",
           bgColor: "bg-zinc-100",
-          borderColor: "border-zinc-200"
+          borderColor: "border-zinc-200",
+          defaultDescription: "Ainda não há dados aqui. Isso pode ser porque o piloto está começando ou porque você precisa assumir tarefas."
         };
     }
   };
 
-  const { DefaultIcon, iconColor, bgColor, borderColor } = getDefaults();
+  const { DefaultIcon, iconColor, bgColor, borderColor, defaultDescription } = getDefaults();
   const RenderIcon = icon || DefaultIcon;
 
   return (
@@ -69,7 +73,7 @@ export function EmptyState({
       </div>
       <h3 className="font-black text-xl mb-2 text-zinc-900">{title}</h3>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-8 leading-relaxed">
-        {description}
+        {description || defaultDescription}
       </p>
       
       {(primaryAction || secondaryAction) && (

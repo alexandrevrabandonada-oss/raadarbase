@@ -44,9 +44,9 @@ const navigation: NavGroup[] = [
     label: "Operar hoje",
     items: [
       { href: "/dashboard", label: "Hoje no Radar", icon: LayoutDashboard },
-      { href: "/pessoas", label: "Pessoas Prioritárias", icon: Flame },
-      { href: "/abordagem", label: "Quadro de Vínculos", icon: KanbanSquare },
-      { href: "/mensagens", label: "Biblioteca de DMs", icon: MessageSquareText },
+      { href: "/pessoas", label: "Prioridades da Equipe", icon: Flame },
+      { href: "/abordagem", label: "Gestão de Conversas", icon: KanbanSquare },
+      { href: "/mensagens", label: "Modelos de Mensagem", icon: MessageSquareText },
     ],
   },
   {
@@ -63,8 +63,8 @@ const navigation: NavGroup[] = [
     items: [
       { href: "/relatorios", label: "Relatórios e Piloto", icon: FileText },
       { href: "/temas", label: "Temas e Pautas", icon: Hash },
-      { href: "/memoria", label: "Memória Estratégica", icon: Lightbulb },
-      { href: "/radar/silencios", label: "Radar de Silêncios", icon: EarOff },
+      { href: "/memoria", label: "Memória da Equipe", icon: Lightbulb },
+      { href: "/radar/silencios", label: "Ações Sugeridas", icon: EarOff },
     ],
   },
   {

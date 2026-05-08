@@ -382,7 +382,7 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
     const supabase = getSupabaseAdminClient();
     const cutoff = new Date(now.getTime() - RECENT_DAYS * DAY_MS).toISOString();
     const [people, tasksResult, templatesResult, interactionsResult] = await Promise.all([
-      listPeople(),
+      listPeople(cutoff),
       supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
       supabase

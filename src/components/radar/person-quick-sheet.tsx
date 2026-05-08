@@ -13,8 +13,14 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Info
+  Info,
+  MapPin,
+  Heart,
+  Zap,
+  CheckCircle,
+  ChevronRight
 } from "lucide-react";
+
 import { 
   Sheet, 
   SheetContent, 
@@ -56,11 +62,64 @@ import {
 } from "@/components/ui/select";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 
+const REFERRAL_DETAILS: Record<PersonReferralType, { 
+  hint: string; 
+  nextSteps: string; 
+  care: string;
+  icon: React.ElementType;
+  invite?: string;
+}> = {
+  evento_campo: {
+    hint: "Pessoa demonstrou interesse em participar presencialmente.",
+    nextSteps: "Será marcada como 'Interessada' na Agenda de Campo.",
+    care: "Confirme o bairro e o tema do evento antes de mandar o link.",
+    icon: MapPin
+  },
+  voluntariado: {
+    hint: "Quer ajudar na campanha de forma ativa e recorrente.",
+    nextSteps: "Enviamos o link de inscrição oficial (consentimento).",
+    care: "Nunca cadastre a pessoa sem o consentimento explícito dela.",
+    icon: Heart,
+    invite: "Que alegria seu interesse! Para oficializar sua ajuda, preencha este link rápido: [LINK_VOLUNTARIO]. Vamos juntos!"
+  },
+  missao_eluta: {
+    hint: "Disposta a participar de ações digitais coordenadas.",
+    nextSteps: "Entra para a lista de transmissões de missões.",
+    care: "Explique que a Missão é focada em combate à desinformação.",
+    icon: Zap,
+    invite: "Você tem o perfil perfeito para a Missão ÉLuta! É nosso grupo de ação digital contra fake news. Topa entrar? [LINK_MISSAO]"
+  },
+  grupo_lista: {
+    hint: "Quer receber informações mas sem compromisso de tarefa.",
+    nextSteps: "Adição ao grupo de zap ou lista de chamados.",
+    care: "Verifique se a pessoa já não está em outro grupo regional.",
+    icon: MessageSquare
+  },
+  missao_simples: {
+    hint: "Ação pontual (curtir, comentar) sem vínculo profundo.",
+    nextSteps: "Tarefa marcada como concluída com sucesso.",
+    care: "Agradeça a interação e deixe a porta aberta.",
+    icon: CheckCircle
+  },
+  revisar_depois: {
+    hint: "Conversa em aberto, precisa de mais contexto ou decisão.",
+    nextSteps: "A tarefa volta para a fila com status 'Em Espera'.",
+    care: "Defina uma nota interna com o motivo da dúvida.",
+    icon: Clock
+  },
+  nao_abordar: {
+    hint: "A pessoa pediu expressamente para não ser mais contactada.",
+    nextSteps: "O perfil será marcado como bloqueado em todo o sistema.",
+    care: "Respeite imediatamente o pedido. É um direito de privacidade.",
+    icon: ShieldAlert
+  }
+};
+
 const REFERRAL_OPTIONS: Array<{ key: PersonReferralType; label: string }> = [
   { key: "evento_campo", label: "Evento de Campo" },
   { key: "voluntariado", label: "Voluntariado" },
-  { key: "grupo_lista", label: "Grupo / Lista" },
   { key: "missao_eluta", label: "Missão ÉLuta" },
+  { key: "grupo_lista", label: "Grupo / Lista" },
   { key: "missao_simples", label: "Missão Simples" },
   { key: "revisar_depois", label: "Revisar Depois" },
 ];
@@ -101,6 +160,7 @@ export function PersonQuickSheet({
   
   const [events, setEvents] = React.useState<FieldAgendaEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = React.useState<string>("manual");
+  const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
   const loadHistory = React.useCallback(async (personId: string) => {
     setInteractions([]);
@@ -509,50 +569,118 @@ export function PersonQuickSheet({
         </DialogContent>
       </Dialog>
 
-      {/* Referral Modal */}
+      {/* Referral Modal Assistant */}
       <Dialog open={activeModal === "referral"} onOpenChange={() => setActiveModal(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Encaminhar Para</DialogTitle>
+            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Assistente de Encaminhamento</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-2">
-              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Destino Estratégico</label>
-              {REFERRAL_OPTIONS.map((opt) => (
-                <Button 
-                  key={opt.key} 
-                  variant="outline" 
-                  className="justify-between h-12 font-black uppercase text-xs border-zinc-100"
-                  onClick={() => handleRecordReferral(opt.key)}
-                  disabled={isPending}
-                >
-                  {opt.label}
-                  <ArrowRight className="h-4 w-4 text-zinc-300" />
-                </Button>
-              ))}
+          
+          <div className="grid gap-6 py-4 md:grid-cols-[240px_1fr]">
+            {/* Sidebar Options */}
+            <div className="space-y-2 border-r border-zinc-100 pr-4">
+              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1 mb-3">Para onde vamos?</label>
+              {REFERRAL_OPTIONS.map((opt) => {
+                const isSelected = selectedReferral === opt.key;
+                const details = REFERRAL_DETAILS[opt.key];
+                return (
+                  <button 
+                    key={opt.key} 
+                    onClick={() => setSelectedReferral(opt.key)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
+                      isSelected ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "hover:bg-zinc-50 text-zinc-600"
+                    )}
+                  >
+                    <details.icon className={cn("h-4 w-4 shrink-0", isSelected ? "text-white" : "text-zinc-400")} />
+                    <span className="font-black text-[11px] uppercase tracking-tight">{opt.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {events.length > 0 && (
-              <div className="space-y-3 pt-4 border-t border-zinc-100">
-                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Evento Específico (Agenda)</label>
-                <Select value={selectedEventId} onValueChange={(val) => setSelectedEventId(val || "manual")}>
-                  <SelectTrigger className="w-full text-xs font-bold border-zinc-200">
-                    <SelectValue placeholder="Selecione um evento..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual" className="text-xs font-bold">Encaminhamento Geral (Manual)</SelectItem>
-                    {events.map((ev) => (
-                      <SelectItem key={ev.id} value={ev.id} className="text-xs font-bold">
-                        {ev.title} ({ev.neighborhood || "Geral"})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-zinc-400 font-medium px-1">
-                  Selecione um evento para registrar o interessado na Agenda de Campo.
-                </p>
-              </div>
-            )}
+            {/* Assistant Details */}
+            <div className="space-y-6">
+              {selectedReferral ? (() => {
+                const details = REFERRAL_DETAILS[selectedReferral];
+                return (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
+                    <div className="space-y-1">
+                      <h3 className="text-xl font-black text-zinc-900 uppercase tracking-tight">{REFERRAL_OPTIONS.find(o => o.key === selectedReferral)?.label}</h3>
+                      <p className="text-sm font-medium text-zinc-500 italic">{details.hint}</p>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                       <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                          <label className="text-[10px] font-black uppercase text-emerald-600 tracking-widest block mb-2">O que acontece depois?</label>
+                          <p className="text-xs font-bold text-emerald-900 leading-relaxed">{details.nextSteps}</p>
+                       </div>
+                       <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100">
+                          <label className="text-[10px] font-black uppercase text-rose-600 tracking-widest block mb-2">Qual cuidado tomar?</label>
+                          <p className="text-xs font-bold text-rose-900 leading-relaxed">{details.care}</p>
+                       </div>
+                    </div>
+
+                    {selectedReferral === "evento_campo" && events.length > 0 && (
+                      <div className="space-y-3 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block">Vincular a Evento da Agenda</label>
+                        <Select value={selectedEventId} onValueChange={(val) => setSelectedEventId(val || "manual")}>
+                          <SelectTrigger className="w-full text-xs font-bold border-zinc-200 bg-white">
+                            <SelectValue placeholder="Selecione um evento..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual" className="text-xs font-bold">Encaminhamento Geral</SelectItem>
+                            {events.map((ev) => (
+                              <SelectItem key={ev.id} value={ev.id} className="text-xs font-bold">
+                                {ev.title} ({ev.neighborhood || "Geral"})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {details.invite && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block">Texto de Convite Sugerido</label>
+                        <div className="relative group">
+                          <div className="bg-zinc-950 text-white p-4 rounded-xl text-xs font-medium leading-relaxed italic border border-zinc-800">
+                            {details.invite}
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            className="absolute bottom-2 right-2 h-7 text-[10px] font-black uppercase tracking-widest"
+                            onClick={() => {
+                              navigator.clipboard.writeText(details.invite!);
+                              toast({ title: "Copiado", description: "Convite pronto para enviar." });
+                            }}
+                          >
+                            Copiar Convite
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 flex justify-end gap-3 border-t border-zinc-100">
+                      <Button variant="ghost" onClick={() => setActiveModal(null)} className="font-bold text-xs uppercase">Cancelar</Button>
+                      <Button 
+                        onClick={() => handleRecordReferral(selectedReferral)}
+                        disabled={isPending}
+                        className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider px-8 h-10"
+                      >
+                        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar Encaminhamento"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div className="h-full flex flex-col items-center justify-center text-center py-12 text-zinc-300">
+                  <ArrowRight className="h-12 w-12 mb-4 opacity-20" />
+                  <p className="text-sm font-black uppercase tracking-widest">Selecione um destino à esquerda</p>
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

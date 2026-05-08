@@ -49,3 +49,15 @@ export function createSupabaseRuntimeError(context: string, error?: unknown) {
     : "Ative NEXT_PUBLIC_USE_MOCKS=true somente se quiser modo demonstração.";
   return new Error(`Falha ao acessar Supabase em ${context}. ${suffix} Detalhe: ${detail}`);
 }
+
+// Configurações do Piloto
+export const PILOT_START_DATE = process.env.NEXT_PUBLIC_PILOT_START_DATE || "2026-05-08";
+export const PILOT_DURATION_DAYS = 7;
+
+export function getPilotDay() {
+  const start = new Date(PILOT_START_DATE);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.min(diffDays, PILOT_DURATION_DAYS);
+}

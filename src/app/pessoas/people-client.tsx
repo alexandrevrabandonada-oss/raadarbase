@@ -17,6 +17,9 @@ import {
   Clock,
   PlusCircle,
   Info,
+  Filter,
+  UserPlus,
+  ShieldAlert
 } from "lucide-react";
 import { assumePersonResponsible, trackOperationalEvent } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +31,8 @@ import { OperationalStatusBar } from "@/components/radar/operational-status-bar"
 import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { PersonOperationalList } from "@/components/radar/person-operational-list";
 import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboarding";
+import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 
@@ -159,7 +164,23 @@ export function PeopleClient({
 
   return (
     <div className="flex flex-col gap-4 pb-20">
+      <LightweightOnboarding 
+        screenId="pessoas"
+        title="Prioridades da Equipe"
+        highlights={[
+          { title: "Onde começar", description: "Use a 'Barra de Status' para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
+          { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
+          { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
+        ]}
+      />
       <GuidedOnboarding compact />
+
+      <ContextHelpCard 
+        title="Como filtrar prioridades"
+        whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
+        whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
+        whatToDoNow="Use os filtros da 'Barra de Status' para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
+      />
 
       <OperationalStatusBar
         activeFilter={priorityFilter}
