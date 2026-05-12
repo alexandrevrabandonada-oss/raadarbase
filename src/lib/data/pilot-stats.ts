@@ -14,6 +14,17 @@ export type PilotDashboardData = {
     doNotContactCount: number;
     staleTasksCount: number; // > 48h
     pendingReferralsCount: number; // Responded but not referred
+    waiting3DaysCount: number;
+    waiting7DaysCount: number;
+    archivedWithoutReturnCount: number;
+    dmsPreparedToday: number;
+    dmsConfirmedToday: number;
+    forgetfulnessRate: number; // 0-100
+    territoriesInMobilization: number;
+    fieldActionsCompleted: number;
+    dataUnderReview: number;
+    dmsPreparedWithoutConfirmation: number;
+    territoriesWithoutRecentAction: number;
   };
   responsibleBreakdown: Array<{
     operatorName: string;
@@ -28,6 +39,18 @@ export type PilotDashboardData = {
     responded: number;
     referred: number;
     firstAction: number;
+  };
+  operationHealth: {
+    staleTasksCount: number;
+    waiting7DaysCount: number;
+    tasksWithoutResponsible: number;
+    dmsPreparedWithoutConfirmation: number;
+    territoriesWithoutRecentAction: number;
+  };
+  ethics: {
+    doNotContactRespected: number;
+    sensitiveNotesReviewed: number;
+    dataUnderReview: number;
   };
   retrospective?: {
     totalReviewed: number;
@@ -49,6 +72,17 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
         doNotContactCount: 3,
         staleTasksCount: 4,
         pendingReferralsCount: 7,
+        waiting3DaysCount: 12,
+        waiting7DaysCount: 5,
+        archivedWithoutReturnCount: 18,
+        dmsPreparedToday: 40,
+        dmsConfirmedToday: 32,
+        forgetfulnessRate: 20,
+        territoriesInMobilization: 8,
+        fieldActionsCompleted: 5,
+        dataUnderReview: 7,
+        dmsPreparedWithoutConfirmation: 8,
+        territoriesWithoutRecentAction: 2,
       },
       responsibleBreakdown: [
         { operatorName: "Operador 1", openTasks: 10, completedTasks: 5, responsesRecorded: 8, pendingReferrals: 2 },
@@ -61,6 +95,18 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
         referred: 15,
         firstAction: 5,
       },
+      operationHealth: {
+        staleTasksCount: 4,
+        waiting7DaysCount: 5,
+        tasksWithoutResponsible: 8,
+        dmsPreparedWithoutConfirmation: 8,
+        territoriesWithoutRecentAction: 2,
+      },
+      ethics: {
+        doNotContactRespected: 3,
+        sensitiveNotesReviewed: 24,
+        dataUnderReview: 7,
+      },
     };
   }
 
@@ -72,6 +118,14 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
   const fortyEightHoursAgo = new Date();
   fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
   const staleIso = fortyEightHoursAgo.toISOString();
+  
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const threeDaysIso = threeDaysAgo.toISOString();
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysIso = sevenDaysAgo.toISOString();
 
   // 1. Summary Metrics
   const [
@@ -82,7 +136,12 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
     { count: responsesRecorded },
     { count: referralsCreated },
     { count: doNotContactCount },
-    { count: staleTasksCount }
+    { count: staleTasksCount },
+    { count: waiting3DaysCount },
+    { count: waiting7DaysCount },
+    { count: archivedWithoutReturnCount },
+    { count: dmsPreparedToday },
+    { count: dmsConfirmedToday }
   ] = await Promise.all([
     supabase.from("ig_people").select("*", { count: "exact", head: true }).gte("created_at", todayIso),
     supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null),
@@ -91,8 +150,17 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
     supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("status", "respondeu").gte("updated_at", todayIso),
     supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }).gte("created_at", todayIso),
     supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("status", "nao_abordar").gte("updated_at", todayIso),
-    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null).lt("updated_at", staleIso)
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null).lt("updated_at", staleIso),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("column_key", "esperando_resposta").is("completed_at", null).lt("updated_at", threeDaysIso),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("column_key", "esperando_resposta").is("completed_at", null).lt("updated_at", sevenDaysIso),
+    supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("column_key", "nao_insistir").is("completed_at", null),
+    supabase.from("audit_logs").select("*", { count: "exact", head: true }).eq("action", "contact.dm_prepared").gte("created_at", todayIso),
+    supabase.from("audit_logs").select("*", { count: "exact", head: true }).eq("action", "contact.dm_sent").gte("created_at", todayIso),
   ]);
+
+  const prepared = dmsPreparedToday || 0;
+  const confirmed = dmsConfirmedToday || 0;
+  const forgetfulnessRate = prepared > 0 ? Math.round(((prepared - confirmed) / prepared) * 100) : 0;
 
   // Fallback for pendingReferralsCount if RPC not available (simpler version)
   const { data: peopleResponded } = await supabase.from("ig_people").select("id").eq("status", "respondeu");
@@ -194,6 +262,17 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
       doNotContactCount: doNotContactCount || 0,
       staleTasksCount: staleTasksCount || 0,
       pendingReferralsCount: actualPendingReferrals,
+      waiting3DaysCount: waiting3DaysCount || 0,
+      waiting7DaysCount: waiting7DaysCount || 0,
+      archivedWithoutReturnCount: archivedWithoutReturnCount || 0,
+      dmsPreparedToday: prepared,
+      dmsConfirmedToday: confirmed,
+      forgetfulnessRate: forgetfulnessRate,
+      territoriesInMobilization: 0,
+      fieldActionsCompleted: 0,
+      dataUnderReview: 0,
+      dmsPreparedWithoutConfirmation: (prepared - confirmed),
+      territoriesWithoutRecentAction: 0,
     },
     responsibleBreakdown: breakdown,
     funnel: {
@@ -202,6 +281,18 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
       responded: fResponded || 0,
       referred: fReferred || 0,
       firstAction: fFirstAction || 0,
+    },
+    operationHealth: {
+      staleTasksCount: staleTasksCount || 0,
+      waiting7DaysCount: waiting7DaysCount || 0,
+      tasksWithoutResponsible: tasksWithoutResponsible || 0,
+      dmsPreparedWithoutConfirmation: (prepared - confirmed),
+      territoriesWithoutRecentAction: 0,
+    },
+    ethics: {
+      doNotContactRespected: doNotContactCount || 0,
+      sensitiveNotesReviewed: 0,
+      dataUnderReview: 0,
     },
     retrospective: {
       totalReviewed: fPrioritized || 0,

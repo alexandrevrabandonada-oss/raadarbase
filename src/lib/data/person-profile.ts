@@ -25,6 +25,9 @@ export const PERSON_RESPONSE_OPTIONS: Array<{
   { key: "quer_ajudar_presencial", label: "Ajuda Campo (Voluntário)", hint: "Disponível para rua, panfletagem e mobilização física." },
   { key: "nao_quer_contato", label: "Retirar da Lista (Privacidade)", hint: "A pessoa pediu expressamente para não ser mais abordada." },
   { key: "revisar_depois", label: "Pausar e Rever Depois", hint: "Não é o momento certo agora. Vamos retomar em outra janela." },
+  { key: "manter_aguardando", label: "Manter Aguardando", hint: "Ainda faz sentido esperar mais um pouco por um retorno espontâneo." },
+  { key: "arquivar_sem_retorno", label: "Arquivar sem Retorno", hint: "Silêncio prolongado. Mover para não insistir para manter o Kanban limpo." },
+  { key: "resposta_tardia", label: "Registrar Resposta Tardia", hint: "A pessoa respondeu após muito tempo. Retomar o fluxo de onde parou." },
 ];
 
 export function getCompatibleTemplate(

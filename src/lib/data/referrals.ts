@@ -105,3 +105,36 @@ export async function upsertPersonReferral(
     metadata: result.metadata,
   };
 }
+export async function listPersonReferralsForEvent(eventId: string): Promise<PersonReferral[]> {
+  if (shouldUseMockData()) return [];
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("ig_person_referrals")
+    .select("*, ig_people(username, display_name, status)")
+    .eq("target_type", "evento_campo")
+    .eq("target_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    personId: row.person_id,
+    targetType: row.target_type as PersonReferralType,
+    targetId: row.target_id,
+    status: row.status as PersonReferralStatus,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    responsibleId: row.responsible_id,
+    externalId: row.external_id,
+    lastEventAt: row.last_event_at,
+    lastEventType: row.last_event_type,
+    lastEventSource: row.last_event_source as "manual" | "webhook" | null,
+    metadata: {
+      ...(row.metadata as Record<string, unknown>),
+      person: row.ig_people,
+    },
+  }));
+}

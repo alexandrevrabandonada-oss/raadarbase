@@ -84,3 +84,8 @@ export async function listConfirmedPeople(): Promise<PersonWithContact[]> {
       person.contact?.consent_status === "confirmed",
   );
 }
+
+export async function listPeopleWithoutTheme(): Promise<PersonWithContact[]> {
+  const people = await listPeople();
+  return people.filter(p => !p.themes || p.themes.length === 0);
+}

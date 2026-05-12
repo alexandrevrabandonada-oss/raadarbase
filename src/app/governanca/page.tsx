@@ -1,6 +1,6 @@
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listActivePermissions } from "@/lib/authz/roles";
@@ -8,6 +8,16 @@ import { countOpenIncidents, countCriticalIncidents } from "@/lib/data/incidents
 import { isMetaConfigured } from "@/lib/meta/client";
 import { isSupabaseConfigured } from "@/lib/config";
 import { isWebhookEnabled, isWebhookConfigured } from "@/lib/meta/webhook-security";
+import { getBaseQualityStats } from "@/lib/data/data-quality";
+import { RetentionDashboard } from "@/components/radar/governance/retention-dashboard";
+import { 
+  ClipboardCheck, 
+  Trash2, 
+  UserPlus, 
+  Key, 
+  ShieldAlert, 
+  FileSearch
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +41,20 @@ const CHECKLIST_LGPD = [
   "Nenhuma exportação sem consentimento registrado",
 ];
 
+const CHECKLIST_MENSAL = [
+  { label: "Revisar lista 'Não Abordar'", icon: ShieldAlert },
+  { label: "Validar e fundir duplicatas", icon: FileSearch },
+  { label: "Sanitizar termos sensíveis em notas", icon: Trash2 },
+  { label: "Inativar voluntários sem contato há 90 dias", icon: UserPlus },
+  { label: "Auditar logs de exportação de PII", icon: Key },
+  { label: "Revisar permissões de acesso da equipe", icon: ClipboardCheck },
+];
+
 function ChecklistItem({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div className="flex items-start gap-2 py-1 text-sm">
       <span className={ok ? "text-green-600" : "text-red-600"}>{ok ? "✓" : "✗"}</span>
-      <span className={ok ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+      <span className={ok ? "text-foreground" : "text-muted-foreground font-medium"}>{label}</span>
     </div>
   );
 }
@@ -46,9 +65,10 @@ export default async function GovernancaPage() {
   const role = internalUser.role;
   const permissions = listActivePermissions(role);
 
-  const [openIncidents, criticalIncidents] = await Promise.all([
+  const [openIncidents, criticalIncidents, stats] = await Promise.all([
     countOpenIncidents().catch(() => null),
     countCriticalIncidents().catch(() => null),
+    getBaseQualityStats(),
   ]);
 
   const metaConfigured = isMetaConfigured();
@@ -162,6 +182,46 @@ export default async function GovernancaPage() {
             />
             <ChecklistItem ok={webhookConfigured} label={`Webhooks Meta: ${webhookConfigured ? "configurado" : "não configurado"}`} />
             <ChecklistItem ok={webhookEnabled} label={`Webhooks ativo: ${webhookEnabled ? "sim" : "não"}`} />
+          </CardContent>
+        </Card>
+
+        {/* Ciclo de Vida e Retenção */}
+        <div className="lg:col-span-2">
+           <div className="mb-4">
+              <h2 className="text-xl font-black uppercase tracking-tight text-zinc-800">Retenção e Revisão de Dados</h2>
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-widest">Monitoramento do ciclo de vida da informação</p>
+           </div>
+           <RetentionDashboard stats={stats} />
+        </div>
+
+        {/* Rotina Mensal de Governança */}
+        <Card className="lg:col-span-2 border-amber-200 bg-amber-50/5">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-600 rounded-lg text-white">
+                <ClipboardCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-black uppercase text-amber-900 tracking-tight">
+                  Rotina Mensal de Governança
+                </CardTitle>
+                <CardDescription className="text-xs font-bold text-amber-600 uppercase tracking-widest">
+                  Checklist de manutenção responsável
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {CHECKLIST_MENSAL.map((item) => (
+                <div key={item.label} className="p-4 bg-white rounded-xl border border-amber-100 flex items-center gap-3 shadow-sm">
+                  <div className="p-1.5 bg-amber-100 rounded text-amber-700">
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-xs font-bold text-zinc-700 leading-tight">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 

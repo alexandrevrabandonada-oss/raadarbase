@@ -16,6 +16,14 @@ export type FieldAgendaEventType =
 
 export type FieldAgendaEventStatus = 'draft' | 'planned' | 'done' | 'archived' | 'cancelled';
 
+export type FieldEventMetrics = {
+  totalInvited: number;
+  confirmed: number;
+  attended: number;
+  helped: number;
+  pendingConfirmation: number;
+};
+
 export type FieldAgendaEvent = {
   id: string;
   title: string;
@@ -36,6 +44,7 @@ export type FieldAgendaEvent = {
   createdAt: string;
   updatedAt: string;
   metadata: Json;
+  metrics?: FieldEventMetrics;
 };
 
 export type FieldAgendaEventResult = {
@@ -52,10 +61,36 @@ export type FieldAgendaEventResult = {
   metadata: Json;
 };
 
+export async function getFieldEventParticipantMetrics(eventId: string): Promise<FieldEventMetrics> {
+  if (shouldUseMockData()) {
+    return { totalInvited: 12, confirmed: 5, attended: 0, helped: 0, pendingConfirmation: 7 };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("ig_person_referrals")
+    .select("status")
+    .eq("target_type", "evento_campo")
+    .eq("target_id", eventId);
+
+  if (error) throw error;
+
+  const metrics: FieldEventMetrics = {
+    totalInvited: (data || []).length,
+    confirmed: (data || []).filter(r => r.status === "confirmou").length,
+    attended: (data || []).filter(r => r.status === "compareceu").length,
+    helped: (data || []).filter(r => r.status === "ajudou").length,
+    pendingConfirmation: (data || []).filter(r => r.status === "convidado" || r.status === "interessado" || r.status === "recomendado").length,
+  };
+
+  return metrics;
+}
+
 export async function listFieldAgendaEvents(filters?: { 
   status?: FieldAgendaEventStatus;
   neighborhood?: string;
   topicSlug?: string;
+  includeMetrics?: boolean;
 }): Promise<FieldAgendaEvent[]> {
   if (shouldUseMockData()) return [];
 
@@ -69,7 +104,7 @@ export async function listFieldAgendaEvents(filters?: {
   const { data, error } = await query.order('starts_at', { ascending: true });
   if (error) throw error;
 
-  return (data || []).map(row => ({
+  const events: FieldAgendaEvent[] = (data || []).map(row => ({
     id: row.id,
     title: row.title,
     description: row.description,
@@ -90,6 +125,16 @@ export async function listFieldAgendaEvents(filters?: {
     updatedAt: row.updated_at,
     metadata: row.metadata,
   }));
+
+  if (filters?.includeMetrics) {
+    const metricsPromises = events.map(e => getFieldEventParticipantMetrics(e.id));
+    const allMetrics = await Promise.all(metricsPromises);
+    events.forEach((e, i) => {
+      e.metrics = allMetrics[i];
+    });
+  }
+
+  return events;
 }
 
 export async function getFieldAgendaEvent(id: string): Promise<FieldAgendaEvent | null> {
@@ -105,7 +150,7 @@ export async function getFieldAgendaEvent(id: string): Promise<FieldAgendaEvent 
   if (error) throw error;
   if (!data) return null;
 
-  return {
+  const event: FieldAgendaEvent = {
     id: data.id,
     title: data.title,
     description: data.description,
@@ -126,6 +171,9 @@ export async function getFieldAgendaEvent(id: string): Promise<FieldAgendaEvent 
     updatedAt: data.updated_at,
     metadata: data.metadata,
   };
+
+  event.metrics = await getFieldEventParticipantMetrics(id);
+  return event;
 }
 
 export async function createFieldAgendaEvent(input: Partial<FieldAgendaEvent> & { title: string; type: FieldAgendaEventType }, actor?: { id: string; email: string | null }): Promise<FieldAgendaEvent | undefined> {
@@ -310,6 +358,37 @@ export async function getFieldAgendaEventResult(eventId: string): Promise<FieldA
         createdAt: data.created_at,
         metadata: data.metadata,
     };
+}
+
+export async function listFieldAgendaEventResultsByEventIds(eventIds: string[]): Promise<Record<string, FieldAgendaEventResult>> {
+  if (shouldUseMockData() || eventIds.length === 0) return {};
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("field_agenda_event_results")
+    .select("*")
+    .in("event_id", eventIds);
+
+  if (error) throw error;
+
+  const results: Record<string, FieldAgendaEventResult> = {};
+  (data || []).forEach((row) => {
+    results[row.event_id] = {
+      id: row.id,
+      eventId: row.event_id,
+      resultSummary: row.result_summary,
+      estimatedPeopleCount: row.estimated_people_count,
+      topicsDiscussed: row.topics_discussed as string[],
+      neighborhoodsMentioned: row.neighborhoods_mentioned as string[],
+      nextSteps: row.next_steps,
+      createdBy: row.created_by,
+      createdByEmail: row.created_by_email,
+      createdAt: row.created_at,
+      metadata: row.metadata,
+    };
+  });
+
+  return results;
 }
 
 // Sugestões

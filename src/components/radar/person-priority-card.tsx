@@ -10,6 +10,8 @@ import { assumePersonResponsible } from "@/app/actions";
 import { PersonScoreBadge } from "./person-score-badge";
 import { ActionButtonGroup } from "./action-button-group";
 import { OperationalAlert } from "./operational-alert";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { JourneyProgress } from "./journey-progress";
 
 interface PersonPriorityCardProps {
   person: PriorityPerson;
@@ -165,6 +167,18 @@ export function PersonPriorityCard({ person, index, layout = "card", onActionCom
           <p className={cn("text-xs font-black truncate", isBlocked ? "text-rose-700" : "text-indigo-700")}>
             {isBlocked ? "NÃO ABORDAR" : person.nextAction.split(":")[0]}
           </p>
+
+          <div className="pt-2">
+            <JourneyProgress 
+              {...mapPersonToJourney(
+                person.status,
+                Boolean(person.responsibleId),
+                person.hasReferral,
+                person.lastInteractionAt
+              )} 
+              compact 
+            />
+          </div>
 
           {isBlocked && (
              <OperationalAlert type="nao_abordar" className="mt-1" />

@@ -20,7 +20,8 @@ import {
   ShieldCheck, 
   Settings,
   ChevronDown,
-  LayoutDashboard
+  LayoutDashboard,
+  Gauge
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const navigation: NavGroup[] = [
     label: "Operar hoje",
     items: [
       { href: "/dashboard", label: "Hoje no Radar", icon: LayoutDashboard },
+      { href: "/ritmo", label: "Central de Ritmo", icon: Gauge },
       { href: "/pessoas", label: "Prioridades da Equipe", icon: Flame },
       { href: "/abordagem", label: "Gestão de Conversas", icon: KanbanSquare },
       { href: "/mensagens", label: "Modelos de Mensagem", icon: MessageSquareText },

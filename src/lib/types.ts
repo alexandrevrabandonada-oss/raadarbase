@@ -123,6 +123,7 @@ export type AuditAction =
   | "field_agenda.event_updated"
   | "field_agenda.event_done"
   | "field_agenda.result_created"
+  | "person.converted_to_volunteer"
   | "volunteer.created"
   | "volunteer.updated"
   | "volunteer.archived"
@@ -155,8 +156,17 @@ export type AuditAction =
   | "receipt_distribution_cycle.started"
   | "receipt_distribution_cycle.closed"
   | "receipt_distribution_cycle.log_linked"
+  | "contact.dm_prepared"
+  | "contact.dm_sent"
   | "telemetry.event_recorded"
-  | "pilot.feedback_submitted";
+  | "pilot.feedback_submitted"
+  | "pilot.feedback_status_changed"
+  | "pilot.feedback_converted_to_task"
+  | "pilot.feedback_exported_to_retrospective"
+  | "person.duplicate_resolved"
+  | "person.username_updated"
+  | "person.theme_updated_assisted"
+  | "person.batch_assignment_completed";
 
 export type ContactRecord = TableRow<"contacts">;
 export type BairroEscutaSubmissionRow = TableRow<"bairro_escuta_submissions">;
@@ -368,7 +378,10 @@ export type PersonResponseKind =
   | "quer_ajudar_online"
   | "quer_ajudar_presencial"
   | "nao_quer_contato"
-  | "revisar_depois";
+  | "revisar_depois"
+  | "manter_aguardando"
+  | "arquivar_sem_retorno"
+  | "resposta_tardia";
 
 export type PersonTimelineItem = {
   id: string;
@@ -377,4 +390,28 @@ export type PersonTimelineItem = {
   description: string;
   occurredAt: string;
   badge?: string | null;
+};
+
+export type TerritorySummary = {
+  neighborhood: string;
+  peopleMonitored: number;
+  priorityPeople: number;
+  topThemes: Array<{ theme: string; count: number }>;
+  referrals: number;
+  volunteers: number;
+  openTasks: number;
+  fieldActions: number;
+  lastActionAt: string | null;
+  priorityScore: number;
+};
+
+export type TerritoryDetail = TerritorySummary & {
+  recentEvents: Array<{
+    id: string;
+    title: string;
+    startsAt: string | null;
+    status: string;
+  }>;
+  suggestedAction: string | null;
+  historicalThemes: Array<{ theme: string; count: number }>;
 };

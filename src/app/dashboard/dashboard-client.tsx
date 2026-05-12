@@ -16,7 +16,8 @@ import {
   PlusCircle,
   TrendingUp,
   Inbox,
-  Ghost
+  Ghost,
+  Activity
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -42,6 +43,12 @@ import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight
 import { PilotStatusBanner } from "@/components/radar/onboarding/pilot-status-banner";
 import { ReadinessChecklist } from "@/components/radar/onboarding/readiness-checklist";
 import { getPilotDay, PILOT_DURATION_DAYS } from "@/lib/config";
+import { calculateOperatorMission, calculateCoordinationMission } from "@/lib/data/mission-engine";
+import { DailyMission } from "@/components/radar/daily-mission";
+import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
+import { WeeklyRhythmCard } from "@/components/radar/weekly-rhythm-card";
+import { CycleAlertList } from "@/components/radar/cycle-alert-list";
+import type { OperationalCycleAlert } from "@/lib/data/operational-cycle-alerts";
 
 type DashboardClientProps = {
   priorityPeople: PriorityPerson[];
@@ -50,12 +57,14 @@ type DashboardClientProps = {
     webhookQuarantineCount: number;
     missingTemplates: string[];
   };
+  cycleAlerts: OperationalCycleAlert[];
 };
 
 export function DashboardClient({ 
   priorityPeople, 
   pilotStats,
-  operationalAlerts 
+  operationalAlerts,
+  cycleAlerts,
 }: DashboardClientProps) {
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -101,7 +110,42 @@ export function DashboardClient({
         totalDays={PILOT_DURATION_DAYS}
         pendingCriticals={criticalIssuesCount}
       />
-      
+
+      <CycleAlertList alerts={cycleAlerts} />
+
+      {/* Ritmo da Semana e Missões do Dia */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <WeeklyRhythmCard 
+          state={calculateWeeklyRhythm({
+            dayOfWeek: new Date().getDay(),
+            tasksDistributed: pilotStats.summary.tasksWithoutResponsible === 0,
+            prioritiesReviewed: priorityPeople.length > 0,
+            responsesRecordedCount: pilotStats.summary.responsesRecorded,
+            referralsMadeCount: pilotStats.funnel.referred,
+            stalePendenciesCount: pilotStats.summary.staleTasksCount,
+            fieldActionsPlannedCount: 1, // Mocked for now
+            weeklyClosureStarted: false
+          })}
+        />
+        <DailyMission 
+          state={calculateOperatorMission({
+            tasksAssumed: priorityPeople.filter(p => p.responsibleId).length,
+            tasksCompleted: pilotStats.funnel.approached,
+            repliesRecorded: pilotStats.summary.responsesRecorded,
+            referralsMade: pilotStats.summary.pendingReferralsCount,
+            stalePending: pilotStats.summary.staleTasksCount
+          })} 
+        />
+        <DailyMission 
+          state={calculateCoordinationMission({
+            unassignedTasks: pilotStats.summary.tasksWithoutResponsible,
+            staleTasks3d: pilotStats.summary.staleTasksCount, // Approximate
+            referralsToReview: pilotStats.summary.pendingReferralsCount,
+            reportGenerated: false // Default for now
+          })} 
+        />
+      </div>
+
       {/* 0. Readiness Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-4">

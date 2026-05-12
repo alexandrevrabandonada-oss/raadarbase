@@ -13,6 +13,10 @@ export type BaseQualityStats = {
   taskNoResponsibleCount: number;
   doNotContactCount: number;
   recentContactCount: number;
+  consentedContactCount: number;
+  consentedVolunteerCount: number;
+  eligibleForReviewCount: number;
+  pendingFeedbackCount: number;
 };
 
 export type DuplicateGroup = {
@@ -29,10 +33,14 @@ export async function getBaseQualityStats(): Promise<BaseQualityStats> {
       noThemeCount: mockPeople.filter(p => p.themes.length === 0).length,
       noInteractionCount: mockPeople.filter(p => !p.lastInteractionAt).length,
       invalidUsernameCount: mockPeople.filter(p => !p.username || p.username.includes(" ")).length,
-      highScoreNoTaskCount: 5, // Mocked
-      taskNoResponsibleCount: 3, // Mocked
+      highScoreNoTaskCount: 5,
+      taskNoResponsibleCount: 3,
       doNotContactCount: mockPeople.filter(p => p.status === "nao_abordar").length,
-      recentContactCount: 8, // Mocked
+      recentContactCount: 8,
+      consentedContactCount: 45,
+      consentedVolunteerCount: 22,
+      eligibleForReviewCount: 15,
+      pendingFeedbackCount: 2,
     };
   }
 
@@ -45,7 +53,9 @@ export async function getBaseQualityStats(): Promise<BaseQualityStats> {
   if (!people) return {
     unassignedCount: 0, possibleDuplicatesCount: 0, noThemeCount: 0, 
     noInteractionCount: 0, invalidUsernameCount: 0, highScoreNoTaskCount: 0,
-    taskNoResponsibleCount: 0, doNotContactCount: 0, recentContactCount: 0
+    taskNoResponsibleCount: 0, doNotContactCount: 0, recentContactCount: 0,
+    consentedContactCount: 0, consentedVolunteerCount: 0, eligibleForReviewCount: 0,
+    pendingFeedbackCount: 0
   };
 
   const tasksMap = new Map();
@@ -55,16 +65,27 @@ export async function getBaseQualityStats(): Promise<BaseQualityStats> {
     }
   });
 
+  const { count: contactsCount } = await supabase.from("contacts").select("*", { count: "exact", head: true }).eq("consent_status", "confirmed");
+  const { count: volunteersCount } = await supabase.from("campaign_volunteers").select("*", { count: "exact", head: true }).eq("status", "ativo");
+  const { count: incidentsCount } = await supabase.from("operational_incidents").select("*", { count: "exact", head: true }).eq("status", "open");
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
   const stats: BaseQualityStats = {
     unassignedCount: people.filter(p => !p.responsible_id).length,
     possibleDuplicatesCount: 0, // Calculado abaixo
     noThemeCount: people.filter(p => !p.themes || p.themes.length === 0).length,
     noInteractionCount: people.filter(p => !p.last_interaction_at).length,
     invalidUsernameCount: people.filter(p => !p.username || p.username.includes(" ")).length,
-    highScoreNoTaskCount: 0, // Depende de score que geralmente é calculado em tempo de runtime ou tabela externa
+    highScoreNoTaskCount: 0,
     taskNoResponsibleCount: tasks?.filter(t => !t.completed_at && !t.responsible_id).length || 0,
     doNotContactCount: people.filter(p => p.status === "nao_abordar").length,
-    recentContactCount: 0, // Mocked por simplicidade de consulta
+    recentContactCount: 0,
+    consentedContactCount: contactsCount || 0,
+    consentedVolunteerCount: volunteersCount || 0,
+    eligibleForReviewCount: people.filter(p => p.last_interaction_at && new Date(p.last_interaction_at) < sixMonthsAgo).length,
+    pendingFeedbackCount: incidentsCount || 0,
   };
 
   // Detecção de duplicatas simples
@@ -110,4 +131,31 @@ export async function detectPossibleDuplicates(): Promise<DuplicateGroup[]> {
   });
 
   return Array.from(groups.values());
+}
+
+export async function suggestThemeForPerson(personId: string): Promise<string[]> {
+  if (shouldUseMockData()) return ["educação", "saúde"]; // Mock simples
+
+  const supabase = getSupabaseAdminClient();
+  
+  // Buscar temas citados em interações dessa pessoa
+  const { data: interactions } = await supabase
+    .from("ig_interactions")
+    .select("theme")
+    .eq("person_id", personId)
+    .not("theme", "is", null);
+  
+  if (!interactions || interactions.length === 0) return [];
+
+  const counts = new Map<string, number>();
+  interactions.forEach(i => {
+    if (i.theme) {
+      counts.set(i.theme, (counts.get(i.theme) ?? 0) + 1);
+    }
+  });
+
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(e => e[0]);
 }

@@ -8,7 +8,18 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
 import { PersonScoreBadge } from "./person-score-badge";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { JourneyProgress } from "@/components/radar/journey-progress";
 
 interface PersonOperationalRowProps {
   person: PriorityPerson;
@@ -20,14 +31,35 @@ interface PersonOperationalRowProps {
 
 export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, isAssuming }: PersonOperationalRowProps) {
   const { toast } = useToast();
+  const [isPending, startTransition] = React.useTransition();
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
   const isBlocked = person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact;
 
-  const handleCopyDM = (e: React.MouseEvent) => {
+  const handleCopyDM = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (person.suggestedMessage) {
-      navigator.clipboard.writeText(person.suggestedMessage);
+      await navigator.clipboard.writeText(person.suggestedMessage);
       toast({ title: "Copiado", description: "Mensagem pronta para colar." });
+      
+      // Telemetria
+      await recordDMPreparedAction(person.id, "lista_operacional");
+      setCopyStatus("waiting");
+      setShowConfirmDialog(true);
     }
+  };
+
+  const handleConfirmSent = () => {
+    startTransition(async () => {
+      const result = await confirmDMSentAction(person.id, "lista_operacional");
+      if (result.ok) {
+        setCopyStatus("confirmed");
+        setShowConfirmDialog(false);
+        toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
   };
 
   const handleOpenInstagram = (e: React.MouseEvent) => {
@@ -97,25 +129,36 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         </span>
       </td>
 
-      {/* 7. Próxima Ação */}
-      <td className="py-2 px-2 min-w-[200px]">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <div className={cn(
-                "text-[10px] font-black uppercase truncate max-w-[250px] flex items-center gap-2",
-                isBlocked ? "text-rose-600" : "text-zinc-800"
-              )}>
-                <ChevronRight className="h-3 w-3 shrink-0 text-zinc-300" />
-                <span className="truncate">{isBlocked ? "Ver motivo da restrição" : person.nextAction}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[300px] p-3 shadow-xl">
-              <p className="text-xs font-black text-indigo-900 mb-1">{person.nextAction}</p>
-              <p className="text-[10px] leading-relaxed text-zinc-600">{person.priorityReason}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      {/* 7. Jornada & Próxima Ação */}
+      <td className="py-2 px-2 min-w-[240px]">
+        <div className="flex flex-col gap-1.5">
+          <JourneyProgress 
+            {...mapPersonToJourney(
+              person.status,
+              Boolean(person.suggestedMessage), // Proxied from list data
+              false, // List doesn't have referral info usually
+              null // List might not have this for now
+            )} 
+            compact 
+          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div className={cn(
+                  "text-[10px] font-bold uppercase truncate max-w-[250px] flex items-center gap-2",
+                  isBlocked ? "text-rose-600" : "text-zinc-500"
+                )}>
+                  <ChevronRight className="h-3 w-3 shrink-0 text-zinc-300" />
+                  <span className="truncate">{isBlocked ? "Ver motivo da restrição" : person.nextAction}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px] p-3 shadow-xl">
+                <p className="text-xs font-black text-indigo-900 mb-1">{person.nextAction}</p>
+                <p className="text-[10px] leading-relaxed text-zinc-600">{person.priorityReason}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </td>
 
       {/* 8. Alertas */}
@@ -166,13 +209,54 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           <Button 
             size="icon" 
             variant="ghost" 
-            className="h-8 w-8 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50"
+            className={cn(
+              "h-8 w-8 transition-colors",
+              copyStatus === "waiting" ? "text-indigo-600 bg-indigo-50" : 
+              copyStatus === "confirmed" ? "text-emerald-600 bg-emerald-50" : "text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50"
+            )}
             onClick={handleCopyDM}
             disabled={!person.suggestedMessage || !!isBlocked}
             title="Copiar DM"
           >
             <Copy className="h-4 w-4" />
           </Button>
+
+          {/* Diálogo de Confirmação Seguro */}
+          <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Copy className="h-5 w-5 text-indigo-600" />
+                  Confirmar Envio Manual
+                </DialogTitle>
+                <DialogDescription className="pt-2">
+                  Você copiou a mensagem para @{person.username}. 
+                  <span className="block mt-2 font-bold text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                    Aviso: Copiar não registra o envio. Confirme apenas depois de mandar manualmente no Instagram.
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <p className="text-sm font-black uppercase tracking-tight text-zinc-500">Já enviou no Instagram?</p>
+              </div>
+              <DialogFooter className="flex sm:justify-between gap-2">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="font-bold text-xs uppercase"
+                >
+                  Ainda não / Pular
+                </Button>
+                <Button 
+                  className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider px-6"
+                  onClick={handleConfirmSent}
+                  disabled={isPending}
+                >
+                  {isPending ? "Processando..." : "Sim, eu já enviei"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {!person.responsibleId && !isBlocked && (
             <Button 

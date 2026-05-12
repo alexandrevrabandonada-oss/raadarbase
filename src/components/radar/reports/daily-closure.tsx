@@ -12,13 +12,15 @@ import {
   ArrowRightCircle,
   Zap,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  History
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { trackOperationalEvent } from "@/app/actions";
 
 interface DailyClosureProps {
   stats: {
@@ -30,6 +32,9 @@ interface DailyClosureProps {
     unassigned: number;
     pendingReferrals: number;
     stale: number;
+    waiting3DaysCount: number;
+    waiting7DaysCount: number;
+    archivedWithoutReturnCount: number;
   };
 }
 
@@ -52,17 +57,22 @@ export function DailyClosure({ stats }: DailyClosureProps) {
 - **Tarefas Órfãs (Sem Responsável):** ${stats.unassigned}
 - **Aguardando Encaminhamento:** ${stats.pendingReferrals}
 - **Tarefas Paradas (+48h):** ${stats.stale}
+- **Aguardando Retorno (3+ dias):** ${stats.waiting3DaysCount}
+- **Aguardando Retorno (7+ dias):** ${stats.waiting7DaysCount}
+- **Arquivadas sem Retorno:** ${stats.archivedWithoutReturnCount}
 
 ## 🚀 Próximos Passos
 - Priorizar a distribuição das ${stats.unassigned} tarefas órfãs.
 - Resolver os ${stats.pendingReferrals} encaminhamentos pendentes para não esfriar o contato.
-- Revisar as ${stats.stale} tarefas paradas para definir se o vínculo deve ser mantido ou encerrado.
+- Revisar as ${stats.waiting3DaysCount} pessoas aguardando há mais de 3 dias.
+- Considerar arquivamento para as ${stats.waiting7DaysCount} pessoas paradas há mais de uma semana.
 
 ---
 *Relatório gerado automaticamente pelo Radar de Base.*
 *Foco: Qualidade do fluxo e mobilização ética.*
 `;
     setSummary(content);
+    trackOperationalEvent("daily_closure_generated");
   };
 
   const handleCopy = () => {
@@ -146,6 +156,9 @@ export function DailyClosure({ stats }: DailyClosureProps) {
                 { label: "Tarefas Órfãs", value: stats.unassigned, icon: Users, color: "text-rose-600" },
                 { label: "Respostas Travadas", value: stats.pendingReferrals, icon: MessageSquare, color: "text-amber-600" },
                 { label: "Tarefas Paradas (+48h)", value: stats.stale, icon: AlertTriangle, color: "text-rose-600" },
+                { label: "Aguardando 3+ Dias", value: stats.waiting3DaysCount, icon: History, color: "text-amber-600" },
+                { label: "Aguardando 7+ Dias", value: stats.waiting7DaysCount, icon: AlertTriangle, color: "text-rose-600" },
+                { label: "Arquivadas Sem Retorno", value: stats.archivedWithoutReturnCount, icon: CheckCircle2, color: "text-zinc-600" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between py-2 border-b border-zinc-50 last:border-0">
                   <div className="flex items-center gap-2">

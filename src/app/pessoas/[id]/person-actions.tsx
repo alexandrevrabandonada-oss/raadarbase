@@ -19,8 +19,17 @@ import {
   History,
   Send,
   Milestone,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle
 } from "lucide-react";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +54,11 @@ import {
   markDoNotContact,
   recordPersonReferral,
   updatePersonReferralStatus,
+  recordDMPreparedAction,
+  confirmDMSentAction,
 } from "@/app/actions";
+import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
+import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/mock-data";
 import { PERSON_RESPONSE_OPTIONS, type PersonOperationalProfile } from "@/lib/data/person-profile";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
@@ -88,6 +101,8 @@ export function PersonActions({
   const [selectedTarget, setSelectedTarget] = useState<PersonReferralType | "">("");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [referralNotes, setReferralNotes] = useState("");
+  const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
   const nextActionLabel =
@@ -99,8 +114,20 @@ export function PersonActions({
     if (!profile.priority.suggestedMessage) return;
     await navigator.clipboard.writeText(profile.priority.suggestedMessage);
     setCopied("mensagem");
-    setFeedback({ type: "success", text: "Mensagem sugerida copiada." });
-    window.setTimeout(() => setCopied(null), 2000);
+    setCopyStatus("waiting");
+    setShowConfirmDialog(true);
+    
+    // Telemetria
+    await recordDMPreparedAction(person.id, "perfil_pessoa");
+  }
+
+  function handleConfirmSent() {
+    runAction(() => confirmDMSentAction(person.id, "perfil_pessoa"), {
+      successText: "Status atualizado para 'Aguardando Retorno'.",
+      nextStatus: "abordado"
+    });
+    setCopyStatus("confirmed");
+    setShowConfirmDialog(false);
   }
 
   function applyResult(result: ActionResult, successText?: string, nextStatus?: PersonStatus) {
@@ -174,11 +201,57 @@ export function PersonActions({
             </Button>
           )}
           {profile.priority.suggestedMessage && (
-            <Button variant="outline" className="font-black border-zinc-200" onClick={copyMessage}>
-              <Copy className="mr-2 h-4 w-4" /> {copied === 'mensagem' ? 'Copiado!' : 'Copiar DM'}
+            <Button 
+              variant="outline" 
+              className={cn(
+                "font-black border-zinc-200 transition-colors",
+                copyStatus === "waiting" ? "bg-indigo-50 border-indigo-300 text-indigo-700" : 
+                copyStatus === "confirmed" ? "bg-emerald-50 border-emerald-300 text-emerald-700" : ""
+              )}
+              onClick={copyMessage}
+              disabled={!canApproach}
+            >
+              <Copy className="mr-2 h-4 w-4" /> 
+              {copyStatus === "waiting" ? "Preparado..." : copyStatus === "confirmed" ? "Enviado!" : "Copiar DM"}
             </Button>
           )}
         </div>
+
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Copy className="h-5 w-5 text-indigo-600" />
+                Confirmar Envio Manual
+              </DialogTitle>
+              <DialogDescription className="pt-2">
+                Você copiou a mensagem para @{person.username}. 
+                <span className="block mt-2 font-bold text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                  Aviso: Copiar não registra o envio no sistema. Confirme apenas depois de mandar manualmente no Instagram.
+                </span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm font-black uppercase tracking-tight text-zinc-500">Já enviou no Instagram?</p>
+            </div>
+            <DialogFooter className="flex sm:justify-between gap-2">
+              <Button 
+                variant="ghost" 
+                onClick={() => setShowConfirmDialog(false)}
+                className="font-bold text-xs uppercase"
+              >
+                Ainda não / Pular
+              </Button>
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider px-6"
+                onClick={handleConfirmSent}
+                disabled={isPending}
+              >
+                {isPending ? "Processando..." : "Sim, eu já enviei"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -432,10 +505,21 @@ export function PersonActions({
                       <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
                         <Textarea 
                           placeholder="Por que está encaminhando?" 
-                          className="text-xs min-h-[80px] rounded-xl border-zinc-200"
+                          className={cn(
+                            "text-xs min-h-[80px] rounded-xl border-zinc-200",
+                            containsForbiddenMemoryTerm(referralNotes).length > 0 && "border-amber-400 bg-amber-50/30"
+                          )}
                           value={referralNotes}
                           onChange={(e) => setReferralNotes(e.target.value)}
                         />
+                        {containsForbiddenMemoryTerm(referralNotes).length > 0 && (
+                          <div className="flex items-center gap-2 text-amber-600 animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle className="h-3 w-3" />
+                            <p className="text-[9px] font-bold uppercase tracking-tight">
+                              Evite termos de perfilamento: {containsForbiddenMemoryTerm(referralNotes).join(", ")}
+                            </p>
+                          </div>
+                        )}
                         <Button 
                           className="w-full font-black bg-black h-10"
                           onClick={() => {
@@ -513,11 +597,22 @@ export function PersonActions({
                 Anote apenas o necessário para o vínculo. Proibido registrar dados sensíveis ou inferências pessoais.
               </p>
               <Textarea
-                className="min-h-[120px] bg-white text-xs font-medium border-zinc-200 focus:ring-black"
+                className={cn(
+                  "min-h-[120px] bg-white text-xs font-medium border-zinc-200 focus:ring-black",
+                  containsForbiddenMemoryTerm(notes).length > 0 && "border-amber-400 bg-amber-50/30"
+                )}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Ex: Teve interesse na plenária de amanhã..."
               />
+              {containsForbiddenMemoryTerm(notes).length > 0 && (
+                <div className="flex items-center gap-2 text-amber-600 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="h-3 w-3" />
+                  <p className="text-[10px] font-bold uppercase tracking-tight">
+                    Evite termos de perfilamento: {containsForbiddenMemoryTerm(notes).join(", ")}
+                  </p>
+                </div>
+              )}
               <Button onClick={saveNotes} disabled={isPending} variant="secondary" className="w-full font-black h-10 border shadow-sm">
                 Salvar Histórico
               </Button>

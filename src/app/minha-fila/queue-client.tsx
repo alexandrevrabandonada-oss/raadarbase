@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { PriorityPerson, PersonResponseKind, PersonReferralType } from "@/lib/types";
 import { QueueCard } from "./queue-card";
 import { QueueList } from "./queue-list";
@@ -19,11 +19,13 @@ import {
   ChevronRight,
   ChevronLeft,
   LayoutDashboard,
-  ShieldAlert
+  ShieldAlert,
+  History
 } from "lucide-react";
 import Link from "next/link";
-import { recordPersonResponse, recordPersonReferral } from "@/app/actions";
+import { trackOperationalEvent, recordPersonResponse, recordPersonReferral, recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { useCompletion } from "@/hooks/use-completion";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import {
   Dialog,
@@ -31,35 +33,50 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { cn } from "@/lib/utils";
+import { calculateOperatorMission } from "@/lib/data/mission-engine";
+import { DailyMission } from "@/components/radar/daily-mission";
+import { OperatorWellnessCard } from "@/components/radar/wellness/operator-wellness-card";
+import { assessQueueWellness } from "@/lib/data/operator-wellness";
 
 interface QueueClientProps {
   initialQueue: PriorityPerson[];
+  oldPendencies?: PriorityPerson[];
   operatorName: string;
 }
 
-export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
+export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: QueueClientProps) {
   const { toast } = useToast();
+  const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+
+  useEffect(() => {
+    trackOperationalEvent("minha_fila_opened");
+  }, []);
 
   const currentPerson = queue[currentIndex];
-
-  const handleNext = () => {
-    if (currentIndex < queue.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      toast({ title: "Fim da fila", description: "Você chegou ao fim da sua fila atual." });
-    }
-  };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+      setCopyStatus("idle");
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < queue.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setCopyStatus("idle");
+    } else {
+      toast({ title: "Fim da fila", description: "Você chegou ao fim da sua fila atual." });
     }
   };
 
@@ -68,18 +85,40 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
     handleNext();
   };
 
-  const handleCopyDM = () => {
+  const handleCopyDM = async () => {
     if (currentPerson.suggestedMessage) {
-      navigator.clipboard.writeText(currentPerson.suggestedMessage);
-      toast({ title: "Copiado", description: "DM copiada para a área de transferência!" });
+      await navigator.clipboard.writeText(currentPerson.suggestedMessage);
+      toast({ title: "Copiado", description: "DM pronta para o Instagram." });
+      
+      // Telemetria
+      await recordDMPreparedAction(currentPerson.id, "minha_fila");
+      setCopyStatus("waiting");
     }
+  };
+
+  const handleConfirmSent = async () => {
+    startTransition(async () => {
+      const result = await confirmDMSentAction(currentPerson.id, "minha_fila");
+      if (result.ok) {
+        setCopyStatus("confirmed");
+        toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
+        // In Minha Fila, after confirming, we can keep the person in view but marked as confirmed
+        // or just move to next. The user requested "Sugestão 'Próxima pessoa' ao confirmar".
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
   };
 
   const handleResponse = async (kind: PersonResponseKind) => {
     startTransition(async () => {
       const result = await recordPersonResponse(currentPerson.id, kind);
       if (result.ok) {
-        toast({ title: "Sucesso", description: "Resposta registrada com sucesso!" });
+        if (kind === "nao_quer_contato") {
+          showCompletion("dnc_respected");
+        } else {
+          showCompletion("response_recorded");
+        }
         setShowResponseDialog(false);
         // Remove from queue or move to next
         const newQueue = queue.filter(p => p.id !== currentPerson.id);
@@ -97,7 +136,7 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
     startTransition(async () => {
       const result = await recordPersonReferral(currentPerson.id, type);
       if (result.ok) {
-        toast({ title: "Sucesso", description: "Encaminhamento registrado!" });
+        showCompletion("referral_done");
         setShowReferralDialog(false);
         // Usually referral doesn't remove from queue unless it changes status
         // But for "Modo Operador", we might want to move to next
@@ -147,6 +186,26 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
         whyItMatters="Focar em uma pessoa de cada vez permite um contato mais humano e evita que você se perca em conversas múltiplas."
         whatToDoNow="Clique no card para abrir a Ficha Rápida, mande a DM sugerida e registre a resposta assim que possível."
       />
+
+      <div className="max-w-xl mx-auto">
+        <DailyMission 
+          state={calculateOperatorMission({
+            tasksAssumed: queue.length,
+            tasksCompleted: 0, // Current session context
+            repliesRecorded: 0,
+            referralsMade: 0,
+            stalePending: oldPendencies.length
+          })} 
+        />
+      </div>
+
+      {/* Operator Wellness Check */}
+      <div className="max-w-xl mx-auto">
+        <OperatorWellnessCard 
+          wellness={assessQueueWellness(queue.length)} 
+        />
+      </div>
+
       {/* Header Info */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
@@ -170,6 +229,9 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
             onReferral={() => setShowReferralDialog(true)}
             onSkip={handleSkip}
             onNext={handleNext}
+            copyStatus={copyStatus}
+            onConfirmSent={handleConfirmSent}
+            onCancelCopy={() => setCopyStatus("idle")}
           />
 
           {/* Navigation Controls */}
@@ -218,6 +280,52 @@ export function QueueClient({ initialQueue, operatorName }: QueueClientProps) {
           </div>
         </aside>
       </div>
+
+      {oldPendencies.length > 0 && (
+        <div className="space-y-6 pt-12 border-t border-zinc-100">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-zinc-900 flex items-center gap-2">
+                <History className="h-5 w-5 text-amber-500" />
+                Pendências Antigas
+              </h3>
+              <p className="text-xs text-zinc-500 font-medium">Contatos aguardando retorno há mais de 3 dias. Avalie se deve insistir ou arquivar.</p>
+            </div>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-100 font-black uppercase text-[10px] rounded-full px-3">
+              {oldPendencies.length} pessoas
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {oldPendencies.map((person) => (
+              <Card key={person.id} className="border-zinc-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-indigo-950 truncate leading-none mb-1">
+                      @{person.username}
+                    </p>
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate">
+                      Aguardando há {Math.floor((new Date().getTime() - new Date(person.contact?.last_contacted_at || "").getTime()) / (1000 * 60 * 60 * 24))} dias
+                    </p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 w-8 p-0 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors"
+                    onClick={() => {
+                      setQueue(prev => [person, ...prev.filter(p => p.id !== person.id)]);
+                      setCurrentIndex(0);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Response Dialog */}
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>

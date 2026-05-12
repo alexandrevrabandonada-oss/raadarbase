@@ -59,6 +59,8 @@ import { balanceTasks } from "./team-actions";
 import { cn } from "@/lib/utils";
 
 import { StatusBadge } from "@/components/status-badge";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { JourneyProgress } from "@/components/radar/journey-progress";
 
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
@@ -67,6 +69,7 @@ type BoardTask = OutreachTask & {
   boardColumn: BoardColumnId;
   priority: PriorityPerson | null;
   isStale: boolean; // Over 48h
+  waitingStatus: "normal" | "followup" | "review" | "archive" | null;
 };
 
 function mapTasks(initialTasks: OutreachTask[], priorityPeople: PriorityPerson[]): BoardTask[] {
@@ -77,11 +80,22 @@ function mapTasks(initialTasks: OutreachTask[], priorityPeople: PriorityPerson[]
   return initialTasks.map((task) => {
     const updatedAt = new Date(task.updatedAt || task.createdAt).getTime();
     const boardColumn = normalizeOutreachColumn(task.column);
+    const ageHours = (now - updatedAt) / (1000 * 60 * 60);
+    
+    let waitingStatus: BoardTask["waitingStatus"] = null;
+    if (boardColumn === "esperando_resposta") {
+      if (ageHours < 24) waitingStatus = "normal";
+      else if (ageHours < 72) waitingStatus = "followup";
+      else if (ageHours < 168) waitingStatus = "review";
+      else waitingStatus = "archive";
+    }
+
     return {
       ...task,
       boardColumn,
       priority: priorityByPersonId.get(task.personId) ?? null,
-      isStale: (now - updatedAt) > fortyEightHours && boardColumn !== "entrou_na_base" && boardColumn !== "nao_abordar"
+      isStale: (now - updatedAt) > fortyEightHours && boardColumn !== "entrou_na_base" && boardColumn !== "nao_abordar",
+      waitingStatus
     };
   });
 }
@@ -100,7 +114,7 @@ export function KanbanClient({
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [responseValues, setResponseValues] = useState<Record<string, PersonResponseKind>>({});
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<"todos" | "meus" | "sem_responsavel" | "stale" | "encaminhar">("todos");
+  const [filterType, setFilterType] = useState<"todos" | "meus" | "sem_responsavel" | "stale" | "encaminhar" | "waiting_3d" | "waiting_7d">("todos");
   const [operatorFilter, setOperatorFilter] = useState<string>("todos");
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
   const [isDistributing, setIsDistributing] = useState(false);
@@ -168,6 +182,8 @@ export function KanbanClient({
         if (filterType === "sem_responsavel") filtered = filtered.filter(t => !t.responsibleId);
         if (filterType === "stale") filtered = filtered.filter(t => t.isStale);
         if (filterType === "encaminhar") filtered = filtered.filter(t => t.boardColumn === "precisa_encaminhar");
+        if (filterType === "waiting_3d") filtered = filtered.filter(t => t.boardColumn === "esperando_resposta" && (t.waitingStatus === "review" || t.waitingStatus === "archive"));
+        if (filterType === "waiting_7d") filtered = filtered.filter(t => t.boardColumn === "esperando_resposta" && t.waitingStatus === "archive");
 
         // Apply Operator Filter
         if (operatorFilter !== "todos") {
@@ -217,7 +233,11 @@ export function KanbanClient({
       switch (responseType) {
         case "nao_respondeu":
         case "revisar_depois":
+        case "manter_aguardando":
+        case "resposta_tardia":
           return "esperando_resposta" as BoardColumnId;
+        case "arquivar_sem_retorno":
+          return "nao_insistir" as BoardColumnId;
         case "respondeu_bem":
           return "respondeu" as BoardColumnId;
         case "pediu_informacoes":
@@ -332,6 +352,8 @@ export function KanbanClient({
               { id: "sem_responsavel", label: "Órfãs" },
               { id: "stale", label: "Paradas" },
               { id: "encaminhar", label: "Encaminhar" },
+              { id: "waiting_3d", label: "3+ dias" },
+              { id: "waiting_7d", label: "7+ dias" },
             ].map(f => (
               <Button
                 key={f.id}
@@ -359,6 +381,13 @@ export function KanbanClient({
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
+        <p className="text-xs text-amber-900 font-bold flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" /> 
+          “Silêncio também é resposta possível. Evite insistir em janelas curtas.”
+        </p>
       </div>
 
       {/* 5. Painel de Balanceamento */}
@@ -469,9 +498,33 @@ export function KanbanClient({
                              score={task.priority?.priorityScore || 0} 
                              temperature={task.priority?.temperature || "observar"} 
                            />
+                           {task.waitingStatus && (
+                             <Badge variant="outline" className={cn(
+                               "text-[8px] font-black uppercase px-1.5 py-0",
+                               task.waitingStatus === "normal" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                               task.waitingStatus === "followup" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                               task.waitingStatus === "review" ? "bg-amber-50 text-amber-700 border-amber-100" :
+                               "bg-rose-50 text-rose-700 border-rose-100"
+                             )}>
+                               {task.waitingStatus === "normal" ? "Aguardando normal" :
+                                task.waitingStatus === "followup" ? "Revisar depois" :
+                                task.waitingStatus === "review" ? "Evitar insistência" :
+                                "Arquivar sugerido"}
+                             </Badge>
+                           )}
+                         </div>
+                      </div>
 
-
-                        </div>
+                      <div className="pt-2">
+                        <JourneyProgress 
+                          {...mapPersonToJourney(
+                            task.priority?.status || "novo",
+                            task.priority?.hasPendingTask ?? !task.completedAt,
+                            task.priority?.hasReferral ?? false,
+                            task.priority?.lastInteractionAt
+                          )} 
+                          compact 
+                        />
                       </div>
 
                       {task.isStale && (
@@ -533,6 +586,34 @@ export function KanbanClient({
                           Avançar <MoveRight className="ml-1 h-3 w-3" />
                         </Button>
                       </div>
+
+                      {task.boardColumn === "esperando_resposta" && (
+                        <div className="space-y-1.5 pt-3 border-t border-zinc-50">
+                          <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest mb-1">Ações Rápidas</p>
+                          <div className="flex flex-wrap gap-1">
+                            {[
+                              { id: "manter_aguardando", label: "Manter" },
+                              { id: "revisar_depois", label: "Revisar" },
+                              { id: "arquivar_sem_retorno", label: "Arquivar" },
+                              { id: "nao_quer_contato", label: "Não Abordar" },
+                            ].map(action => (
+                              <Button
+                                key={action.id}
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-[8px] font-bold uppercase rounded-md border-zinc-200 hover:bg-zinc-100"
+                                onClick={() => {
+                                  setResponseValues(prev => ({ ...prev, [task.id]: action.id as PersonResponseKind }));
+                                  setTimeout(() => runResponse(task), 100);
+                                }}
+                                disabled={savingTaskId === task.id}
+                              >
+                                {action.label}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-2 pt-2 bg-zinc-50/80 -mx-3 -mb-3 p-3 rounded-b-xl border-t border-zinc-100">
                         <select

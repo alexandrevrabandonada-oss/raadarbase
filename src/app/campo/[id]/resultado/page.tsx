@@ -6,10 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getFieldAgendaEvent } from "@/lib/data/field-agenda";
 import { notFound } from "next/navigation";
-import { createEventResultAction } from "../actions";
 import { ShieldAlert } from "lucide-react";
-
-export const dynamic = "force-dynamic";
+import { EventResultForm } from "./event-result-form";
 
 export default async function EventResultPage({ params }: { params: { id: string } }) {
   await requireInternalPageSession(`/campo/${params.id}/resultado`);
@@ -40,47 +38,7 @@ export default async function EventResultPage({ params }: { params: { id: string
             <CardTitle className="text-base">Conclusões da Atividade</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={createEventResultAction.bind(null, event.id)} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Resumo do que aconteceu</label>
-                <textarea
-                  name="resultSummary"
-                  rows={5}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Quais foram os principais pontos discutidos? Qual foi o sentimento do bairro sobre a pauta?"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estimativa de Pessoas Presentes</label>
-                <input
-                  name="estimatedPeopleCount"
-                  type="number"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="Ex: 25"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Próximos Passos</label>
-                <textarea
-                  name="nextSteps"
-                  rows={3}
-                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="O que deve ser feito após este evento? (ex: novo relatório, resposta pública)"
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3">
-                 <button type="button" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                    Cancelar
-                 </button>
-                 <button type="submit" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                    Salvar Resultado
-                 </button>
-              </div>
-            </form>
+            <EventResultForm eventId={event.id} />
           </CardContent>
         </Card>
       </div>

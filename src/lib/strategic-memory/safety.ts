@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { createIncident } from "@/lib/data/incidents";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 

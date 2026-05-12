@@ -36,6 +36,19 @@ export default async function MinhaFilaPage() {
     person => person.responsibleId === session.id
   );
 
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+  const oldPendencies = myQueue.filter(person => 
+    person.isPendingResponse && 
+    person.contact?.last_contacted_at && 
+    new Date(person.contact.last_contacted_at) < threeDaysAgo
+  );
+
+  const activeQueue = myQueue.filter(person => 
+    !oldPendencies.some(op => op.id === person.id)
+  );
+
   return (
     <AppShell>
       <PageHeader 
@@ -46,7 +59,8 @@ export default async function MinhaFilaPage() {
       />
       
       <QueueClient 
-        initialQueue={myQueue} 
+        initialQueue={activeQueue} 
+        oldPendencies={oldPendencies}
         operatorName={session.internalUser.full_name || session.email || "Operador"} 
       />
     </AppShell>

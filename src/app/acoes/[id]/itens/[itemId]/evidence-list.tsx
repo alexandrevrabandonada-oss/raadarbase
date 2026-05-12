@@ -25,7 +25,7 @@ import { formatDateTime } from "@/lib/mock-data";
 interface EvidenceListProps {
   planId: string;
   itemId: string;
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+   
   initialEvidence: any[];
 }
 

@@ -4,6 +4,7 @@ import { RuntimeAlert } from "@/components/runtime-alert";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { listPriorityPeople } from "@/lib/data/people-priority";
+import { getOperationalCycleAlerts } from "@/lib/data/operational-cycle-alerts";
 import { getOperationalAlertsAction } from "./actions";
 import { DashboardClient } from "./dashboard-client";
 
@@ -15,12 +16,14 @@ export default async function DashboardPage() {
   let priorityPeople;
   let pilotStats;
   let operationalAlerts;
+  let cycleAlerts;
 
   try {
-    [priorityPeople, pilotStats, operationalAlerts] = await Promise.all([
+    [priorityPeople, pilotStats, operationalAlerts, cycleAlerts] = await Promise.all([
       listPriorityPeople(),
       getPilotDashboardData(),
       getOperationalAlertsAction(),
+      getOperationalCycleAlerts(),
     ]);
   } catch (error) {
     return (
@@ -45,6 +48,7 @@ export default async function DashboardPage() {
         priorityPeople={priorityPeople}
         pilotStats={pilotStats}
         operationalAlerts={operationalAlerts}
+        cycleAlerts={cycleAlerts.alerts}
       />
     </AppShell>
   );

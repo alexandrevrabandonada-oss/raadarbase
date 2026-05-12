@@ -12,7 +12,8 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldAlert,
-  FastForward
+  FastForward,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -26,6 +27,9 @@ interface QueueCardProps {
   onReferral: () => void;
   onSkip: () => void;
   onNext: () => void;
+  copyStatus?: "idle" | "waiting" | "confirmed";
+  onConfirmSent?: () => void;
+  onCancelCopy?: () => void;
 }
 
 export function QueueCard({
@@ -35,7 +39,11 @@ export function QueueCard({
   onReferral,
   onSkip,
   onNext,
+  copyStatus = "idle",
+  onConfirmSent,
+  onCancelCopy,
 }: QueueCardProps) {
+  const isBlocked = person.riskFlags.doNotContact;
   const temperatureColors = {
     quente: "bg-orange-100 text-orange-700 border-orange-200",
     morno: "bg-amber-100 text-amber-700 border-amber-200",
@@ -114,13 +122,64 @@ export function QueueCard({
                   <Button 
                     size="icon" 
                     variant="secondary" 
-                    className="absolute bottom-3 right-3 h-8 w-8 shadow-sm hover:bg-white"
+                    className={cn(
+                      "absolute bottom-3 right-3 h-8 w-8 shadow-sm transition-all",
+                      copyStatus === "waiting" ? "bg-indigo-600 text-white" : "hover:bg-white"
+                    )}
                     onClick={onCopyDM}
+                    disabled={isBlocked}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 )}
               </div>
+              
+              {copyStatus === "waiting" && (
+                <div className="mt-4 bg-indigo-600 p-4 rounded-xl text-white space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-lg border border-indigo-500">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <p className="text-[11px] font-bold leading-tight">
+                      Copiar não registra o envio. Confirme apenas depois de mandar manualmente no Instagram.
+                    </p>
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-tight">Já enviou no Instagram?</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      className="bg-white text-indigo-600 hover:bg-white/90 font-black uppercase text-[10px] tracking-wider h-8 flex-1"
+                      onClick={onConfirmSent}
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-2" />
+                      Sim, registrar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-white hover:bg-white/10 font-bold text-[10px] uppercase h-8"
+                      onClick={onCancelCopy}
+                    >
+                      Ainda não
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {copyStatus === "confirmed" && (
+                <div className="mt-4 bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center justify-between animate-in zoom-in duration-300">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <p className="text-xs font-bold text-emerald-900 uppercase tracking-tight">Envio registrado!</p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-emerald-700 font-black uppercase text-[10px] h-7 hover:bg-emerald-100"
+                    onClick={onNext}
+                  >
+                    Próxima Pessoa <ChevronRight className="ml-1 h-3 w-3" />
+                  </Button>
+                </div>
+              )}
               {person.suggestedTemplateName && (
                 <p className="text-[10px] text-zinc-400 mt-2 font-bold italic">
                   Template: {person.suggestedTemplateName}
@@ -159,11 +218,15 @@ export function QueueCard({
         <Button 
           size="lg" 
           variant="outline"
-          className="border-zinc-200 hover:bg-white hover:text-indigo-600 font-black uppercase text-xs tracking-wider h-14 px-8 bg-white"
+          className={cn(
+            "border-zinc-200 font-black uppercase text-xs tracking-wider h-14 px-8",
+            copyStatus === "waiting" ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-white hover:bg-white hover:text-indigo-600"
+          )}
           onClick={onCopyDM}
-          disabled={!person.suggestedMessage}
+          disabled={!person.suggestedMessage || isBlocked}
         >
-          <Copy className="mr-2 h-5 w-5 text-zinc-400" /> Copiar DM
+          <Copy className={cn("mr-2 h-5 w-5", copyStatus === "waiting" ? "text-indigo-600" : "text-zinc-400")} /> 
+          {copyStatus === "waiting" ? "Preparado..." : "Copiar DM"}
         </Button>
 
         <div className="h-10 w-px bg-zinc-200 mx-2 hidden lg:block" />

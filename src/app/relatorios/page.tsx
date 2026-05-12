@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
 
@@ -18,6 +18,7 @@ import { listMobilizationReports } from "@/lib/data/reports";
 import { formatDateTime } from "@/lib/mock-data";
 import { FileText, Plus, LayoutDashboard, Activity } from "lucide-react";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
+import { getCollectiveProgressMetrics } from "@/lib/data/collective-progress-data";
 import { PilotDashboardClient } from "./pilot-dashboard-client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
@@ -26,9 +27,18 @@ import { getOperationalTelemetry } from "@/lib/data/audit";
 import { TelemetryDashboard } from "./telemetry-dashboard";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { listPilotFeedback } from "@/lib/data/audit";
+import { getPilotFeedbackLoop } from "@/lib/data/pilot-feedback-loop";
 import { PilotFeedbackForm, PilotFeedbackList } from "@/components/radar/reports/pilot-feedback";
 import { getBaseQualityStats, detectPossibleDuplicates } from "@/lib/data/data-quality";
 import { BaseQualityDashboard } from "@/components/radar/reports/base-quality";
+import { listPeopleWithoutTheme } from "@/lib/data/people";
+import { listInternalUsers } from "@/lib/data/internal-users";
+import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
+import { WeeklyClosure } from "@/components/radar/reports/weekly-closure";
+import { WeeklyRhythmCard } from "@/components/radar/weekly-rhythm-card";
+import { CollectiveProgress } from "@/components/radar/reports/collective-progress";
+import { getOperationalCycleAlerts } from "@/lib/data/operational-cycle-alerts";
+import { CycleAlertList } from "@/components/radar/cycle-alert-list";
 
 
 type FeaturedReportSnapshot = {
@@ -49,10 +59,15 @@ export default async function RelatoriosPage() {
 
   const reports = await listMobilizationReports();
   const pilotData = await getPilotDashboardData();
+  const collectiveProgressMetrics = await getCollectiveProgressMetrics();
   const telemetryData = await getOperationalTelemetry(7);
   const pilotFeedback = await listPilotFeedback();
+  const pilotFeedbackLoop = await getPilotFeedbackLoop();
   const qualityStats = await getBaseQualityStats();
   const duplicates = await detectPossibleDuplicates();
+  const peopleWithoutTheme = await listPeopleWithoutTheme();
+  const internalUsers = await listInternalUsers();
+  const cycleAlerts = await getOperationalCycleAlerts();
 
   const generatedReports = reports.filter((report) => report.status === "generated");
   const firstRealReport = generatedReports
@@ -83,6 +98,8 @@ export default async function RelatoriosPage() {
         className="mb-8"
       />
 
+      <CycleAlertList alerts={cycleAlerts.alerts} className="mb-6" />
+
       <Tabs defaultValue="operacional" className="space-y-6">
         <TabsList className="bg-zinc-100 p-1 border border-zinc-200 h-12">
           <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
@@ -97,7 +114,7 @@ export default async function RelatoriosPage() {
           <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
             📝 Pautas
           </TabsTrigger>
-          <TabsTrigger value="telemetria" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="ritmo" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
             ⚡ Ritmo
           </TabsTrigger>
           <TabsTrigger value="feedback" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
@@ -105,6 +122,9 @@ export default async function RelatoriosPage() {
           </TabsTrigger>
           <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
             🧠 Retrospectiva
+          </TabsTrigger>
+          <TabsTrigger value="progresso" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+            🚀 Progresso Coletivo
           </TabsTrigger>
         </TabsList>
 
@@ -129,7 +149,12 @@ export default async function RelatoriosPage() {
               Higiene e Qualidade da Base
             </h2>
           </div>
-          <BaseQualityDashboard stats={qualityStats} duplicates={duplicates} />
+          <BaseQualityDashboard 
+            stats={qualityStats} 
+            duplicates={duplicates} 
+            peopleWithoutTheme={peopleWithoutTheme}
+            internalUsers={internalUsers}
+          />
         </TabsContent>
 
         <TabsContent value="fechamento" className="space-y-6">
@@ -148,7 +173,10 @@ export default async function RelatoriosPage() {
               doNotContact: pilotData.summary.doNotContactCount,
               unassigned: pilotData.summary.tasksWithoutResponsible,
               pendingReferrals: pilotData.summary.pendingReferralsCount,
-              stale: pilotData.summary.staleTasksCount
+              stale: pilotData.summary.staleTasksCount,
+              waiting3DaysCount: pilotData.summary.waiting3DaysCount,
+              waiting7DaysCount: pilotData.summary.waiting7DaysCount,
+              archivedWithoutReturnCount: pilotData.summary.archivedWithoutReturnCount
             }}
           />
         </TabsContent>
@@ -252,7 +280,7 @@ export default async function RelatoriosPage() {
                 </Card>
               </div>
               <div>
-                <PilotFeedbackList feedbacks={pilotFeedback || []} />
+                <PilotFeedbackList feedbacks={pilotFeedback || []} feedbackLoop={pilotFeedbackLoop} />
               </div>
            </div>
         </TabsContent>
@@ -272,14 +300,58 @@ export default async function RelatoriosPage() {
           <PilotDashboardClient data={pilotData} />
         </TabsContent>
 
-        <TabsContent value="telemetria" className="space-y-6">
+        <TabsContent value="ritmo" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-black flex items-center gap-2">
               <Activity className="w-5 h-5 text-indigo-600" />
               Ritmo de Trabalho da Equipe
             </h2>
           </div>
-          <TelemetryDashboard telemetryData={telemetryData || []} />
+          <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
+            <div className="space-y-6">
+              <WeeklyRhythmCard 
+                state={calculateWeeklyRhythm({
+                  dayOfWeek: new Date().getDay(),
+                  tasksDistributed: pilotData.summary.tasksWithoutResponsible === 0,
+                  prioritiesReviewed: true, // Placeholder
+                  responsesRecordedCount: pilotData.summary.responsesRecorded,
+                  referralsMadeCount: pilotData.funnel.referred,
+                  stalePendenciesCount: pilotData.summary.staleTasksCount,
+                  fieldActionsPlannedCount: 1,
+                  weeklyClosureStarted: false
+                })}
+              />
+              <ContextHelpCard 
+                title="Ritmo da Semana"
+                whatIsThis="Uma visão do progresso coletivo para garantir que a equipe mantenha um fluxo constante de escuta."
+                whyItMatters="Evita o acúmulo de tarefas e garante que a mobilização territorial ocorra no tempo certo."
+                whatToDoNow="Verifique as pendências críticas e ajude a fechar o ciclo da semana."
+              />
+            </div>
+            <div className="space-y-6">
+               <WeeklyClosure 
+                  rhythm={calculateWeeklyRhythm({
+                    dayOfWeek: new Date().getDay(),
+                    tasksDistributed: pilotData.summary.tasksWithoutResponsible === 0,
+                    prioritiesReviewed: true,
+                    responsesRecordedCount: pilotData.summary.responsesRecorded,
+                    referralsMadeCount: pilotData.funnel.referred,
+                    stalePendenciesCount: pilotData.summary.staleTasksCount,
+                    fieldActionsPlannedCount: 1,
+                    weeklyClosureStarted: false
+                  })}
+                  stats={{
+                    topThemes: pilotData.retrospective?.responseRateByTheme.slice(0, 3) || [],
+                    territories: [
+                      { name: "Centro", stage: "Campo", signals: 42 },
+                      { name: "Vila Nova", stage: "Escuta", signals: 28 },
+                      { name: "Jardins", stage: "Observação", signals: 15 }
+                    ]
+                  }}
+               />
+               <TelemetryDashboard telemetryData={telemetryData || []} />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="relatorios" className="space-y-6">
@@ -416,6 +488,15 @@ export default async function RelatoriosPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="progresso" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Central de Progresso Coletivo
+            </h2>
+          </div>
+          <CollectiveProgress data={collectiveProgressMetrics} />
         </TabsContent>
       </Tabs>
     </AppShell>

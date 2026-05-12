@@ -9,8 +9,10 @@ import { requireRole } from "@/lib/authz/roles";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AuditAction, KanbanColumnId, MessageTemplate, PersonResponseKind, PersonStatus, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { upsertPersonReferral } from "@/lib/data/referrals";
+import { createActionPlan, createActionPlanItem } from "@/lib/data/action-plans";
 import type { Json, TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 import { boardColumnNeedsDoNotContactReason, mapBoardColumnToPersonStatus, normalizeOutreachColumn, type BoardColumnId } from "@/lib/outreach-workflow";
+import { getPilotFeedbackCategory, getPilotFeedbackCategoryLabel, getPilotFeedbackTypeLabel, type PilotFeedbackLoopStatus } from "@/lib/data/pilot-feedback-loop";
 
 export type ActionResult = { ok: true; message: string; id?: string } | { ok: false; error: string };
 
@@ -180,6 +182,27 @@ function getResponseTaskConfig(responseType: PersonResponseKind) {
         title: "Respeitar pedido de não contato",
         notes: "Pessoa pediu para não receber novas abordagens.",
       };
+    case "manter_aguardando":
+      return {
+        status: "abordado" as PersonStatus,
+        column: "esperando_resposta" as KanbanColumnId,
+        title: "Aguardar retorno da pessoa (Régua Ética)",
+        notes: "Operador decidiu manter aguardando por mais tempo.",
+      };
+    case "arquivar_sem_retorno":
+      return {
+        status: "abordado" as PersonStatus,
+        column: "nao_insistir" as KanbanColumnId,
+        title: "Arquivar por falta de retorno",
+        notes: "Silêncio prolongado após tentativa de contato. Movido para não insistir.",
+      };
+    case "resposta_tardia":
+      return {
+        status: "respondeu" as PersonStatus,
+        column: "esperando_resposta" as KanbanColumnId,
+        title: "Retomar conversa (Resposta Tardia)",
+        notes: "Pessoa respondeu após janela de espera. Retomar fluxo.",
+      };
     case "revisar_depois":
     default:
       return {
@@ -297,6 +320,71 @@ export async function registerManualDm(personId: string): Promise<ActionResult> 
       if (contactError) throw new Error(contactError.message);
     },
     revalidate: ["/pessoas", `/pessoas/${personId}`],
+  });
+}
+
+export async function recordDMPreparedAction(personId: string, origin: string): Promise<ActionResult> {
+  validateId(personId, "Pessoa");
+  return performAction({
+    action: "contact.dm_prepared",
+    entityType: "ig_people",
+    entityId: personId,
+    summary: `DM preparada para envio (Origem: ${origin}).`,
+    metadata: { origin },
+    mutate: async () => {
+      await requireRole(["admin", "operador"]);
+      // Apenas auditoria/telemetria, não altera estado da pessoa ainda
+    },
+  });
+}
+
+export async function confirmDMSentAction(personId: string, origin: string): Promise<ActionResult> {
+  validateId(personId, "Pessoa");
+  return performAction({
+    action: "contact.dm_sent",
+    entityType: "ig_people",
+    entityId: personId,
+    summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
+    metadata: { origin, auto_status: true },
+    mutate: async () => {
+      await requireRole(["admin", "operador"]);
+      
+      if (shouldUseMockData()) {
+        updateMockPerson(personId, (person) => {
+          person.status = "abordado";
+        });
+        upsertMockTask(personId, { 
+          column: "esperando_resposta", 
+          title: "Aguardar retorno da pessoa (Auto-Status)",
+          notes: `Confirmado envio manual via ${origin}.`
+        });
+        return;
+      }
+
+      const supabase = getSupabaseAdminClient();
+      
+      // 1. Atualizar status da pessoa
+      const { error: personError } = await supabase
+        .from("ig_people")
+        .update({ status: "abordado", updated_at: new Date().toISOString() })
+        .eq("id", personId);
+      if (personError) throw new Error(personError.message);
+
+      // 2. Mover/Criar tarefa no Kanban
+      await upsertOutreachTaskForPerson(personId, {
+        column: "esperando_resposta",
+        title: "Aguardar retorno da pessoa (Auto-Status)",
+        notes: `Confirmação de envio manual realizada via ${origin}. Sistema moveu automaticamente para Aguardando Retorno.`
+      });
+
+      // 3. Atualizar last_contacted_at
+      const { error: contactError } = await supabase
+        .from("contacts")
+        .update({ last_contacted_at: new Date().toISOString() })
+        .eq("person_id", personId);
+      if (contactError) throw new Error(contactError.message);
+    },
+    revalidate: ["/pessoas", `/pessoas/${personId}`, "/abordagem", "/minha-fila"],
   });
 }
 
@@ -541,7 +629,12 @@ export async function recordPersonResponse(personId: string, responseType: Perso
 export async function recordPersonReferral(
   personId: string,
   target: PersonReferralType,
-  details?: { targetId?: string; notes?: string },
+  details?: { 
+    targetId?: string; 
+    notes?: string; 
+    status?: PersonReferralStatus;
+    createConfirmationTask?: boolean;
+  },
 ): Promise<ActionResult> {
   validateId(personId, "Pessoa");
   return performAction({
@@ -554,20 +647,28 @@ export async function recordPersonReferral(
       const actor = await requireRole(["admin", "operador"]);
       
       // 1. Criar registro estruturado na nova tabela
+      const initialStatus = details?.status || "recomendado";
       await upsertPersonReferral(null, {
         personId,
         targetType: target,
         targetId: details?.targetId || null,
-        status: "recomendado",
+        status: initialStatus,
         notes: details?.notes || "",
       }, actor);
 
       // 2. Garantir que a tarefa de abordagem esteja na coluna de encaminhamento
-      const title = `Encaminhar para ${target.replace("_", " ")}`;
-      const notes = details?.notes || `Encaminhamento para ${target} registrado na ficha da pessoa.`;
+      let column: KanbanColumnId = "precisa_encaminhar";
+      let title = `Encaminhar para ${target.replace("_", " ")}`;
+      let notes = details?.notes || `Encaminhamento para ${target} registrado na ficha da pessoa.`;
+
+      if (details?.createConfirmationTask) {
+        column = "esperando_resposta"; // Move to waiting for response if it's a follow-up task
+        title = `Confirmar presença: ${target.replace("_", " ")}`;
+        notes = `Pessoa marcada como ${initialStatus}. Necessário confirmar presença para o evento.`;
+      }
       
       await upsertOutreachTaskForPerson(personId, { 
-        column: "precisa_encaminhar", 
+        column, 
         title, 
         notes 
       });
@@ -1027,6 +1128,86 @@ export async function trackOperationalEvent(
     mutate: async () => {}
   });
 }
+
+const PILOT_FEEDBACK_STATUSES: PilotFeedbackLoopStatus[] = ["novo", "em_analise", "resolvido", "adiado", "nao_sera_feito"];
+const PILOT_FEEDBACK_ACTION_PLAN_TITLE = "Correções rápidas de feedback";
+
+type PilotFeedbackSubmission = {
+  id: string;
+  metadata: {
+    type?: string;
+    route?: string;
+    description?: string;
+    urgency?: "low" | "medium" | "high";
+  } | null;
+};
+
+function assertPilotFeedbackStatus(status: string): asserts status is PilotFeedbackLoopStatus {
+  if (!PILOT_FEEDBACK_STATUSES.includes(status as PilotFeedbackLoopStatus)) {
+    throw new Error("Status de feedback inválido.");
+  }
+}
+
+async function getPilotFeedbackSubmission(feedbackId: string): Promise<PilotFeedbackSubmission> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select("id, metadata")
+    .eq("id", feedbackId)
+    .eq("entity_type", "pilot_feedback")
+    .eq("action", "pilot.feedback_submitted")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Feedback não encontrado.");
+  return data as PilotFeedbackSubmission;
+}
+
+async function getExistingPilotFeedbackTask(feedbackId: string) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("audit_logs")
+    .select("id")
+    .eq("entity_type", "pilot_feedback")
+    .eq("entity_id", feedbackId)
+    .eq("action", "pilot.feedback_converted_to_task")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function ensurePilotFeedbackActionPlan(actor: { actorId: string; actorEmail: string | null }) {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("action_plans")
+    .select("id")
+    .eq("title", PILOT_FEEDBACK_ACTION_PLAN_TITLE)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (data?.id) return data.id;
+
+  const plan = await createActionPlan({
+    title: PILOT_FEEDBACK_ACTION_PLAN_TITLE,
+    description: "Backlog leve para correções rápidas e dúvidas recorrentes vindas da Voz da Equipe.",
+    status: "active",
+    priority: "medium",
+    topic_id: null,
+    created_by: actor.actorId,
+    created_by_email: actor.actorEmail,
+    metadata: {
+      source: "pilot_feedback_loop",
+      kind: "feedback_fast_fix",
+    },
+  });
+
+  return plan.id;
+}
+
 export async function submitPilotFeedback(payload: {
   type: string;
   route: string;
@@ -1052,5 +1233,265 @@ export async function submitPilotFeedback(payload: {
       // através da função performAction.
     },
     revalidate: ["/relatorios", "/relatorios/feedback-piloto"]
+  });
+}
+
+export async function updatePilotFeedbackStatus(feedbackId: string, status: PilotFeedbackLoopStatus): Promise<ActionResult> {
+  validateId(feedbackId, "Feedback");
+  assertPilotFeedbackStatus(status);
+
+  return performAction({
+    action: "pilot.feedback_status_changed",
+    entityType: "pilot_feedback",
+    entityId: feedbackId,
+    summary: `Feedback movido para ${status}.`,
+    metadata: { status },
+    mutate: async () => {
+      await requireRole(["admin", "operador", "comunicacao"]);
+      await getPilotFeedbackSubmission(feedbackId);
+    },
+    revalidate: ["/relatorios", "/ritmo"],
+  });
+}
+
+export async function convertPilotFeedbackToTechnicalTask(feedbackId: string): Promise<ActionResult> {
+  validateId(feedbackId, "Feedback");
+
+  return performAction({
+    action: "pilot.feedback_converted_to_task",
+    entityType: "pilot_feedback",
+    entityId: feedbackId,
+    summary: "Feedback convertido em tarefa técnica.",
+    metadata: await (async () => {
+      const actor = await requireActor();
+      await requireRole(["admin", "operador", "comunicacao"]);
+      const existingTask = await getExistingPilotFeedbackTask(feedbackId);
+      if (existingTask) throw new Error("Este feedback já foi transformado em tarefa técnica.");
+
+      const submission = await getPilotFeedbackSubmission(feedbackId);
+      const submissionMetadata = submission.metadata ?? {};
+      const planId = await ensurePilotFeedbackActionPlan(actor);
+      const category = getPilotFeedbackCategory(submissionMetadata.type ?? "ux_confuso");
+      const item = await createActionPlanItem({
+        action_plan_id: planId,
+        type: "encaminhamento",
+        title: `Resolver feedback: ${getPilotFeedbackTypeLabel(submissionMetadata.type ?? "ux_confuso")}`,
+        description: [
+          `Categoria: ${getPilotFeedbackCategoryLabel(category)}`,
+          `Rota: ${submissionMetadata.route ?? "rota não informada"}`,
+          `Urgência: ${submissionMetadata.urgency ?? "medium"}`,
+          "",
+          submissionMetadata.description ?? "Sem descrição informada.",
+        ].join("\n"),
+        status: "todo",
+        metadata: {
+          source: "pilot_feedback_loop",
+          feedbackId,
+          feedbackType: submissionMetadata.type ?? "ux_confuso",
+          route: submissionMetadata.route ?? null,
+        },
+      });
+
+      return {
+        actionPlanId: planId,
+        actionPlanItemId: item.id,
+        status: "em_analise",
+      } satisfies Json;
+    })(),
+    mutate: async () => {},
+    revalidate: ["/relatorios", "/acoes", "/ritmo"],
+  });
+}
+
+export async function exportPilotFeedbackToRetrospective(feedbackId: string): Promise<ActionResult> {
+  validateId(feedbackId, "Feedback");
+
+  return performAction({
+    action: "pilot.feedback_exported_to_retrospective",
+    entityType: "pilot_feedback",
+    entityId: feedbackId,
+    summary: "Feedback exportado para retrospectiva.",
+    metadata: { exportedAt: new Date().toISOString() },
+    mutate: async () => {
+      await requireRole(["admin", "operador", "comunicacao"]);
+      await getPilotFeedbackSubmission(feedbackId);
+    },
+    revalidate: ["/relatorios", "/ritmo"],
+  });
+}
+
+export async function convertToVolunteerAction(personId: string, options?: { 
+  consentPurpose?: string,
+  source?: "formulario" | "evento_campo" | "indicacao" | "outro"
+}): Promise<ActionResult> {
+  validateId(personId, "Pessoa");
+  return performAction({
+    action: "person.converted_to_volunteer",
+    entityType: "campaign_volunteers",
+    entityId: personId,
+    summary: "Pessoa convertida em voluntário com consentimento.",
+    mutate: async () => {
+      const actor = await requireRole(["admin", "operador"]);
+      const supabase = getSupabaseAdminClient();
+      
+      // 1. Verificar se a pessoa tem consentimento
+      const { data: contact } = await supabase.from("contacts").select("*").eq("person_id", personId).maybeSingle();
+      
+      if (!contact || !contact.consent_given) {
+        throw new Error("Consentimento explícito não encontrado. O voluntariado exige registro de consentimento prévio.");
+      }
+
+      // 2. Buscar dados da pessoa para preencher o voluntário
+      const { data: person } = await supabase.from("ig_people").select("*").eq("id", personId).single();
+      if (!person) throw new Error("Pessoa não encontrada.");
+
+      // 3. Criar registro de voluntário
+      const { error: volunteerError } = await supabase.from("campaign_volunteers").insert({
+        display_name: person.display_name || person.username || "Voluntário Convertido",
+        consent_to_contact: true,
+        consent_to_store_data: true,
+        status: "novo",
+        source: options?.source || "evento_campo",
+        contact_phone: contact.phone,
+        contact_email: contact.email,
+        contact_preference: contact.phone ? "whatsapp" : (contact.email ? "email" : "nenhum"),
+        metadata: { 
+          original_person_id: personId,
+          converted_by: actor.id,
+          conversion_date: new Date().toISOString()
+        }
+      });
+
+      if (volunteerError) throw volunteerError;
+
+      // 4. Marcar na ficha da pessoa
+      const currentThemes = person.themes || [];
+      if (!currentThemes.includes("voluntario_convertido")) {
+        await supabase.from("ig_people").update({
+          themes: [...currentThemes, "voluntario_convertido"],
+          updated_at: new Date().toISOString()
+        }).eq("id", personId);
+      }
+    },
+    revalidate: [`/pessoas/${personId}`, "/voluntarios"],
+  });
+}
+
+export async function resolveDuplicateAction(mainId: string, duplicateId: string, action: "archive" | "keep_separate"): Promise<ActionResult> {
+  validateId(mainId, "Perfil Principal");
+  validateId(duplicateId, "Perfil Duplicado");
+  
+  return performAction({
+    action: "person.duplicate_resolved",
+    entityType: "ig_people",
+    entityId: mainId,
+    summary: `Duplicata resolvida (${action === "archive" ? "arquivado" : "mantido separado"})`,
+    metadata: { duplicateId, action },
+    mutate: async () => {
+      await requireRole(["admin"]);
+      const supabase = getSupabaseAdminClient();
+      
+      if (action === "archive") {
+        const { error } = await supabase
+          .from("ig_people")
+          .update({ 
+            status: "nao_abordar",
+            notes: `Arquivado como duplicata de ${mainId}.`,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", duplicateId);
+        if (error) throw error;
+      }
+    },
+    revalidate: ["/relatorios", "/pessoas"]
+  });
+}
+
+export async function updatePersonUsernameAction(personId: string, newUsername: string): Promise<ActionResult> {
+  validateId(personId, "Pessoa");
+  const cleaned = newUsername.trim().toLowerCase().replace("@", "");
+  if (!cleaned) throw new Error("Username inválido.");
+
+  return performAction({
+    action: "person.username_updated",
+    entityType: "ig_people",
+    entityId: personId,
+    summary: `Username atualizado para @${cleaned}`,
+    mutate: async () => {
+      await requireRole(["admin", "operador"]);
+      const supabase = getSupabaseAdminClient();
+      const { error } = await supabase
+        .from("ig_people")
+        .update({ 
+          username: cleaned,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", personId);
+      if (error) throw error;
+    },
+    revalidate: [`/pessoas/${personId}`, "/relatorios"]
+  });
+}
+
+export async function updatePersonThemeAction(personId: string, themes: string[]): Promise<ActionResult> {
+  validateId(personId, "Pessoa");
+  validateTags(themes);
+
+  return performAction({
+    action: "person.theme_updated_assisted",
+    entityType: "ig_people",
+    entityId: personId,
+    summary: `Temas atualizados: ${themes.join(", ")}`,
+    mutate: async () => {
+      await requireRole(["admin", "operador"]);
+      const supabase = getSupabaseAdminClient();
+      const { error } = await supabase
+        .from("ig_people")
+        .update({ 
+          themes,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", personId);
+      if (error) throw error;
+    },
+    revalidate: [`/pessoas/${personId}`, "/relatorios"]
+  });
+}
+
+export async function assignPeopleBatchAction(personIds: string[], responsibleId: string): Promise<ActionResult> {
+  if (!Array.isArray(personIds) || personIds.length === 0) throw new Error("Nenhuma pessoa selecionada.");
+  validateId(responsibleId, "Responsável");
+
+  return performAction({
+    action: "person.batch_assignment_completed",
+    entityType: "ig_people",
+    entityId: null,
+    summary: `Atribuição em lote realizada para ${personIds.length} pessoas.`,
+    metadata: { personIds, responsibleId },
+    mutate: async () => {
+      await requireRole(["admin"]);
+      const supabase = getSupabaseAdminClient();
+      
+      // Filtramos pessoas que estão como "Não Abordar" para proteção adicional
+      const { data: people } = await supabase
+        .from("ig_people")
+        .select("id, status")
+        .in("id", personIds);
+      
+      const safeIds = people?.filter(p => p.status !== "nao_abordar").map(p => p.id) || [];
+      
+      if (safeIds.length === 0) throw new Error("Nenhuma pessoa elegível para atribuição (perfis 'Não Abordar' protegidos).");
+
+      const { error } = await supabase
+        .from("ig_people")
+        .update({ 
+          responsible_id: responsibleId,
+          updated_at: new Date().toISOString()
+        })
+        .in("id", safeIds);
+        
+      if (error) throw error;
+    },
+    revalidate: ["/pessoas", "/relatorios"]
   });
 }

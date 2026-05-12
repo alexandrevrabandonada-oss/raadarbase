@@ -38,9 +38,10 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType } from "@/lib/types";
+import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { PersonScoreBadge } from "./person-score-badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCompletion } from "@/hooks/use-completion";
 import Link from "next/link";
 import { 
   assumePersonResponsible, 
@@ -49,7 +50,9 @@ import {
   getPersonInteractionsAction,
   updatePersonNotes,
   listFieldAgendaEventsAction,
-  trackOperationalEvent
+  trackOperationalEvent,
+  recordDMPreparedAction,
+  confirmDMSentAction
 } from "@/app/actions";
 import { PERSON_RESPONSE_OPTIONS } from "@/lib/data/person-profile";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +64,9 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
+import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { JourneyProgress } from "@/components/radar/journey-progress";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -130,6 +136,8 @@ interface PersonQuickSheetProps {
   onOpenChange: (open: boolean) => void;
   onActionComplete?: () => void;
   onNextPerson?: () => void;
+  isTraining?: boolean;
+  onTrainingAction?: (action: string, payload?: unknown) => void;
 }
 
 export function PersonQuickSheet({ 
@@ -137,7 +145,9 @@ export function PersonQuickSheet({
   open, 
   onOpenChange, 
   onActionComplete,
-  onNextPerson 
+  onNextPerson,
+  isTraining,
+  onTrainingAction 
 }: PersonQuickSheetProps) {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -149,6 +159,7 @@ export function PersonQuickSheet({
   }, []);
 
   const { toast } = useToast();
+  const { showCompletion } = useCompletion();
   const [interactions, setInteractions] = React.useState<InteractionWithPost[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
@@ -160,9 +171,18 @@ export function PersonQuickSheet({
   
   const [events, setEvents] = React.useState<FieldAgendaEvent[]>([]);
   const [selectedEventId, setSelectedEventId] = React.useState<string>("manual");
+  const [referralStatus, setReferralStatus] = React.useState<PersonReferralStatus>("interessado");
+  const [createConfirmationTask, setCreateConfirmationTask] = React.useState<boolean>(true);
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
+
   const loadHistory = React.useCallback(async (personId: string) => {
+    if (isTraining) {
+      setInteractions([]);
+      setIsLoadingHistory(false);
+      return;
+    }
     setInteractions([]);
     setIsLoadingHistory(true);
     try {
@@ -173,7 +193,7 @@ export function PersonQuickSheet({
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [toast]);
+  }, [toast, isTraining]);
 
   const loadEvents = React.useCallback(async () => {
     try {
@@ -189,7 +209,7 @@ export function PersonQuickSheet({
       trackOperationalEvent("quick_sheet_opened", person.id, { username: person.username });
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsResolved(false);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setNote(person.notes || "");
       loadHistory(person.id);
       loadEvents();
@@ -201,6 +221,11 @@ export function PersonQuickSheet({
   const isBlocked = !!(person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact);
 
   const handleAssume = () => {
+    if (isTraining) {
+      onTrainingAction?.("task_assumed");
+      toast({ title: "Sucesso (Treino)", description: "Você assumiu o vínculo simulado." });
+      return;
+    }
     startTransition(async () => {
       const result = await assumePersonResponsible(person.id);
       if (result.ok) {
@@ -214,6 +239,11 @@ export function PersonQuickSheet({
   };
 
   const handleSaveNote = async () => {
+    if (isTraining) {
+      onTrainingAction?.("note_saved", { note });
+      toast({ title: "Nota salva (Treino)", description: "A nota interna simulada foi atualizada." });
+      return;
+    }
     setIsSavingNote(true);
     try {
       const result = await updatePersonNotes(person.id, note);
@@ -232,11 +262,22 @@ export function PersonQuickSheet({
   };
 
   const handleRecordResponse = (kind: PersonResponseKind) => {
+    if (isTraining) {
+      onTrainingAction?.("response_recorded", { kind });
+      showCompletion("response_recorded");
+      setActiveModal(null);
+      setIsResolved(true);
+      return;
+    }
     startTransition(async () => {
       const result = await recordPersonResponse(person.id, kind);
       if (result.ok) {
         trackOperationalEvent("response_recorded", person.id, { response_kind: kind });
-        toast({ title: "Resposta registrada", description: result.message });
+        if (kind === "nao_quer_contato") {
+          showCompletion("dnc_respected");
+        } else {
+          showCompletion("response_recorded");
+        }
         setActiveModal(null);
         setIsResolved(true);
         onActionComplete?.();
@@ -247,16 +288,63 @@ export function PersonQuickSheet({
   };
 
   const handleRecordReferral = (target: PersonReferralType) => {
+    if (isTraining) {
+      onTrainingAction?.("person_referred", { target });
+      showCompletion("referral_done");
+      setActiveModal(null);
+      setIsResolved(true);
+      return;
+    }
     startTransition(async () => {
       const result = await recordPersonReferral(person.id, target, {
         targetId: selectedEventId !== "manual" ? selectedEventId : undefined,
+        status: target === "evento_campo" ? referralStatus : "recomendado",
+        createConfirmationTask: target === "evento_campo" ? createConfirmationTask : false,
         notes: "Registrado via Ficha Rápida."
       });
       if (result.ok) {
         trackOperationalEvent("person_referred", person.id, { referral_target: target });
-        toast({ title: "Encaminhado", description: result.message });
+        showCompletion("referral_done");
         setActiveModal(null);
         setIsResolved(true);
+        onActionComplete?.();
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handleCopyDM = async (text: string, location: string) => {
+    if (isBlocked) return;
+    
+    // 1. Copiar
+    await navigator.clipboard.writeText(text);
+    toast({ title: "Copiado", description: "Mensagem pronta para colar no Instagram." });
+    
+    // 2. Telemetria
+    if (isTraining) {
+      onTrainingAction?.("dm_copied", { location });
+    } else {
+      trackOperationalEvent("dm_copied", person.id, { location });
+      await recordDMPreparedAction(person.id, location);
+    }
+    
+    // 3. Entrar em modo de confirmação
+    setCopyStatus("waiting");
+  };
+
+  const handleConfirmSent = async () => {
+    if (isTraining) {
+      onTrainingAction?.("dm_sent");
+      setCopyStatus("confirmed");
+      toast({ title: "Status Atualizado (Treino)", description: "Simulação de envio concluída." });
+      return;
+    }
+    startTransition(async () => {
+      const result = await confirmDMSentAction(person.id, "ficha_rapida");
+      if (result.ok) {
+        setCopyStatus("confirmed");
+        toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
         onActionComplete?.();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
@@ -296,6 +384,18 @@ export function PersonQuickSheet({
                 tooltipText={person.scoreTooltip}
                 riskFlags={person.riskFlags}
                 className="scale-110"
+              />
+            </div>
+
+            {/* Journey Progress Integrated */}
+            <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10">
+              <JourneyProgress 
+                {...mapPersonToJourney(
+                  person.status,
+                  person.hasPendingTask,
+                  person.hasReferral,
+                  person.lastInteractionAt
+                )} 
               />
             </div>
           </div>
@@ -382,24 +482,61 @@ export function PersonQuickSheet({
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Mensagem Sugerida</label>
                     <div className="relative group">
-                      <div className="bg-white border border-zinc-200 p-5 rounded-xl text-sm font-medium text-zinc-700 leading-relaxed min-h-[100px] shadow-sm italic">
+                      <div className={cn(
+                        "bg-white border border-zinc-200 p-5 rounded-xl text-sm font-medium text-zinc-700 leading-relaxed min-h-[100px] shadow-sm italic transition-all",
+                        copyStatus === "waiting" && "border-indigo-400 bg-indigo-50/20"
+                      )}>
                         {person.suggestedMessage || "Nenhum modelo específico sugerido para este caso."}
                       </div>
-                      {person.suggestedMessage && !isBlocked && (
+                      {person.suggestedMessage && !isBlocked && copyStatus === "idle" && (
                         <Button 
                           size="icon" 
                           variant="secondary" 
                           className="absolute bottom-3 right-3 h-8 w-8"
-                          onClick={() => {
-                            trackOperationalEvent("dm_copied", person.id, { location: "suggested_message" });
-                            navigator.clipboard.writeText(person.suggestedMessage!);
-                            toast({ title: "Copiado", description: "Mensagem copiada para a área de transferência." });
-                          }}
+                          onClick={() => handleCopyDM(person.suggestedMessage!, "suggested_message")}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
+
+                    {copyStatus === "waiting" && (
+                      <div className="bg-indigo-600 p-4 rounded-xl text-white space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-start gap-3">
+                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                          <p className="text-[11px] font-bold leading-tight">
+                            Copiar não registra o envio. Confirme apenas depois de mandar manualmente no Instagram.
+                          </p>
+                        </div>
+                        <p className="text-xs font-black uppercase tracking-tight">Já enviou no Instagram?</p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="bg-white text-indigo-600 hover:bg-white/90 font-black uppercase text-[10px] tracking-wider h-8 flex-1"
+                            onClick={handleConfirmSent}
+                            disabled={isPending}
+                          >
+                            {isPending ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <CheckCircle className="h-3 w-3 mr-2" />}
+                            Sim, registrar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-white hover:bg-white/10 font-bold text-[10px] uppercase h-8"
+                            onClick={() => setCopyStatus("idle")}
+                          >
+                            Ainda não
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {copyStatus === "confirmed" && (
+                      <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-3 animate-in zoom-in duration-300">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <p className="text-xs font-bold text-emerald-900">Envio registrado e tarefa movida.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -413,8 +550,19 @@ export function PersonQuickSheet({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Ex: Demonstrou interesse no evento de sábado..."
-                    className="text-xs font-bold border-zinc-200 focus:border-indigo-300 min-h-[80px]"
+                    className={cn(
+                      "text-xs font-bold border-zinc-200 focus:border-indigo-300 min-h-[80px]",
+                      containsForbiddenMemoryTerm(note).length > 0 && "border-amber-400 bg-amber-50/30"
+                    )}
                   />
+                  {containsForbiddenMemoryTerm(note).length > 0 && (
+                    <div className="flex items-center gap-2 text-amber-600 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <AlertCircle className="h-3 w-3" />
+                      <p className="text-[10px] font-bold uppercase tracking-tight">
+                        Evite termos de perfilamento: {containsForbiddenMemoryTerm(note).join(", ")}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <p className="text-[9px] text-zinc-400 font-medium italic">Anote apenas o necessário. Não registre dados sensíveis.</p>
                     <Button 
@@ -495,17 +643,11 @@ export function PersonQuickSheet({
                   <>
                     <Button 
                       size="icon" 
-                      variant="outline" 
-                      className="h-12 w-12 border-zinc-200" 
+                      variant={copyStatus === "waiting" ? "default" : "outline"}
+                      className={cn("h-12 w-12 border-zinc-200", copyStatus === "waiting" && "bg-indigo-600 border-indigo-600")} 
                       title="Copiar DM" 
-                      disabled={!person.suggestedMessage}
-                      onClick={() => {
-                        if (person.suggestedMessage) {
-                            trackOperationalEvent("dm_copied", person.id, { location: "floating_footer" });
-                            navigator.clipboard.writeText(person.suggestedMessage);
-                            toast({ title: "Copiado", description: "Mensagem pronta para colar." });
-                        }
-                      }}
+                      disabled={!person.suggestedMessage || isPending} 
+                      onClick={() => handleCopyDM(person.suggestedMessage!, "floating_footer")}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -622,21 +764,51 @@ export function PersonQuickSheet({
                     </div>
 
                     {selectedReferral === "evento_campo" && events.length > 0 && (
-                      <div className="space-y-3 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                        <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block">Vincular a Evento da Agenda</label>
-                        <Select value={selectedEventId} onValueChange={(val) => setSelectedEventId(val || "manual")}>
-                          <SelectTrigger className="w-full text-xs font-bold border-zinc-200 bg-white">
-                            <SelectValue placeholder="Selecione um evento..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="manual" className="text-xs font-bold">Encaminhamento Geral</SelectItem>
-                            {events.map((ev) => (
-                              <SelectItem key={ev.id} value={ev.id} className="text-xs font-bold">
-                                {ev.title} ({ev.neighborhood || "Geral"})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-4 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block">Evento da Agenda</label>
+                          <Select value={selectedEventId} onValueChange={(val) => setSelectedEventId(val || "manual")}>
+                            <SelectTrigger className="w-full text-xs font-bold border-zinc-200 bg-white">
+                              <SelectValue placeholder="Selecione um evento..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="manual" className="text-xs font-bold">Encaminhamento Geral</SelectItem>
+                              {events.map((ev) => (
+                                <SelectItem key={ev.id} value={ev.id} className="text-xs font-bold">
+                                  {ev.title} ({ev.neighborhood || "Geral"})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block">Status Inicial</label>
+                            <Select value={referralStatus} onValueChange={(val) => setReferralStatus(val as PersonReferralStatus)}>
+                              <SelectTrigger className="w-full text-xs font-bold border-zinc-200 bg-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="font-bold">
+                                <SelectItem value="interessado">Interessado</SelectItem>
+                                <SelectItem value="convidado">Convidado</SelectItem>
+                                <SelectItem value="confirmou">Já confirmou</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="flex flex-col justify-center gap-1.5 pt-5">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input 
+                                type="checkbox" 
+                                checked={createConfirmationTask}
+                                onChange={(e) => setCreateConfirmationTask(e.target.checked)}
+                                className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-[10px] font-black uppercase text-zinc-500 group-hover:text-zinc-900 transition-colors">Criar Tarefa Follow-up</span>
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     )}
 

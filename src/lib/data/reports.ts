@@ -453,8 +453,7 @@ export async function createMobilizationReportDraft(input: {
   period_end?: string;
   created_by: string | null;
   created_by_email: string | null;
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  filters: any;
+  filters: Record<string, unknown>;
 }) {
   if (shouldUseMockData()) {
     return {
@@ -476,9 +475,16 @@ export async function createMobilizationReportDraft(input: {
   const { data, error } = await supabase
     .from("mobilization_reports")
     .insert({
-      ...input,
+      title: input.title,
+      description: input.description,
+      period_start: input.period_start,
+      period_end: input.period_end,
+      created_by: input.created_by,
+      created_by_email: input.created_by_email,
+      filters: input.filters,
       status: "draft",
-    })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
     .select()
     .single();
 
@@ -578,4 +584,83 @@ export async function archiveMobilizationReport(id: string) {
     .eq("id", id);
   
   if (error) throw new Error(`Falha ao arquivar relatório: ${error.message}`);
+}
+
+export async function getFieldEngagementReport() {
+  if (shouldUseMockData()) {
+    return {
+      topInterestedEvents: [],
+      topAttendedEvents: [],
+      topTopics: []
+    };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  
+  // 1. Buscar métricas de todos os eventos
+  const { data: events, error: eventsError } = await supabase
+    .from("field_agenda_events")
+    .select("id, title, topic_slug, neighborhood");
+  
+  if (eventsError) throw eventsError;
+
+  const eventMetrics = await Promise.all(
+    events.map(async (event) => {
+      const { data: referrals, error: refError } = await supabase
+        .from("ig_person_referrals")
+        .select("status")
+        .eq("target_type", "evento_campo")
+        .eq("target_id", event.id);
+      
+      if (refError) throw refError;
+
+      const totalInvited = referrals.length;
+      const confirmed = referrals.filter(r => r.status === 'confirmou').length;
+      const attended = referrals.filter(r => r.status === 'compareceu' || r.status === 'ajudou').length;
+
+      return {
+        id: event.id,
+        title: event.title,
+        topicSlug: event.topic_slug,
+        neighborhood: event.neighborhood,
+        totalInvited,
+        confirmed,
+        attended
+      };
+    })
+  );
+
+  // 2. Ordenar por interessados
+  const topInterestedEvents = [...eventMetrics]
+    .sort((a, b) => b.totalInvited - a.totalInvited)
+    .slice(0, 5);
+
+  // 3. Ordenar por presença real
+  const topAttendedEvents = [...eventMetrics]
+    .sort((a, b) => b.attended - a.attended)
+    .slice(0, 5);
+
+  // 4. Agrupar por tema
+  const topicStats = new Map<string, { invited: number, attended: number, eventCount: number }>();
+  eventMetrics.forEach(m => {
+    if (!m.topicSlug) return;
+    const current = topicStats.get(m.topicSlug) || { invited: 0, attended: 0, eventCount: 0 };
+    current.invited += m.totalInvited;
+    current.attended += m.attended;
+    current.eventCount += 1;
+    topicStats.set(m.topicSlug, current);
+  });
+
+  const topTopics = Array.from(topicStats.entries())
+    .map(([slug, stats]) => ({
+      slug,
+      ...stats
+    }))
+    .sort((a, b) => b.attended - a.attended);
+
+  return {
+    topInterestedEvents,
+    topAttendedEvents,
+    topTopics
+  };
 }
