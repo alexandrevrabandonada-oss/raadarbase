@@ -8,7 +8,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Minha Fila | Modo Operador",
-  description: "Trabalhe suas tarefas de abordagem diárias com foco e rapidez.",
+  description: "Siga sua trilha de missões diárias com foco, clareza e registro ético.",
 };
 
 export const dynamic = "force-dynamic";
@@ -54,8 +54,8 @@ export default async function MinhaFilaPage() {
       <PageHeader 
         compact
         eyebrow="Modo Operador"
-        title="Minha Fila de Trabalho" 
-        description="Foque no contato direto. Use as sugestões de mensagem para acelerar o engajamento." 
+        title="Minha Fila" 
+        description="Seu hub de jornada: uma missão por vez, com próximo passo claro e ritmo sustentável." 
       />
       
       <QueueClient 

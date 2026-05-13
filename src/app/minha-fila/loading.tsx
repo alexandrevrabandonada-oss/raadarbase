@@ -8,10 +8,10 @@ export default function Loading() {
       <PageHeader 
         compact
         eyebrow="Modo Operador"
-        title="Minha Fila de Trabalho" 
-        description="Buscando suas tarefas do dia..." 
+        title="Minha Fila" 
+        description="Montando sua trilha de missões do dia..." 
       />
-      <RadarLoading message="Filtrando sua carga de trabalho..." />
+      <RadarLoading message="Preparando jornada, bem-estar e próximas missões..." />
     </AppShell>
   );
 }

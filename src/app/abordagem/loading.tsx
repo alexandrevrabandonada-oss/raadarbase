@@ -7,11 +7,11 @@ export default function Loading() {
     <AppShell>
       <PageHeader
         compact
-        eyebrow="Fila de Abordagem"
-        title="Quadro de Vínculos"
-        description="Carregando tarefas e progresso dos contatos..."
+        eyebrow="Jornada Operacional"
+        title="Mural de Missões"
+        description="Organizando o fluxo cooperativo das missões..."
       />
-      <RadarLoading message="Preparando quadro Kanban..." />
+      <RadarLoading message="Distribuindo etapas entre preparar, conversar, registrar, encaminhar e concluir..." />
     </AppShell>
   );
 }

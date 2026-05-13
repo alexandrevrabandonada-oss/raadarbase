@@ -5,8 +5,8 @@ import { getTerritorialExpansionCandidates } from "@/lib/data/territorial-expans
 import { TerritoriesClient } from "./territories-client";
 
 export const metadata: Metadata = {
-  title: "Painel Territorial | Radar de Base",
-  description: "Planejamento e análise de mobilização por bairro e território.",
+  title: "Mapa da Mobilização | Radar de Base",
+  description: "Mapa territorial cooperativo com fases, calor, temas e missões de campo por bairro.",
 };
 
 export default async function TerritoriesPage() {

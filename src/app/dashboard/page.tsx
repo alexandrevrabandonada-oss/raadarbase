@@ -1,37 +1,272 @@
 import AppShell from "@/components/app-shell";
-import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { listPriorityPeople } from "@/lib/data/people-priority";
 import { getOperationalCycleAlerts } from "@/lib/data/operational-cycle-alerts";
 import { getOperationalAlertsAction } from "./actions";
-import { DashboardClient } from "./dashboard-client";
+import { DashboardClient, type DashboardViewData } from "./dashboard-client";
+import { getCollectiveProgressMetrics } from "@/lib/data/collective-progress-data";
+import { getBaseQualityStats } from "@/lib/data/data-quality";
+import { listTerritorySummaries } from "@/lib/data/territories";
+import { mapTerritoryToPhase } from "@/lib/data/territory-mapper";
+import {
+  listFieldAgendaEvents,
+  listFieldAgendaEventResultsByEventIds,
+  type FieldAgendaEvent,
+} from "@/lib/data/field-agenda";
+import { calculateOperatorMission } from "@/lib/data/mission-engine";
+import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
+import { assessQueueWellness } from "@/lib/data/operator-wellness";
 
 export const dynamic = "force-dynamic";
+
+function getCurrentTimestamp() {
+  return Date.now();
+}
+
+function getOverallStatus(data: {
+  staleTasksCount: number;
+  tasksWithoutResponsible: number;
+  territoriesWithoutRecentAction: number;
+  pastEventsWithoutResult: number;
+  queueLevel: "healthy" | "warning" | "critical";
+}) {
+  if (
+    data.tasksWithoutResponsible > 0 ||
+    data.pastEventsWithoutResult > 0 ||
+    data.queueLevel === "critical"
+  ) {
+    return {
+      label: "Sinais pedindo coordenação",
+      tone: "critical" as const,
+      detail: "Há travas de operação que pedem redistribuição e fechamento hoje.",
+    };
+  }
+
+  if (data.staleTasksCount > 0 || data.territoriesWithoutRecentAction > 0 || data.queueLevel === "warning") {
+    return {
+      label: "Operação em ajuste fino",
+      tone: "warning" as const,
+      detail: "A base está andando, mas há missões e territórios que pedem atenção curta.",
+    };
+  }
+
+  return {
+    label: "Operação em ritmo saudável",
+    tone: "healthy" as const,
+    detail: "Missões, campo e território seguem com boa cadência neste ciclo.",
+  };
+}
+
+function formatFieldEvent(event: FieldAgendaEvent) {
+  return {
+    id: event.id,
+    title: event.title,
+    neighborhood: event.neighborhood ?? "Território em definição",
+    startsAt: event.startsAt,
+    status: event.status,
+    pendingConfirmation: event.metrics?.pendingConfirmation ?? 0,
+    confirmed: event.metrics?.confirmed ?? 0,
+    href: `/campo/${event.id}`,
+  };
+}
+
+async function loadDashboardData() {
+  const [
+    priorityPeople,
+    pilotStats,
+    operationalAlerts,
+    cycleAlerts,
+    collective,
+    qualityStats,
+    territories,
+    fieldEvents,
+  ] = await Promise.all([
+    listPriorityPeople(),
+    getPilotDashboardData(),
+    getOperationalAlertsAction(),
+    getOperationalCycleAlerts(),
+    getCollectiveProgressMetrics(),
+    getBaseQualityStats(),
+    listTerritorySummaries(),
+    listFieldAgendaEvents({ includeMetrics: true }),
+  ]);
+
+  const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
+
+  const territoryCounts = territories.reduce(
+    (acc, territory) => {
+      const phase = mapTerritoryToPhase(territory);
+      if (phase.id === "mobilizacao") acc.mobilizacao += 1;
+      if (phase.id === "campo") acc.campo += 1;
+      if (phase.id === "continuidade") acc.continuidade += 1;
+      return acc;
+    },
+    { mobilizacao: 0, campo: 0, continuidade: 0 },
+  );
+
+  const territoryHighlights = {
+    mobilizacao:
+      territories
+        .filter((territory) => mapTerritoryToPhase(territory).id === "mobilizacao")
+        .sort((a, b) => b.priorityPeople - a.priorityPeople)[0] ?? null,
+    campo:
+      territories
+        .filter((territory) => mapTerritoryToPhase(territory).id === "campo")
+        .sort((a, b) => b.fieldActions - a.fieldActions)[0] ?? null,
+    continuidade:
+      territories
+        .filter((territory) => mapTerritoryToPhase(territory).id === "continuidade")
+        .sort((a, b) => b.openTasks - a.openTasks)[0] ?? null,
+  };
+
+  const now = getCurrentTimestamp();
+  const plannedActions = fieldEvents.filter((event) => event.status === "planned" || event.status === "draft");
+  const futureActions = plannedActions
+    .filter((event) => {
+      if (!event.startsAt) return true;
+      return new Date(event.startsAt).getTime() >= now;
+    })
+    .slice(0, 3)
+    .map(formatFieldEvent);
+  const confirmationActions = plannedActions
+    .filter((event) => (event.metrics?.pendingConfirmation ?? 0) > 0)
+    .sort((a, b) => (b.metrics?.pendingConfirmation ?? 0) - (a.metrics?.pendingConfirmation ?? 0))
+    .slice(0, 3)
+    .map(formatFieldEvent);
+  const unresolvedPastEvents = fieldEvents.filter((event) => {
+    const startsAt = event.startsAt ? new Date(event.startsAt).getTime() : Number.POSITIVE_INFINITY;
+    return Number.isFinite(startsAt) && startsAt <= now && !eventResults[event.id];
+  });
+  const unresolvedPastActions = unresolvedPastEvents.slice(0, 3).map(formatFieldEvent);
+
+  const queueLoads = pilotStats.responsibleBreakdown.length > 0
+    ? pilotStats.responsibleBreakdown.map((item) => item.openTasks)
+    : [pilotStats.summary.openTasks];
+  const averageQueueLoad = Math.round(queueLoads.reduce((sum, value) => sum + value, 0) / Math.max(queueLoads.length, 1));
+  const overloadAlerts = queueLoads.filter((load) => assessQueueWellness(load).level !== "healthy").length;
+  const wellness = assessQueueWellness(averageQueueLoad);
+
+  const missionState = calculateOperatorMission({
+    tasksAssumed: pilotStats.responsibleBreakdown.filter((item) => item.openTasks > 0).length,
+    tasksCompleted: pilotStats.funnel.approached,
+    repliesRecorded: pilotStats.summary.responsesRecorded,
+    referralsMade: pilotStats.funnel.referred,
+    stalePending: pilotStats.summary.staleTasksCount,
+  });
+
+  const weeklyRhythmState = calculateWeeklyRhythm({
+    dayOfWeek: new Date().getDay(),
+    tasksDistributed: pilotStats.summary.tasksWithoutResponsible === 0,
+    prioritiesReviewed: priorityPeople.length > 0,
+    responsesRecordedCount: pilotStats.summary.responsesRecorded,
+    referralsMadeCount: pilotStats.funnel.referred,
+    stalePendenciesCount: pilotStats.summary.staleTasksCount,
+    fieldActionsPlannedCount: plannedActions.length,
+    weeklyClosureStarted: false,
+  });
+
+  const overallStatus = getOverallStatus({
+    staleTasksCount: collective.operationHealth.staleTasksCount,
+    tasksWithoutResponsible: collective.operationHealth.tasksWithoutResponsible,
+    territoriesWithoutRecentAction: collective.operationHealth.territoriesWithoutRecentAction,
+    pastEventsWithoutResult: unresolvedPastEvents.length,
+    queueLevel: wellness.level,
+  });
+
+  const dashboardData: DashboardViewData = {
+    missionState,
+    weeklyRhythmState,
+    overallStatus,
+    missionCounts: {
+      active: priorityPeople.length,
+      replies: pilotStats.summary.responsesRecorded,
+      referrals: pilotStats.funnel.referred,
+    },
+    systemAlerts: {
+      unassignedTasks: collective.operationHealth.tasksWithoutResponsible,
+      staleTasks: collective.operationHealth.staleTasksCount,
+      territoriesNeedingAction: collective.operationHealth.territoriesWithoutRecentAction,
+      fieldWithoutClosure: unresolvedPastEvents.length,
+    },
+    quickMap: {
+      counts: territoryCounts,
+      highlights: {
+        mobilizacao: territoryHighlights.mobilizacao
+          ? {
+              neighborhood: territoryHighlights.mobilizacao.neighborhood,
+              detail: `${territoryHighlights.mobilizacao.priorityPeople} pessoas pedindo direção.`,
+            }
+          : null,
+        campo: territoryHighlights.campo
+          ? {
+              neighborhood: territoryHighlights.campo.neighborhood,
+              detail: `${territoryHighlights.campo.fieldActions} ações ligadas ao território.`,
+            }
+          : null,
+        continuidade: territoryHighlights.continuidade
+          ? {
+              neighborhood: territoryHighlights.continuidade.neighborhood,
+              detail: `${territoryHighlights.continuidade.openTasks} vínculos ainda abertos.`,
+            }
+          : null,
+      },
+    },
+    field: {
+      plannedCount: plannedActions.length,
+      confirmationCount: plannedActions.reduce((sum, event) => sum + (event.metrics?.pendingConfirmation ?? 0), 0),
+      unresolvedCount: unresolvedPastEvents.length,
+      upcoming: futureActions,
+      confirmation: confirmationActions,
+      unresolved: unresolvedPastActions,
+    },
+    care: {
+      averageQueueLoad,
+      overloadAlerts,
+      wellnessLevel: wellness.level,
+      wellnessMicrocopy: wellness.microcopy,
+      wellnessRecommendation: wellness.recommendation,
+      baseReviewCount: qualityStats.eligibleForReviewCount,
+      sensitiveAlertsCount: collective.ethics.sensitiveNotesReviewed,
+      collectiveProgress: collective.funnel.conclude,
+      referralsMade: collective.progress.referralsMade,
+      doNotContactRespected: collective.ethics.doNotContactRespected,
+    },
+    integrationAlerts: {
+      webhookQuarantineCount: operationalAlerts.webhookQuarantineCount,
+      missingTemplatesCount: operationalAlerts.missingTemplates.length,
+    },
+  };
+
+  return {
+    priorityPeople,
+    pilotStats,
+    cycleAlerts: cycleAlerts.alerts,
+    dashboardData,
+  };
+}
 
 export default async function DashboardPage() {
   await requireInternalPageSession("/dashboard");
 
-  let priorityPeople;
-  let pilotStats;
-  let operationalAlerts;
-  let cycleAlerts;
+  let loaded:
+    | Awaited<ReturnType<typeof loadDashboardData>>
+    | null = null;
+  let loadError: string | null = null;
 
   try {
-    [priorityPeople, pilotStats, operationalAlerts, cycleAlerts] = await Promise.all([
-      listPriorityPeople(),
-      getPilotDashboardData(),
-      getOperationalAlertsAction(),
-      getOperationalCycleAlerts(),
-    ]);
+    loaded = await loadDashboardData();
   } catch (error) {
+    loadError = error instanceof Error ? error.message : "Não foi possível carregar o hub principal do sistema.";
+  }
+
+  if (!loaded) {
     return (
       <AppShell>
-        <PageHeader title="Hoje no Radar" description="Painel interno de acompanhamento." />
         <RuntimeAlert
-          title="Falha ao carregar dados operacionais"
-          description={error instanceof Error ? error.message : "Não foi possível carregar a central de comando."}
+          title="Falha ao carregar a Base de Operações"
+          description={loadError ?? "Não foi possível carregar o hub principal do sistema."}
         />
       </AppShell>
     );
@@ -39,16 +274,11 @@ export default async function DashboardPage() {
 
   return (
     <AppShell>
-      <PageHeader
-        eyebrow="Painel de Controle"
-        title="Hoje no Radar"
-        description="Leitura rápida das pessoas, vínculos e ações que precisam de atenção agora."
-      />
-      <DashboardClient 
-        priorityPeople={priorityPeople}
-        pilotStats={pilotStats}
-        operationalAlerts={operationalAlerts}
-        cycleAlerts={cycleAlerts.alerts}
+      <DashboardClient
+        priorityPeople={loaded.priorityPeople}
+        pilotStats={loaded.pilotStats}
+        cycleAlerts={loaded.cycleAlerts}
+        data={loaded.dashboardData}
       />
     </AppShell>
   );

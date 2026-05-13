@@ -1,32 +1,37 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { PriorityPerson, PersonResponseKind, PersonReferralType } from "@/lib/types";
 import { QueueCard } from "./queue-card";
 import { QueueList } from "./queue-list";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/radar/empty-state";
-import { 
-  Users, 
-  PlusCircle, 
-  MessageSquare,
+import {
+  PlusCircle,
   CheckCircle2,
   XCircle,
   HelpCircle,
   Calendar,
   HeartHandshake,
   Smartphone,
-  ChevronRight,
-  ChevronLeft,
   LayoutDashboard,
   ShieldAlert,
-  History
+  History,
+  Compass,
+  Sparkles,
+  ChevronRight,
+  ArrowRight,
 } from "lucide-react";
-import Link from "next/link";
-import { trackOperationalEvent, recordPersonResponse, recordPersonReferral, recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
+import {
+  trackOperationalEvent,
+  recordPersonResponse,
+  recordPersonReferral,
+  recordDMPreparedAction,
+  confirmDMSentAction,
+} from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useCompletion } from "@/hooks/use-completion";
-import { ContextHelpCard } from "@/components/radar/context-help-card";
 import {
   Dialog,
   DialogContent,
@@ -35,17 +40,64 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { cn } from "@/lib/utils";
 import { calculateOperatorMission } from "@/lib/data/mission-engine";
-import { DailyMission } from "@/components/radar/daily-mission";
 import { OperatorWellnessCard } from "@/components/radar/wellness/operator-wellness-card";
 import { assessQueueWellness } from "@/lib/data/operator-wellness";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 
 interface QueueClientProps {
   initialQueue: PriorityPerson[];
   oldPendencies?: PriorityPerson[];
   operatorName: string;
+}
+
+const RESPONSE_OPTIONS: Array<{
+  id: PersonResponseKind;
+  label: string;
+  hint: string;
+  icon: typeof CheckCircle2;
+}> = [
+  { id: "nao_respondeu", label: "Sem retorno", hint: "A conversa segue em espera.", icon: XCircle },
+  { id: "respondeu_bem", label: "Respondeu bem", hint: "A missão avançou com boa abertura.", icon: CheckCircle2 },
+  { id: "pediu_informacoes", label: "Pediu informações", hint: "Registrar dúvida e seguir na conversa.", icon: HelpCircle },
+  { id: "quer_ir_evento", label: "Quer evento", hint: "Há chance de campo concreto.", icon: Calendar },
+  { id: "quer_ajudar_presencial", label: "Quer ajudar", hint: "Encaminhar para voluntariado ou campo.", icon: HeartHandshake },
+  { id: "quer_conhecer_missao_eluta", label: "Quer missão digital", hint: "Boa candidata para ação coordenada.", icon: Smartphone },
+  { id: "nao_quer_contato", label: "Não quer contato", hint: "A restrição ética precisa ser respeitada.", icon: ShieldAlert },
+  { id: "revisar_depois", label: "Revisar depois", hint: "Volta para fila com mais contexto.", icon: History },
+];
+
+const REFERRAL_OPTIONS: Array<{
+  id: PersonReferralType;
+  label: string;
+  hint: string;
+}> = [
+  { id: "evento_campo", label: "Missão de Campo", hint: "Conectar a pessoa a uma ação presencial." },
+  { id: "voluntariado", label: "Voluntariado", hint: "Encaminhar para ajuda recorrente." },
+  { id: "missao_eluta", label: "Missão ÉLuta", hint: "Encaminhar para ação digital coordenada." },
+  { id: "grupo_lista", label: "Grupo ou Lista", hint: "Manter vínculo por canal de acompanhamento." },
+  { id: "missao_simples", label: "Missão simples", hint: "Fechar ciclo com uma ação pontual." },
+  { id: "revisar_depois", label: "Revisar depois", hint: "Segurar a decisão e voltar com contexto." },
+  { id: "nao_abordar", label: "Não abordar", hint: "Fechar missão por consentimento ou segurança." },
+];
+
+function missionPhaseLabel(person: PriorityPerson) {
+  const journey = mapPersonToJourney(
+    person.status,
+    person.hasPendingTask,
+    person.hasReferral,
+    person.lastInteractionAt,
+  );
+  const labels = {
+    preparar: "Preparar terreno",
+    conversar: "Abrir conversa",
+    registrar: "Registrar retorno",
+    encaminhar: "Encaminhar interesse",
+    concluir: "Fechar ciclo",
+  } as const;
+
+  return journey.isBlocked ? "Janela em espera" : labels[journey.currentPhase];
 }
 
 export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: QueueClientProps) {
@@ -63,6 +115,21 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   }, []);
 
   const currentPerson = queue[currentIndex];
+  const mission = useMemo(
+    () =>
+      calculateOperatorMission({
+        tasksAssumed: queue.length,
+        tasksCompleted: copyStatus === "confirmed" ? 1 : 0,
+        repliesRecorded: 0,
+        referralsMade: 0,
+        stalePending: oldPendencies.length,
+      }),
+    [copyStatus, oldPendencies.length, queue.length],
+  );
+  const wellness = assessQueueWellness(queue.length);
+  const completedCount = Math.min(currentIndex, queue.length);
+  const progressPercent = queue.length === 0 ? 0 : Math.round((completedCount / queue.length) * 100);
+  const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
 
   const handlePrev = () => {
     if (currentIndex > 0) {
@@ -76,21 +143,22 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       setCurrentIndex(currentIndex + 1);
       setCopyStatus("idle");
     } else {
-      toast({ title: "Fim da fila", description: "Você chegou ao fim da sua fila atual." });
+      toast({ title: "Fim da trilha", description: "Você chegou ao fim da fila atual." });
     }
   };
 
   const handleSkip = () => {
-    toast({ title: "Pulando...", description: `Pulando @${currentPerson.username} por enquanto...` });
+    toast({
+      title: "Missão em espera",
+      description: `@${currentPerson.username} saiu da vez por agora. A trilha segue.`,
+    });
     handleNext();
   };
 
   const handleCopyDM = async () => {
     if (currentPerson.suggestedMessage) {
       await navigator.clipboard.writeText(currentPerson.suggestedMessage);
-      toast({ title: "Copiado", description: "DM pronta para o Instagram." });
-      
-      // Telemetria
+      toast({ title: "Mensagem preparada", description: "Revise e envie manualmente no Instagram." });
       await recordDMPreparedAction(currentPerson.id, "minha_fila");
       setCopyStatus("waiting");
     }
@@ -101,9 +169,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       const result = await confirmDMSentAction(currentPerson.id, "minha_fila");
       if (result.ok) {
         setCopyStatus("confirmed");
-        toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
-        // In Minha Fila, after confirming, we can keep the person in view but marked as confirmed
-        // or just move to next. The user requested "Sugestão 'Próxima pessoa' ao confirmar".
+        toast({ title: "Etapa confirmada", description: "A missão entrou em acompanhamento." });
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -114,14 +180,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
     startTransition(async () => {
       const result = await recordPersonResponse(currentPerson.id, kind);
       if (result.ok) {
-        if (kind === "nao_quer_contato") {
-          showCompletion("dnc_respected");
-        } else {
-          showCompletion("response_recorded");
-        }
+        showCompletion(kind === "nao_quer_contato" ? "dnc_respected" : "response_recorded");
         setShowResponseDialog(false);
-        // Remove from queue or move to next
-        const newQueue = queue.filter(p => p.id !== currentPerson.id);
+        const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
         if (currentIndex >= newQueue.length && newQueue.length > 0) {
           setCurrentIndex(newQueue.length - 1);
@@ -138,8 +199,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       if (result.ok) {
         showCompletion("referral_done");
         setShowReferralDialog(false);
-        // Usually referral doesn't remove from queue unless it changes status
-        // But for "Modo Operador", we might want to move to next
         handleNext();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
@@ -149,19 +208,26 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
 
   if (queue.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto py-12 px-4">
+      <div className="mx-auto max-w-4xl px-4 py-12">
         <EmptyState
           type="no_data"
-          title="Sua fila está vazia"
-          description="Você não possui tarefas pendentes atribuídas a você neste momento."
+          title="Nenhuma missão na sua trilha"
+          description="Sua jornada do operador está limpa neste momento."
           primaryAction={
-            <Button className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider" render={<Link href="/abordagem?filter=sem_responsavel" />}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Assumir tarefas disponíveis
+            <Button
+              className="bg-indigo-600 font-black uppercase text-xs tracking-wider hover:bg-indigo-700"
+              render={<Link href="/abordagem?filter=sem_responsavel" />}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Assumir missões abertas
             </Button>
           }
           secondaryAction={
-            <Button variant="outline" className="font-black uppercase text-xs tracking-wider border-zinc-200" render={<Link href="/dashboard" />}>
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Voltar ao Painel
+            <Button
+              variant="outline"
+              className="border-zinc-200 font-black uppercase text-xs tracking-wider"
+              render={<Link href="/dashboard" />}
+            >
+              <LayoutDashboard className="mr-2 h-4 w-4" /> Voltar à base
             </Button>
           }
         />
@@ -170,58 +236,159 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-20 space-y-12">
-      <LightweightOnboarding 
-        screenId="minha-fila"
-        title="Trabalhando sua Fila"
-        highlights={[
-          { title: "Onde começar", description: "Assuma a pessoa no topo da lista. Ela foi identificada como sua próxima prioridade.", icon: Users },
-          { title: "Ação principal", description: "Copie a DM sugerida, envie no Instagram e registre a resposta imediatamente.", icon: MessageSquare },
-          { title: "Evite este erro", description: "Nunca envie mensagens sem personalizar o nome e o contexto do comentário.", icon: CheckCircle2 },
-        ]}
-      />
-      <ContextHelpCard 
-        title="Como trabalhar sua fila"
-        whatIsThis="Esta é sua lista de tarefas personalizada. Cada card representa um cidadão que precisa de atenção hoje."
-        whyItMatters="Focar em uma pessoa de cada vez permite um contato mais humano e evita que você se perca em conversas múltiplas."
-        whatToDoNow="Clique no card para abrir a Ficha Rápida, mande a DM sugerida e registre a resposta assim que possível."
-      />
+    <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
+      <section className="overflow-hidden rounded-[28px] border border-zinc-900/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.22),_transparent_26%),linear-gradient(145deg,#09090b_0%,#18181b_58%,#27272a_100%)] p-6 text-white shadow-2xl shadow-zinc-200/50">
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white hover:bg-white/10">
+                Fase atual: {missionPhaseLabel(currentPerson)}
+              </Badge>
+              <Badge className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200 hover:bg-emerald-400/10">
+                Operador: {operatorName}
+              </Badge>
+            </div>
 
-      <div className="max-w-xl mx-auto">
-        <DailyMission 
-          state={calculateOperatorMission({
-            tasksAssumed: queue.length,
-            tasksCompleted: 0, // Current session context
-            repliesRecorded: 0,
-            referralsMade: 0,
-            stalePending: oldPendencies.length
-          })} 
-        />
-      </div>
+            <div className="space-y-3">
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-zinc-400">Jornada do operador</p>
+              <h2 className="max-w-2xl text-4xl font-black tracking-tight text-white">
+                Sua fila virou uma trilha guiada de missões.
+              </h2>
+              <p className="max-w-2xl text-base font-medium leading-relaxed text-zinc-300">
+                Avance uma missão por vez, registre o que aconteceu e mantenha o ritmo da base sem perder clareza nem cuidado.
+              </p>
+            </div>
 
-      {/* Operator Wellness Check */}
-      <div className="max-w-xl mx-auto">
-        <OperatorWellnessCard 
-          wellness={assessQueueWellness(queue.length)} 
-        />
-      </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
+                <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missão do operador</p>
+                  <p className="mt-2 text-sm font-black text-white">{mission.objective}</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
+                <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Progresso do dia</p>
+                  <p className="mt-2 text-3xl font-black text-white">{progressPercent}%</p>
+                  <p className="mt-1 text-xs font-medium text-zinc-400">
+                    {completedCount} de {queue.length} missões atravessadas
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
+                <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Alerta de bem-estar</p>
+                  <p className="mt-2 text-sm font-black text-white">
+                    {wellness.level === "healthy"
+                      ? "Ritmo estável"
+                      : wellness.level === "warning"
+                        ? "Ajustar cadência"
+                        : "Reduzir pressão"}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-zinc-400">{wellness.microcopy}</p>
+                </CardContent>
+              </Card>
+              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
+                <CardContent className="p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+                  <p className="mt-2 text-sm font-black text-white">
+                    {currentPerson.displayName || `@${currentPerson.username}`}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-zinc-400">{currentPerson.nextAction}</p>
+                </CardContent>
+              </Card>
+            </div>
 
-      {/* Header Info */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Operador Logado</p>
-          <h3 className="text-xl font-black text-zinc-900">{operatorName}</h3>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+                onClick={() => window.scrollTo({ top: 620, behavior: "smooth" })}
+              >
+                <Compass className="mr-2 h-4 w-4" />
+                Iniciar jornada
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 border-white/15 bg-white/5 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
+                render={<Link href="/abordagem" />}
+              >
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Abrir mural de missões
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-[24px] border border-white/10 bg-white/5 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+                <h3 className="mt-2 text-xl font-black text-white">
+                  {currentPerson.displayName || `@${currentPerson.username}`}
+                </h3>
+              </div>
+              <Sparkles className="h-5 w-5 text-indigo-300" />
+            </div>
+            <p className="text-sm font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
+            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Abertura sugerida</p>
+              <p className="mt-2 text-sm font-black text-white">{currentPerson.nextAction}</p>
+            </div>
+            <div className="space-y-3">
+              {nextFive.map((person, idx) => (
+                <div key={person.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">
+                      {idx + 2}. {person.displayName || `@${person.username}`}
+                    </p>
+                    <p className="truncate text-xs font-medium text-zinc-400">{person.nextAction}</p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="text-right space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Progresso da Fila</p>
-          <p className="text-xl font-black text-zinc-900 tabular-nums">
-            {currentIndex + 1} <span className="text-zinc-300">/</span> {queue.length}
-          </p>
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
-        <div className="lg:col-span-3 space-y-8">
+      {wellness.level !== "healthy" && <OperatorWellnessCard wellness={wellness} />}
+
+      <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Hub da jornada</p>
+              <h3 className="text-2xl font-black tracking-tight text-zinc-950">Missão em campo agora</h3>
+              <p className="max-w-2xl text-sm font-medium text-zinc-500">
+                A tela principal do operador agora aponta o passo atual, a próxima ação e a sequência imediata da trilha.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="text-xs font-black uppercase tracking-wider text-zinc-500"
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+              >
+                Anterior
+              </Button>
+              <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500 transition-all duration-500"
+                  style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                className="text-xs font-black uppercase tracking-wider text-zinc-500"
+                onClick={handleNext}
+                disabled={currentIndex === queue.length - 1}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+
           <QueueCard
             person={currentPerson}
             onCopyDM={handleCopyDM}
@@ -233,171 +400,121 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             onConfirmSent={handleConfirmSent}
             onCancelCopy={() => setCopyStatus("idle")}
           />
-
-          {/* Navigation Controls */}
-          <div className="flex items-center justify-center gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={handlePrev} 
-              disabled={currentIndex === 0}
-              className="font-black uppercase text-[10px] tracking-widest text-zinc-400 hover:text-zinc-900"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" /> Anterior
-            </Button>
-            <div className="h-1.5 w-48 bg-zinc-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-indigo-600 transition-all duration-500 ease-out"
-                style={{ width: `${((currentIndex + 1) / queue.length) * 100}%` }}
-              />
-            </div>
-            <Button 
-              variant="ghost" 
-              onClick={handleNext} 
-              disabled={currentIndex === queue.length - 1}
-              className="font-black uppercase text-[10px] tracking-widest text-zinc-400 hover:text-zinc-900"
-            >
-              Próxima <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
         </div>
 
-        <aside className="space-y-8">
-          <QueueList 
-            tasks={queue} 
-            currentIndex={currentIndex} 
-            onSelect={setCurrentIndex} 
-          />
+        <aside className="space-y-6">
+          <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
 
-          {/* Ethical Guardrail */}
-          <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl space-y-4">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-zinc-400" />
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Manual do Operador</h4>
-            </div>
-            <p className="text-xs text-zinc-500 font-medium leading-relaxed italic">
-              &quot;Contato manual. Revise o texto antes de enviar para garantir tom humanizado. É terminantemente proibido o pedido direto de voto.&quot;
-            </p>
-          </div>
+          <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-zinc-400" />
+                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">
+                  Regra de operação
+                </h4>
+              </div>
+              <p className="text-sm font-medium leading-relaxed text-zinc-600">
+                Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto.
+              </p>
+            </CardContent>
+          </Card>
+
+          {oldPendencies.length > 0 && (
+            <Card className="rounded-[28px] border-amber-100 bg-amber-50/70 shadow-sm">
+              <CardContent className="space-y-4 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-700">Pendências antigas</p>
+                    <h4 className="mt-1 text-lg font-black text-amber-950">
+                      {oldPendencies.length} missões pedem revisão
+                    </h4>
+                  </div>
+                  <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">
+                    3+ dias
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  {oldPendencies.slice(0, 4).map((person) => (
+                    <button
+                      key={person.id}
+                      className="w-full rounded-2xl border border-amber-100 bg-white p-4 text-left transition-colors hover:border-amber-200"
+                      onClick={() => {
+                        setQueue((prev) => [person, ...prev.filter((p) => p.id !== person.id)]);
+                        setCurrentIndex(0);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      <p className="text-sm font-black text-zinc-900">
+                        {person.displayName || `@${person.username}`}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-zinc-500">
+                        Revisar espera prolongada e decidir se a trilha segue ou fecha.
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </aside>
       </div>
 
-      {oldPendencies.length > 0 && (
-        <div className="space-y-6 pt-12 border-t border-zinc-100">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h3 className="text-xl font-black text-zinc-900 flex items-center gap-2">
-                <History className="h-5 w-5 text-amber-500" />
-                Pendências Antigas
-              </h3>
-              <p className="text-xs text-zinc-500 font-medium">Contatos aguardando retorno há mais de 3 dias. Avalie se deve insistir ou arquivar.</p>
-            </div>
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-100 font-black uppercase text-[10px] rounded-full px-3">
-              {oldPendencies.length} pessoas
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {oldPendencies.map((person) => (
-              <Card key={person.id} className="border-zinc-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-indigo-950 truncate leading-none mb-1">
-                      @{person.username}
-                    </p>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate">
-                      Aguardando há {Math.floor((new Date().getTime() - new Date(person.contact?.last_contacted_at || "").getTime()) / (1000 * 60 * 60 * 24))} dias
-                    </p>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-colors"
-                    onClick={() => {
-                      setQueue(prev => [person, ...prev.filter(p => p.id !== person.id)]);
-                      setCurrentIndex(0);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Response Dialog */}
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="overflow-hidden border-none p-0 shadow-2xl sm:max-w-[540px]">
           <div className="bg-zinc-950 p-6 text-white">
-            <DialogTitle className="text-xl font-black">Registrar Resposta</DialogTitle>
-            <DialogDescription className="text-zinc-400 font-medium">
-              O que @{currentPerson.username} disse na conversa?
+            <DialogTitle className="text-xl font-black">Registrar avanço da missão</DialogTitle>
+            <DialogDescription className="font-medium text-zinc-400">
+              O que aconteceu na conversa com @{currentPerson.username}?
             </DialogDescription>
           </div>
-          <div className="p-6 grid grid-cols-1 gap-2">
-            {[
-              { id: "nao_respondeu", label: "Não respondeu", icon: XCircle, tone: "neutral" },
-              { id: "respondeu_bem", label: "Respondeu bem / Topou", icon: CheckCircle2, tone: "success" },
-              { id: "pediu_informacoes", label: "Pediu mais informações", icon: HelpCircle, tone: "info" },
-              { id: "quer_ir_evento", label: "Quer ir a um evento", icon: Calendar, tone: "info" },
-              { id: "quer_ajudar_presencial", label: "Quer voluntariado", icon: HeartHandshake, tone: "info" },
-              { id: "quer_conhecer_missao_eluta", label: "Quer Missão ÉLuta", icon: Smartphone, tone: "info" },
-              { id: "nao_quer_contato", label: "Não quer ser contatado", icon: ShieldAlert, tone: "danger" },
-              { id: "revisar_depois", label: "Revisar conversa depois", icon: MessageSquare, tone: "neutral" },
-            ].map((option) => (
+          <div className="grid gap-2 p-6">
+            {RESPONSE_OPTIONS.map((option) => (
               <button
                 key={option.id}
                 disabled={isPending}
                 className={cn(
-                  "w-full flex items-center justify-between p-4 rounded-xl border border-zinc-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all text-left font-bold text-zinc-700",
-                  isPending && "opacity-50 cursor-not-allowed"
+                  "w-full rounded-2xl border border-zinc-100 p-4 text-left transition-all hover:border-indigo-200 hover:bg-indigo-50/50",
+                  isPending && "cursor-not-allowed opacity-50",
                 )}
-                onClick={() => handleResponse(option.id as PersonResponseKind)}
+                onClick={() => handleResponse(option.id)}
               >
-                <div className="flex items-center gap-3">
-                  <option.icon className={cn("h-5 w-5", 
-                    option.tone === "success" ? "text-emerald-500" : 
-                    option.tone === "info" ? "text-indigo-500" : 
-                    option.tone === "danger" ? "text-rose-500" : "text-zinc-400"
-                  )} />
-                  {option.label}
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-xl bg-zinc-100 p-2 text-zinc-500">
+                    <option.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-zinc-900">{option.label}</p>
+                    <p className="mt-1 text-xs font-medium text-zinc-500">{option.hint}</p>
+                  </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-zinc-300" />
               </button>
             ))}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Referral Dialog (Simplified) */}
       <Dialog open={showReferralDialog} onOpenChange={setShowReferralDialog}>
-        <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none shadow-2xl">
-          <div className="bg-amber-600 p-6 text-white">
-            <DialogTitle className="text-xl font-black uppercase tracking-tight">Encaminhar Pessoa</DialogTitle>
-            <DialogDescription className="text-amber-100 font-medium">
-              Defina o destino deste contato para aprofundar o vínculo.
+        <DialogContent className="overflow-hidden border-none p-0 shadow-2xl sm:max-w-[560px]">
+          <div className="bg-zinc-950 p-6 text-white">
+            <DialogTitle className="text-xl font-black">Definir próximo destino</DialogTitle>
+            <DialogDescription className="font-medium text-zinc-400">
+              Escolha qual missão ou encaminhamento continua o ciclo de @{currentPerson.username}.
             </DialogDescription>
           </div>
-          <div className="p-6 grid grid-cols-1 gap-2">
-            {[
-              { id: "evento_campo", label: "Evento de Campo", icon: Calendar },
-              { id: "voluntariado", label: "Voluntariado", icon: HeartHandshake },
-              { id: "grupo_lista", label: "Grupo / Lista Comunitária", icon: Users },
-              { id: "missao_eluta", label: "App Missão ÉLuta", icon: Smartphone },
-            ].map((option) => (
+          <div className="grid gap-2 p-6">
+            {REFERRAL_OPTIONS.map((option) => (
               <button
                 key={option.id}
                 disabled={isPending}
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-zinc-100 hover:border-amber-200 hover:bg-amber-50 transition-all text-left font-bold text-zinc-700"
-                onClick={() => handleReferral(option.id as PersonReferralType)}
+                className={cn(
+                  "w-full rounded-2xl border border-zinc-100 p-4 text-left transition-all hover:border-indigo-200 hover:bg-indigo-50/50",
+                  isPending && "cursor-not-allowed opacity-50",
+                )}
+                onClick={() => handleReferral(option.id)}
               >
-                <div className="flex items-center gap-3">
-                  <option.icon className="h-5 w-5 text-amber-500" />
-                  {option.label}
-                </div>
-                <ChevronRight className="h-4 w-4 text-zinc-300" />
+                <p className="text-sm font-black text-zinc-900">{option.label}</p>
+                <p className="mt-1 text-xs font-medium text-zinc-500">{option.hint}</p>
               </button>
             ))}
           </div>

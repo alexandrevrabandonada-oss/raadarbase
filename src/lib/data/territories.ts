@@ -1,6 +1,8 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import type { TerritorySummary, TerritoryDetail } from "@/lib/types";
+import { mapTerritoryToPhase } from "@/lib/data/territory-mapper";
+import { listStrategicMemories } from "@/lib/data/strategic-memory";
 
 export async function listTerritorySummaries(): Promise<TerritorySummary[]> {
   if (shouldUseMockData()) {
@@ -120,6 +122,7 @@ export async function getTerritoryDetail(bairro: string): Promise<TerritoryDetai
   const summary = summaries.find(s => s.neighborhood === bairro);
   
   if (!summary) return null;
+  const phase = mapTerritoryToPhase(summary);
 
   if (shouldUseMockData()) {
     return {
@@ -134,18 +137,70 @@ export async function getTerritoryDetail(bairro: string): Promise<TerritoryDetai
         { theme: "saúde", count: 18 },
         { theme: "lazer", count: 12 },
       ],
+      aggregatedPeople: [
+        {
+          label: "Sinais monitorados",
+          value: summary.peopleMonitored,
+          description: "Pessoas ou relatos agregados que puxam leitura territorial.",
+        },
+        {
+          label: "Prioridades abertas",
+          value: summary.priorityPeople,
+          description: "Contatos ou relatos que pedem resposta mais rápida.",
+        },
+        {
+          label: "Voluntários locais",
+          value: summary.volunteers,
+          description: "Base já conectada ao território para ativação.",
+        },
+      ],
+      recentMemory: [
+        {
+          id: "memory-vr-1",
+          title: "Escuta sobre infraestrutura consolidada",
+          summary: "Os relatos recentes concentram rua, iluminação e manutenção urbana como pauta de mobilização.",
+          source: "Memória estratégica",
+          occurredAt: "2026-04-22T12:00:00Z",
+        },
+        {
+          id: "memory-vr-2",
+          title: "Ação de praça gerou retorno",
+          summary: "A banca de escuta presencial aumentou a disposição para mutirão local.",
+          source: "Resultado de campo",
+          occurredAt: "2026-04-10T18:00:00Z",
+        },
+      ],
+      phaseWhy: phase.reason,
+      nextActions: [
+        phase.nextStep,
+        "Revisar os temas mais quentes do bairro antes de abrir nova missão.",
+        "Conectar memória recente ao próximo movimento de campo.",
+      ],
     };
   }
 
   const supabase = getSupabaseAdminClient();
-  const { data: events, error } = await supabase
-    .from("field_agenda_events")
-    .select("id, title, starts_at, status")
-    .eq("neighborhood", bairro)
-    .order("starts_at", { ascending: false })
-    .limit(5);
+  const [eventsRes, submissionsRes, memories] = await Promise.all([
+    supabase
+      .from("field_agenda_events")
+      .select("id, title, starts_at, status")
+      .eq("neighborhood", bairro)
+      .order("starts_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("bairro_escuta_submissions")
+      .select("id, pauta, relato_curto, created_at, status")
+      .eq("bairro", bairro)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    listStrategicMemories({ territory: bairro }).then((items) => items.slice(0, 3)),
+  ]);
 
-  if (error) throw error;
+  if (eventsRes.error) throw eventsRes.error;
+  if (submissionsRes.error) throw submissionsRes.error;
+
+  const events = eventsRes.data ?? [];
+  const submissions = submissionsRes.data ?? [];
 
   // Logic for suggested action
   let suggestedAction = "Banca de Escuta";
@@ -154,6 +209,23 @@ export async function getTerritoryDetail(bairro: string): Promise<TerritoryDetai
   } else if (summary.volunteers > 5) {
     suggestedAction = "Reunião de Núcleo";
   }
+
+  const recentMemory = [
+    ...memories.map((memory) => ({
+      id: memory.id,
+      title: memory.title,
+      summary: memory.summary,
+      source: memory.topic?.name ? `Memória: ${memory.topic.name}` : "Memória estratégica",
+      occurredAt: memory.created_at,
+    })),
+    ...submissions.slice(0, 2).map((submission) => ({
+      id: submission.id,
+      title: `Escuta sobre ${submission.pauta}`,
+      summary: submission.relato_curto,
+      source: "Escuta territorial",
+      occurredAt: submission.created_at,
+    })),
+  ].slice(0, 5);
 
   return {
     ...summary,
@@ -165,5 +237,29 @@ export async function getTerritoryDetail(bairro: string): Promise<TerritoryDetai
     })),
     suggestedAction,
     historicalThemes: summary.topThemes, // Fallback to current top themes
+    aggregatedPeople: [
+      {
+        label: "Sinais monitorados",
+        value: summary.peopleMonitored,
+        description: "Base agregada de relatos e escutas que puxam o bairro.",
+      },
+      {
+        label: "Prioridades abertas",
+        value: summary.priorityPeople,
+        description: "Pessoas e relatos que pedem resposta de mobilização.",
+      },
+      {
+        label: "Voluntários locais",
+        value: summary.volunteers,
+        description: "Capacidade já disponível para missão de campo ou continuidade.",
+      },
+    ],
+    recentMemory,
+    phaseWhy: phase.reason,
+    nextActions: [
+      phase.nextStep,
+      suggestedAction ? `Transformar leitura em missão: ${suggestedAction}.` : "Definir a próxima missão territorial.",
+      summary.topThemes[0] ? `Usar o tema "${summary.topThemes[0].theme}" como eixo de conversa no território.` : "Revisar o tema mais recorrente antes de seguir.",
+    ],
   };
 }

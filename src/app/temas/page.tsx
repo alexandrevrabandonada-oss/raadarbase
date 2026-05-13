@@ -13,6 +13,9 @@ import { ListChecks, Hash, ClipboardList, ShieldAlert, Flame, ArrowRight } from 
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { getPendingTopicReviews } from "@/lib/data/topics";
+import { listTerritorySummaries } from "@/lib/data/territories";
+import { listFieldAgendaEvents } from "@/lib/data/field-agenda";
+import { mapTerritoryToPhase } from "@/lib/data/territory-mapper";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +48,30 @@ export default async function TemasPage() {
 
   const pendingReviews = await getPendingTopicReviews(10);
   const featuredTopic = categories.sort((a, b) => (countByTopic[b.id] || 0) - (countByTopic[a.id] || 0))[0];
+  const territories = await listTerritorySummaries();
+  const fieldEvents = await listFieldAgendaEvents({ includeMetrics: true });
+
+  const topicConnections = categories.map((category) => {
+    const relatedTerritories = territories
+      .filter((territory) => territory.topThemes.some((theme) => theme.theme.toLowerCase() === category.slug.toLowerCase() || theme.theme.toLowerCase() === category.name.toLowerCase()))
+      .map((territory) => ({
+        neighborhood: territory.neighborhood,
+        phase: mapTerritoryToPhase(territory).label,
+      }));
+
+    const relatedFieldEvents = fieldEvents.filter((event) => event.topicSlug === category.slug);
+    const continuityTerritories = relatedTerritories.filter((territory) =>
+      territories.find((item) => item.neighborhood === territory.neighborhood) &&
+      mapTerritoryToPhase(territories.find((item) => item.neighborhood === territory.neighborhood)!).id === "continuidade"
+    );
+
+    return {
+      category,
+      relatedTerritories,
+      relatedFieldEvents,
+      continuityTerritories,
+    };
+  });
   
   return (
     <AppShell>
@@ -60,7 +87,7 @@ export default async function TemasPage() {
       <RadarPageHeader
         eyebrow="Mapa de Assuntos"
         title="Temas e Pautas"
-        description="Assuntos públicos identificados. Foco no conteúdo, não na pessoa."
+        description="Assuntos públicos conectados ao mapa territorial, ao campo e à continuidade."
         actions={
           <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/temas/revisao" />}>
             <ListChecks className="mr-2 h-4 w-4" />
@@ -104,10 +131,60 @@ export default async function TemasPage() {
       <ContextHelpCard 
         title="Como analisar as pautas"
         whatIsThis="Este é o mapa de assuntos que mais surgem nas conversas da equipe com o território."
-        whyItMatters="Ajuda a organização a entender as dores reais da população sem focar em indivíduos, permitindo criar propostas mais precisas."
-        whatToDoNow="Explore as categorias para ver o volume de interações. Temas com muitos sinais podem virar novos Planos de Ação."
+        whyItMatters="Ajuda a organização a entender quais pautas puxam bairros, quais viram missão de campo e quais já pedem continuidade."
+        whatToDoNow="Explore as categorias para ver volume, ligação territorial e conversão em missões presenciais."
         className="mb-8"
       />
+
+      <div className="grid gap-6 lg:grid-cols-3 mb-8">
+        <Card className="rounded-[28px] border-zinc-200 shadow-sm lg:col-span-3">
+          <CardContent className="p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Conexão com o mapa</p>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Temas que puxam bairros e campo</h3>
+              </div>
+              <div className="flex gap-2 text-xs font-bold text-zinc-500">
+                <Link href="/territorios" className="rounded-full border border-zinc-200 px-3 py-2 hover:border-indigo-200 hover:text-indigo-700">
+                  Ver mapa territorial
+                </Link>
+                <Link href="/campo" className="rounded-full border border-zinc-200 px-3 py-2 hover:border-indigo-200 hover:text-indigo-700">
+                  Ver missões de campo
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 xl:grid-cols-3">
+              {topicConnections.slice(0, 3).map(({ category, relatedTerritories, relatedFieldEvents, continuityTerritories }) => (
+                <div key={category.id} className="rounded-[24px] border border-zinc-100 bg-zinc-50 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Tema em destaque</p>
+                      <h4 className="mt-2 text-lg font-black text-zinc-950">{category.name}</h4>
+                    </div>
+                    <div className="h-3 w-10 rounded-full" style={{ backgroundColor: category.color ?? "#94a3b8" }} />
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Bairros puxados</p>
+                      <p className="mt-2 text-sm font-black text-zinc-950">{relatedTerritories.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões de campo geradas</p>
+                      <p className="mt-2 text-sm font-black text-zinc-950">{relatedFieldEvents.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Continuidade ativa</p>
+                      <p className="mt-2 text-sm font-black text-zinc-950">{continuityTerritories.length}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -148,6 +225,78 @@ export default async function TemasPage() {
              <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Nenhuma categoria encontrada.</p>
           </div>
         ) : null}
+      </div>
+
+      <div className="mt-10 grid gap-6">
+        {topicConnections.map(({ category, relatedTerritories, relatedFieldEvents, continuityTerritories }) => (
+          <Card key={category.id} className="rounded-[28px] border-zinc-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-3 w-12 rounded-full" style={{ backgroundColor: category.color ?? "#94a3b8" }} />
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Rede temática</p>
+                  </div>
+                  <h3 className="text-xl font-black tracking-tight text-zinc-950">{category.name}</h3>
+                  <p className="max-w-2xl text-sm font-medium text-zinc-500">
+                    {category.description ?? "Tema ativo sem descrição cadastrada."}
+                  </p>
+                </div>
+                <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href={`/temas/${category.slug}`} />}>
+                  Explorar tema <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-3">
+                <div className="rounded-[22px] border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Bairros puxados</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {relatedTerritories.length > 0 ? (
+                      relatedTerritories.map((territory) => (
+                        <Badge key={`${category.id}-${territory.neighborhood}`} variant="outline" className="border-zinc-200 bg-white text-zinc-700">
+                          {territory.neighborhood} · {territory.phase}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm font-medium text-zinc-500">Ainda sem conexão territorial forte.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Campo gerado</p>
+                  <div className="mt-3 space-y-2">
+                    {relatedFieldEvents.length > 0 ? (
+                      relatedFieldEvents.slice(0, 4).map((event) => (
+                        <div key={event.id} className="rounded-2xl border border-zinc-100 bg-white px-3 py-2">
+                          <p className="text-sm font-black text-zinc-950">{event.title}</p>
+                          <p className="text-[11px] font-medium text-zinc-500">{event.neighborhood || "Território em definição"}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-sm font-medium text-zinc-500">Ainda não virou missão de campo.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-[22px] border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Continuidade</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {continuityTerritories.length > 0 ? (
+                      continuityTerritories.map((territory) => (
+                        <Badge key={`${category.id}-cont-${territory.neighborhood}`} className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                          {territory.neighborhood}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm font-medium text-zinc-500">Sem território em continuidade por este tema.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </AppShell>
   );

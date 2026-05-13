@@ -2,7 +2,8 @@
 
 import { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Flame, History } from "lucide-react";
+import { ChevronRight, Clock, ShieldAlert } from "lucide-react";
+import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 
 interface QueueListProps {
   tasks: PriorityPerson[];
@@ -11,66 +12,94 @@ interface QueueListProps {
   className?: string;
 }
 
-export function QueueList({
-  tasks,
-  currentIndex,
-  onSelect,
-  className
-}: QueueListProps) {
-  // Show up to 10 next tasks
-  const nextTasks = tasks.slice(currentIndex + 1, currentIndex + 11);
+function phaseLabel(person: PriorityPerson) {
+  const journey = mapPersonToJourney(
+    person.status,
+    person.hasPendingTask,
+    person.hasReferral,
+    person.lastInteractionAt,
+  );
+  const labels = {
+    preparar: "Preparar",
+    conversar: "Conversar",
+    registrar: "Registrar",
+    encaminhar: "Encaminhar",
+    concluir: "Concluir",
+  } as const;
+
+  return journey.isBlocked ? "Em espera" : labels[journey.currentPhase];
+}
+
+export function QueueList({ tasks, currentIndex, onSelect, className }: QueueListProps) {
+  const nextTasks = tasks.slice(currentIndex + 1, currentIndex + 6);
 
   if (nextTasks.length === 0) return null;
 
   return (
     <div className={cn("space-y-4", className)}>
-      <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest px-1">
-        Próximas na Fila ({nextTasks.length})
-      </h3>
-      
-      <div className="space-y-2">
+      <div className="space-y-1 px-1">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+          Próximas 5 missões
+        </h3>
+        <p className="text-xs font-medium text-zinc-500">
+          A trilha abaixo mostra quem entra em campo depois da missão atual.
+        </p>
+      </div>
+
+      <div className="space-y-3">
         {nextTasks.map((person, idx) => {
           const absoluteIndex = currentIndex + 1 + idx;
-          const temperatureColors = {
-            quente: "bg-orange-50 text-orange-600 border-orange-100",
-            morno: "bg-amber-50 text-amber-600 border-amber-100",
-            frio: "bg-blue-50 text-blue-600 border-blue-100",
-          };
+          const blocked = person.status === "nao_abordar" || person.riskFlags.doNotContact;
 
           return (
             <button
               key={person.id}
               onClick={() => onSelect(absoluteIndex)}
-              className="w-full flex items-center justify-between p-4 rounded-xl border border-zinc-100 bg-white hover:border-indigo-200 hover:shadow-md transition-all text-left group"
+              className="group w-full rounded-3xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition-all hover:border-indigo-200 hover:shadow-md"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center text-[10px] font-black text-zinc-500 group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                  {absoluteIndex + 1}
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-zinc-100 text-[10px] font-black text-zinc-500 group-hover:bg-indigo-50 group-hover:text-indigo-700">
+                    {absoluteIndex + 1}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-zinc-900 group-hover:text-indigo-700">
+                      {person.displayName || `@${person.username}`}
+                    </p>
+                    <p className="truncate text-[11px] font-semibold text-zinc-500">@{person.username}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-black text-zinc-900 group-hover:text-indigo-600 transition-colors">@{person.username}</p>
-                  <p className="text-[10px] font-bold text-zinc-400 flex items-center gap-1">
-                    {person.scoreLabel} · {person.outreachStatusLabel}
-                  </p>
-                </div>
+                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-zinc-300 group-hover:text-indigo-500" />
               </div>
-              
-              <div className="flex items-center gap-2">
-                <div className={cn("px-2 py-0.5 rounded-full text-[9px] font-black uppercase border", temperatureColors[person.temperature])}>
-                  {person.temperature}
+
+              <div className="grid gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
+                    {phaseLabel(person)}
+                  </span>
+                  {blocked ? (
+                    <span className="flex items-center gap-1 rounded-full border border-rose-100 bg-rose-50 px-2.5 py-1 text-rose-700">
+                      <ShieldAlert className="h-3 w-3" /> Bloqueio
+                    </span>
+                  ) : person.isPendingResponse ? (
+                    <span className="flex items-center gap-1 rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-amber-700">
+                      <Clock className="h-3 w-3" /> Espera
+                    </span>
+                  ) : null}
                 </div>
-                <div className="text-[10px] font-black text-zinc-300 group-hover:text-zinc-400 transition-colors">
-                  SC {person.priorityScore}
-                </div>
+
+                <p className="line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600">
+                  {person.nextAction}
+                </p>
               </div>
             </button>
           );
         })}
       </div>
 
-      {tasks.length > currentIndex + 11 && (
-        <p className="text-center text-[10px] font-bold text-zinc-400 py-2">
-          + {tasks.length - (currentIndex + 11)} outras pessoas na fila
+      {tasks.length > currentIndex + 6 && (
+        <p className="px-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+          + {tasks.length - (currentIndex + 6)} missões aguardando depois desta trilha
         </p>
       )}
     </div>

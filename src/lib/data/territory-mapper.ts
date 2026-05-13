@@ -59,7 +59,7 @@ export function mapTerritoryToPhase(data: TerritorySummary): TerritoryPhaseInfo 
       description: "Pessoas prioritárias com pautas claras identificadas.",
       reason: "Alto volume de pessoas engajadas aguardando direcionamento.",
       nextStep: "Criar ação de campo baseada nas pautas",
-      nextActionUrl: `/agenda/novo?neighborhood=${data.neighborhood}`,
+      nextActionUrl: `/campo/novo?neighborhood=${data.neighborhood}`,
       color: "bg-amber-500",
     };
   }

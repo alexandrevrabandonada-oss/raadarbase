@@ -414,4 +414,18 @@ export type TerritoryDetail = TerritorySummary & {
   }>;
   suggestedAction: string | null;
   historicalThemes: Array<{ theme: string; count: number }>;
+  aggregatedPeople: Array<{
+    label: string;
+    value: number;
+    description: string;
+  }>;
+  recentMemory: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    source: string;
+    occurredAt: string | null;
+  }>;
+  phaseWhy: string;
+  nextActions: string[];
 };

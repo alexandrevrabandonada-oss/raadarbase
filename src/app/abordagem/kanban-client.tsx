@@ -72,6 +72,59 @@ type BoardTask = OutreachTask & {
   waitingStatus: "normal" | "followup" | "review" | "archive" | null;
 };
 
+type MissionBoardColumn = "preparar" | "conversar" | "registrar" | "encaminhar" | "concluir";
+
+const missionBoardColumns: Array<{
+  id: MissionBoardColumn;
+  label: string;
+  description: string;
+  columns: BoardColumnId[];
+}> = [
+  {
+    id: "preparar",
+    label: "Preparar",
+    description: "Definir dono, contexto e abertura da missão.",
+    columns: ["para_abordar"],
+  },
+  {
+    id: "conversar",
+    label: "Conversar",
+    description: "Abrir contato e sustentar a conversa com cuidado.",
+    columns: ["mensagem_enviada", "esperando_resposta"],
+  },
+  {
+    id: "registrar",
+    label: "Registrar",
+    description: "Consolidar resposta e decidir o rumo imediato.",
+    columns: ["respondeu"],
+  },
+  {
+    id: "encaminhar",
+    label: "Encaminhar",
+    description: "Levar interesse para o destino certo.",
+    columns: ["precisa_encaminhar", "convidado"],
+  },
+  {
+    id: "concluir",
+    label: "Concluir",
+    description: "Fechar ciclo, pausar ou proteger vínculo.",
+    columns: ["entrou_na_base", "primeira_acao_feita", "nao_insistir", "nao_abordar"],
+  },
+];
+
+const boardMicroLabels: Record<BoardColumnId, string> = {
+  para_abordar: "Preparar terreno",
+  mensagem_enviada: "Mensagem enviada",
+  esperando_resposta: "Aguardando retorno",
+  respondeu: "Resposta recebida",
+  precisa_encaminhar: "Pedir destino",
+  convidado: "Convite ativo",
+  entrou_na_base: "Vínculo confirmado",
+  primeira_acao_feita: "Primeira ação",
+  nao_insistir: "Pausa operacional",
+  nao_abordar: "Proteção ética",
+};
+
 function mapTasks(initialTasks: OutreachTask[], priorityPeople: PriorityPerson[]): BoardTask[] {
   const priorityByPersonId = new Map(priorityPeople.map((person) => [person.id, person]));
   const now = new Date().getTime();
@@ -172,31 +225,37 @@ export function KanbanClient({
     }
   };
 
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks.filter((task) => task.boardColumn !== "entrou_na_base" || filterType === "todos" || filterType === "meus");
+
+    if (filterType === "meus") filtered = filtered.filter((t) => t.responsibleId === "me");
+    if (filterType === "sem_responsavel") filtered = filtered.filter((t) => !t.responsibleId);
+    if (filterType === "stale") filtered = filtered.filter((t) => t.isStale);
+    if (filterType === "encaminhar") filtered = filtered.filter((t) => t.boardColumn === "precisa_encaminhar");
+    if (filterType === "waiting_3d") {
+      filtered = filtered.filter(
+        (t) => t.boardColumn === "esperando_resposta" && (t.waitingStatus === "review" || t.waitingStatus === "archive"),
+      );
+    }
+    if (filterType === "waiting_7d") {
+      filtered = filtered.filter((t) => t.boardColumn === "esperando_resposta" && t.waitingStatus === "archive");
+    }
+    if (operatorFilter !== "todos") {
+      filtered = filtered.filter((t) => t.responsibleId === operatorFilter);
+    }
+
+    return filtered;
+  }, [tasks, filterType, operatorFilter]);
+
   const groupedColumns = useMemo(
     () =>
-      outreachBoardColumns.map((column) => {
-        let filtered = tasks.filter((task) => task.boardColumn === column);
-        
-        // Apply Header Filters
-        if (filterType === "meus") filtered = filtered.filter(t => t.responsibleId === "me"); // Placeholder for session
-        if (filterType === "sem_responsavel") filtered = filtered.filter(t => !t.responsibleId);
-        if (filterType === "stale") filtered = filtered.filter(t => t.isStale);
-        if (filterType === "encaminhar") filtered = filtered.filter(t => t.boardColumn === "precisa_encaminhar");
-        if (filterType === "waiting_3d") filtered = filtered.filter(t => t.boardColumn === "esperando_resposta" && (t.waitingStatus === "review" || t.waitingStatus === "archive"));
-        if (filterType === "waiting_7d") filtered = filtered.filter(t => t.boardColumn === "esperando_resposta" && t.waitingStatus === "archive");
-
-        // Apply Operator Filter
-        if (operatorFilter !== "todos") {
-           filtered = filtered.filter(t => t.responsibleId === operatorFilter);
-        }
-
-        return {
-          column,
-          label: outreachColumnLabels[column],
-          tasks: filtered,
-        };
-      }),
-    [tasks, filterType, operatorFilter],
+      missionBoardColumns.map((column) => ({
+        id: column.id,
+        label: column.label,
+        description: column.description,
+        tasks: filteredTasks.filter((task) => column.columns.includes(task.boardColumn)),
+      })),
+    [filteredTasks],
   );
 
   async function updateTaskColumn(taskId: string, nextColumnValue: BoardColumnId) {
@@ -304,16 +363,16 @@ export function KanbanClient({
     <div className="flex flex-col gap-8 pb-20">
       <LightweightOnboarding 
         screenId="abordagem"
-        title="Gestão de Conversas"
+        title="Mural de Missões"
         highlights={[
-          { title: "Onde começar", description: "Observe a coluna 'Para Abordar' para novos vínculos identificados pelo Radar.", icon: Instagram },
-          { title: "Ação principal", description: "Arraste os cards para a direita conforme a conversa evolui para o encaminhamento.", icon: MoveRight },
+          { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
+          { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
           { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
         ]}
       />
       <RadarPageHeader 
-        title="Gestão de Conversas"
-        description="Acompanhe o progresso das abordagens e o engajamento dos cidadãos."
+        title="Mural de Missões"
+        description="Visualize cada vínculo como uma missão cooperativa, da preparação ao fechamento do ciclo."
         actions={
           <div className="flex items-center gap-2">
              <Button variant="outline" size="sm" className="font-bold border-zinc-200" onClick={() => runBalance()}>
@@ -324,36 +383,36 @@ export function KanbanClient({
       />
 
       <ContextHelpCard 
-        title="Como gerenciar conversas"
-        whatIsThis="Este é o painel visual do relacionamento com o território, organizado por etapas de evolução."
-        whyItMatters="Permite visualizar gargalos (como muitas pessoas paradas em 'Abordado') e garante que o fluxo de conversão funcione."
-        whatToDoNow="Arraste os cards para a direita conforme a conversa evolui ou clique no card para registrar respostas e encaminhamentos."
+        title="Como operar o mural"
+        whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
+        whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
+        whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
       />
 
       {/* Indicadores do Topo */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <RadarMetricCard label="Total Ativos" value={stats.total} icon={LayoutDashboard} tone="neutral" />
+        <RadarMetricCard label="Missões Ativas" value={stats.total} icon={LayoutDashboard} tone="neutral" />
         <RadarMetricCard label="Sem Dono" value={stats.unassigned} icon={Users} tone="neutral" />
-        <RadarMetricCard label="Sem Resposta" value={stats.waiting} icon={History} tone="warning" />
-        <RadarMetricCard label="Paradas" value={stats.stale} icon={Clock} tone="danger" />
-        <RadarMetricCard label="A Encaminhar" value={stats.needReferral} icon={CheckCircle2} tone="info" />
+        <RadarMetricCard label="Em Espera" value={stats.waiting} icon={History} tone="warning" />
+        <RadarMetricCard label="Travadas" value={stats.stale} icon={Clock} tone="danger" />
+        <RadarMetricCard label="Para Encaminhar" value={stats.needReferral} icon={CheckCircle2} tone="info" />
       </div>
 
       {/* 2. Filtros e Gestão */}
       <div className="flex flex-col lg:flex-row gap-4 items-end">
         <div className="flex-1 space-y-2">
           <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-            <Filter className="h-3 w-3" /> Filtros Operacionais
+            <Filter className="h-3 w-3" /> Filtros de missão
           </label>
           <div className="flex flex-wrap gap-2">
             {[
               { id: "todos", label: "Tudo" },
               { id: "meus", label: "Minhas" },
-              { id: "sem_responsavel", label: "Órfãs" },
-              { id: "stale", label: "Paradas" },
+              { id: "sem_responsavel", label: "Sem dono" },
+              { id: "stale", label: "Travadas" },
               { id: "encaminhar", label: "Encaminhar" },
-              { id: "waiting_3d", label: "3+ dias" },
-              { id: "waiting_7d", label: "7+ dias" },
+              { id: "waiting_3d", label: "Espera 3+d" },
+              { id: "waiting_7d", label: "Espera 7+d" },
             ].map(f => (
               <Button
                 key={f.id}
@@ -369,7 +428,7 @@ export function KanbanClient({
         </div>
 
         <div className="w-full lg:w-64 space-y-2">
-          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Por Operador</label>
+          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Por operador</label>
           <select
             className="w-full h-8 rounded-full border border-zinc-200 bg-white px-4 text-xs font-bold"
             value={operatorFilter}
@@ -386,7 +445,7 @@ export function KanbanClient({
       <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
         <p className="text-xs text-amber-900 font-bold flex items-center gap-2">
           <AlertCircle className="h-4 w-4" /> 
-          “Silêncio também é resposta possível. Evite insistir em janelas curtas.”
+          “Silêncio também é resposta. Missão boa respeita tempo e consentimento.”
         </p>
       </div>
 
@@ -395,9 +454,9 @@ export function KanbanClient({
         <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1">
             <h3 className="text-sm font-black text-indigo-950 flex items-center gap-2">
-              <Users className="h-4 w-4" /> Balanceamento de Equipe
+              <Users className="h-4 w-4" /> Balanceamento de equipe
             </h3>
-            <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione os operadores para distribuir as {stats.unassigned} tarefas órfãs.</p>
+            <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
           </div>
           
           <div className="flex flex-wrap gap-2 justify-center">
@@ -447,12 +506,15 @@ export function KanbanClient({
       {/* Kanban Board */}
       <div className="overflow-x-auto pb-6 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-200">
         <div className="flex gap-4 min-w-max">
-          {groupedColumns.map(({ column, label, tasks: columnTasks }) => (
-            <div key={column} className="w-[320px] shrink-0 space-y-4">
+          {groupedColumns.map(({ id, label, description, tasks: columnTasks }) => (
+            <div key={id} className="w-[340px] shrink-0 space-y-4">
               <div className="flex items-center justify-between px-2">
-                <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
-                  {label} <span className="ml-1 text-zinc-400">({columnTasks.length})</span>
-                </h3>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
+                    {label} <span className="ml-1 text-zinc-400">({columnTasks.length})</span>
+                  </h3>
+                  <p className="mt-1 text-[10px] font-medium text-zinc-400">{description}</p>
+                </div>
                 {columnTasks.some(t => t.isStale) && (
                    <TooltipProvider>
                       <Tooltip>
@@ -467,7 +529,7 @@ export function KanbanClient({
 
               <div className={cn(
                 "space-y-3 p-2 rounded-2xl min-h-[500px] transition-colors",
-                column === "nao_abordar" ? "bg-rose-50/50" : "bg-zinc-50/50"
+                id === "concluir" ? "bg-rose-50/30" : "bg-zinc-50/50"
               )}>
                 {columnTasks.map((task) => (
                   <Card 
@@ -484,6 +546,9 @@ export function KanbanClient({
                     <CardContent className="p-4 space-y-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
+                           <Badge variant="outline" className="mb-2 border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                             {boardMicroLabels[task.boardColumn]}
+                           </Badge>
                            <div className="cursor-pointer hover:underline" onClick={() => task.priority && handleOpenDetails(task.priority)}>
                              <p className="text-sm font-black text-indigo-950 truncate leading-none mb-1">
                                @{task.person?.username || "usuario"}
@@ -506,10 +571,10 @@ export function KanbanClient({
                                task.waitingStatus === "review" ? "bg-amber-50 text-amber-700 border-amber-100" :
                                "bg-rose-50 text-rose-700 border-rose-100"
                              )}>
-                               {task.waitingStatus === "normal" ? "Aguardando normal" :
-                                task.waitingStatus === "followup" ? "Revisar depois" :
-                                task.waitingStatus === "review" ? "Evitar insistência" :
-                                "Arquivar sugerido"}
+                              {task.waitingStatus === "normal" ? "Aguardando normal" :
+                               task.waitingStatus === "followup" ? "Revisar depois" :
+                               task.waitingStatus === "review" ? "Evitar insistência" :
+                               "Arquivar sugerido"}
                              </Badge>
                            )}
                          </div>
@@ -550,8 +615,8 @@ export function KanbanClient({
                       </div>
 
                       <div className="flex items-center justify-between gap-2">
-                         <div className="flex-1">
-                            <ActionButtonGroup 
+                        <div className="flex-1">
+                           <ActionButtonGroup 
                               personId={task.personId}
                               instagramUsername={task.person?.username}
                               onAssume={() => runAssumeTask(task.id)}
@@ -574,7 +639,7 @@ export function KanbanClient({
                           onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
                           disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === 0}
                         >
-                          <MoveLeft className="mr-1 h-3 w-3" /> Voltar
+                          <MoveLeft className="mr-1 h-3 w-3" /> Recuar
                         </Button>
                         <Button
                           variant="ghost"

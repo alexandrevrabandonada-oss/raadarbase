@@ -367,6 +367,9 @@ export function PersonQuickSheet({
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-white/10 text-white border-white/20 font-black uppercase text-[10px] tracking-widest">
+                    Painel de missão
+                  </Badge>
                   <SheetTitle className="text-2xl font-black text-white">
                     {person.displayName || `@${person.username}`}
                   </SheetTitle>
@@ -388,7 +391,26 @@ export function PersonQuickSheet({
             </div>
 
             {/* Journey Progress Integrated */}
-            <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10">
+            <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Fase atual</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-200">
+                  {{
+                    preparar: "Preparar",
+                    conversar: "Conversar",
+                    registrar: "Registrar",
+                    encaminhar: "Encaminhar",
+                    concluir: "Concluir",
+                  }[
+                    mapPersonToJourney(
+                      person.status,
+                      person.hasPendingTask,
+                      person.hasReferral,
+                      person.lastInteractionAt
+                    ).currentPhase
+                  ]}
+                </p>
+              </div>
               <JourneyProgress 
                 {...mapPersonToJourney(
                   person.status,
@@ -407,9 +429,9 @@ export function PersonQuickSheet({
                   <CheckCircle2 className="h-10 w-10" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-zinc-900">Ação Concluída!</h3>
+                  <h3 className="text-xl font-black text-zinc-900">Ciclo fechado</h3>
                   <p className="text-sm font-medium text-zinc-500 max-w-[280px]">
-                    O vínculo de {person.displayName || `@${person.username}`} foi atualizado. O que deseja fazer agora?
+                    A etapa de {person.displayName || `@${person.username}`} foi registrada. Escolha a próxima missão ou encerre este painel.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 w-full max-w-xs">
@@ -421,7 +443,7 @@ export function PersonQuickSheet({
                         onNextPerson();
                       }}
                     >
-                      Abrir Próxima Pessoa
+                      Abrir próxima missão
                     </Button>
                   )}
                   <Button 
@@ -430,7 +452,7 @@ export function PersonQuickSheet({
                     nativeButton={false}
                     render={<Link href="/dashboard" />}
                   >
-                    Ir para Minha Fila
+                    Voltar para Minha Fila
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -443,7 +465,7 @@ export function PersonQuickSheet({
               </div>
             ) : (
               <>
-                {/* Alertas Críticos */}
+                {/* Sinais da Missão */}
                 <div className="space-y-3">
                   {isBlocked && (
                     <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
@@ -465,22 +487,22 @@ export function PersonQuickSheet({
                   )}
                 </div>
 
-                {/* Contexto Operacional */}
+                {/* Painel da Missão */}
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-4">
                     <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-xl">
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Por que priorizar?</label>
+                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Contexto</label>
                       <p className="text-sm font-bold text-zinc-800 leading-relaxed">{person.priorityReason}</p>
                     </div>
 
                     <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl">
-                      <label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block mb-2">Próxima Melhor Ação</label>
+                      <label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block mb-2">Objetivo e ação</label>
                       <p className="text-sm font-black text-indigo-900">{person.nextAction}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Mensagem Sugerida</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Ação sugerida</label>
                     <div className="relative group">
                       <div className={cn(
                         "bg-white border border-zinc-200 p-5 rounded-xl text-sm font-medium text-zinc-700 leading-relaxed min-h-[100px] shadow-sm italic transition-all",
@@ -534,16 +556,16 @@ export function PersonQuickSheet({
                     {copyStatus === "confirmed" && (
                       <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-3 animate-in zoom-in duration-300">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <p className="text-xs font-bold text-emerald-900">Envio registrado e tarefa movida.</p>
+                        <p className="text-xs font-bold text-emerald-900">Envio registrado. A missão agora aguarda retorno.</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Notas Internas */}
+                {/* Registro */}
                 <div className="space-y-4 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block">Nota Interna Curta</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block">Registro</label>
                     <Badge variant="outline" className="text-[9px] border-zinc-200 text-zinc-400 bg-white">Privado</Badge>
                   </div>
                   <Textarea 
@@ -578,7 +600,7 @@ export function PersonQuickSheet({
 
                 {/* Histórico Curto */}
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Últimos Eventos</label>
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Memória recente</label>
                   {isLoadingHistory ? (
                     <div className="p-8 flex justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
@@ -602,10 +624,10 @@ export function PersonQuickSheet({
                   )}
                 </div>
 
-                {/* Responsável */}
+                {/* Encaminhamento operacional */}
                 <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100">
                    <div>
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1">Responsável</label>
+                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1">Responsável da missão</label>
                       <p className="text-sm font-black text-zinc-800">{person.responsibleName || "Sem responsável"}</p>
                    </div>
                    {!person.responsibleId && !isBlocked && (
@@ -692,7 +714,7 @@ export function PersonQuickSheet({
       <Dialog open={activeModal === "response"} onOpenChange={() => setActiveModal(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Registrar Resposta</DialogTitle>
+            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Registrar etapa</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-2 max-h-[60vh] overflow-y-auto pr-2">
             {PERSON_RESPONSE_OPTIONS.map((opt) => (
@@ -715,7 +737,7 @@ export function PersonQuickSheet({
       <Dialog open={activeModal === "referral"} onOpenChange={() => setActiveModal(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Assistente de Encaminhamento</DialogTitle>
+            <DialogTitle className="font-black uppercase text-sm tracking-widest text-zinc-500">Encaminhamento da missão</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-6 py-4 md:grid-cols-[240px_1fr]">

@@ -35,9 +35,9 @@ export default async function AbordagemPage() {
     <AppShell>
       <PageHeader
         compact
-        eyebrow="Fila de Abordagem"
-        title="Quadro de Vínculos"
-        description="Gestão central de contatos: acompanhe convites, respostas e o progresso de cada vínculo estabelecido."
+        eyebrow="Jornada Operacional"
+        title="Mural de Missões"
+        description="Acompanhe cada vínculo como missão cooperativa: preparar, conversar, registrar, encaminhar e concluir."
       />
       <KanbanClient 
         initialTasks={outreachTasks} 

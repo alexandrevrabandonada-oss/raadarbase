@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Guardrails de Bem-Estar Operacional
  * 

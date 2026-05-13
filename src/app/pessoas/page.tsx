@@ -33,9 +33,9 @@ export default async function PessoasPage() {
     <AppShell>
       <PageHeader
         compact
-        eyebrow="Priorização Diária"
-        title="Prioridades da Equipe"
-        description="Pessoas com engajamento recente e chance de virar ação concreta."
+        eyebrow="Mapa de Missões"
+        title="Pessoas"
+        description="Missões ativas da base, organizadas por urgência, dono e próximo passo."
       />
       <PeopleClient people={people} priorityPeople={people} operators={operators} />
     </AppShell>
