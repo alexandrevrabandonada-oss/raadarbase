@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { FolderSearch, LayoutGrid, Settings2, ShieldCheck, LucideIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 
 type EmptyStateType = "no_data" | "empty_filter" | "needs_config" | "success" | string;
 
@@ -30,58 +29,40 @@ export function EmptyState({
       case "empty_filter":
         return {
           DefaultIcon: FolderSearch,
-          iconColor: "text-zinc-400",
-          bgColor: "bg-zinc-100",
-          borderColor: "border-zinc-200",
-          defaultDescription: "Não encontramos ninguém com estes critérios. Tente limpar os filtros ou buscar por outro termo."
+          defaultDescription: "Não encontramos nada com estes critérios. Revise filtros, amplie a busca ou volte para a leitura geral."
         };
       case "needs_config":
         return {
           DefaultIcon: Settings2,
-          iconColor: "text-amber-500",
-          bgColor: "bg-amber-100",
-          borderColor: "border-amber-200",
-          defaultDescription: "Esta funcionalidade precisa de configuração. Verifique as conexões ou modelos necessários para começar."
+          defaultDescription: "Esta frente ainda depende de configuração. Revise integrações, modelos ou parâmetros antes de abrir a operação."
         };
       case "success":
         return {
           DefaultIcon: ShieldCheck,
-          iconColor: "text-emerald-500",
-          bgColor: "bg-emerald-100",
-          borderColor: "border-emerald-200",
-          defaultDescription: "Tudo certo por aqui! O fluxo foi concluído com sucesso."
+          defaultDescription: "Tudo certo por aqui. O ciclo foi fechado e não há nova ação imediata."
         };
       case "no_data":
       default:
         return {
           DefaultIcon: LayoutGrid,
-          iconColor: "text-zinc-400",
-          bgColor: "bg-zinc-100",
-          borderColor: "border-zinc-200",
-          defaultDescription: "Ainda não há dados aqui. Isso pode ser porque o piloto está começando ou porque você precisa assumir tarefas."
+          defaultDescription: "Ainda não há dados aqui. Isso pode acontecer porque o ciclo está começando ou porque a próxima missão ainda não foi preparada."
         };
     }
   };
 
-  const { DefaultIcon, iconColor, bgColor, borderColor, defaultDescription } = getDefaults();
+  const { DefaultIcon, defaultDescription } = getDefaults();
   const RenderIcon = icon || DefaultIcon;
 
   return (
-    <Card className={cn("border-dashed py-16 flex flex-col items-center justify-center text-center bg-zinc-50/50", borderColor, className)}>
-      <div className={cn("h-16 w-16 rounded-full flex items-center justify-center mb-6 shadow-sm border", bgColor, borderColor)}>
-        <RenderIcon className={cn("h-8 w-8", iconColor)} />
-      </div>
-      <h3 className="font-black text-xl mb-2 text-zinc-900">{title}</h3>
-      <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-8 leading-relaxed">
-        {description || defaultDescription}
-      </p>
-      
-      {(primaryAction || secondaryAction) && (
-        <div className="flex flex-wrap justify-center gap-3">
-          {primaryAction}
-          {secondaryAction}
-        </div>
-      )}
-    </Card>
+    <GamefulEmptyState
+      title={title}
+      description={description || defaultDescription}
+      icon={RenderIcon}
+      className={className}
+      variant={type === "success" ? "ethics" : type === "needs_config" ? "rhythm" : type === "empty_filter" ? "journey" : "base"}
+      primaryAction={primaryAction}
+      secondaryAction={secondaryAction}
+      compact={false}
+    />
   );
 }

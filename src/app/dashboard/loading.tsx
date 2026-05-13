@@ -7,10 +7,10 @@ export default function Loading() {
     <AppShell>
       <PageHeader 
         eyebrow="Painel de Controle"
-        title="Hoje no Radar"
-        description="Carregando dados operacionais e interações recentes..."
+        title="Base de Operações"
+        description="Sincronizando missão do dia, ritmo e mobilização territorial..."
       />
-      <RadarLoading message="Sincronizando central de comando..." />
+      <RadarLoading variant="base" message="Sincronizando central de comando..." />
     </AppShell>
   );
 }

@@ -11,7 +11,7 @@ export default function Loading() {
         title="Mural de Missões"
         description="Organizando o fluxo cooperativo das missões..."
       />
-      <RadarLoading message="Distribuindo etapas entre preparar, conversar, registrar, encaminhar e concluir..." />
+      <RadarLoading variant="journey" message="Distribuindo etapas entre preparar, conversar, registrar, encaminhar e concluir..." />
     </AppShell>
   );
 }

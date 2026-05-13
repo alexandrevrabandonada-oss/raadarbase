@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DailyMission } from "@/components/radar/daily-mission";
 import { WeeklyRhythmCard } from "@/components/radar/weekly-rhythm-card";
 import { CycleAlertList } from "@/components/radar/cycle-alert-list";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { WeeklyClosureMarkdownGenerator } from "@/components/radar/reports/weekly-closure-markdown-generator";
 import { TeamFlowAdoptionPanel } from "@/components/radar/team-flow-adoption-panel";
 import type { MissionState } from "@/lib/data/mission-engine";
@@ -132,20 +134,18 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
       </section>
 
       <section className="grid lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-indigo-600 to-indigo-700 border-none text-white">
-          <CardHeader>
-            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200 flex items-center gap-2">
-              <Heart className="h-4 w-4 fill-rose-300 text-rose-300" />
-              Cuidado da Base
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
-            <BaseStat label="Não Abordar respeitados" value={data.careBase.doNotContactRespected} />
-            <BaseStat label="Alertas de notas sensíveis" value={data.careBase.sensitiveAlertsCount} />
-            <BaseStat label="Dados em revisão" value={data.careBase.dataUnderReview} />
-            <BaseStat label="Registros para revisão" value={data.careBase.eligibleForReviewCount} />
-          </CardContent>
-        </Card>
+        <RhythmPanel
+          icon={Heart}
+          eyebrow="Cuidado da base"
+          title="Base protegida pelo ritmo"
+          description="Os guardrails operacionais continuam visíveis dentro do mesmo sistema visual do dashboard e da jornada."
+          metrics={[
+            { label: "Não Abordar respeitados", value: data.careBase.doNotContactRespected, helper: "consentimento mantido no ciclo" },
+            { label: "Alertas de notas sensíveis", value: data.careBase.sensitiveAlertsCount, helper: "registros pedindo revisão" },
+            { label: "Dados em revisão", value: data.careBase.dataUnderReview, helper: "pontos sob cuidado operacional" },
+            { label: "Registros para revisão", value: data.careBase.eligibleForReviewCount, helper: "memória pronta para checagem" },
+          ]}
+        />
 
         <Card>
           <CardHeader>
@@ -156,14 +156,12 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <MetricTile label="Mobilização" value={data.territories.mobilizacao} />
-              <MetricTile label="Campo" value={data.territories.campo} />
-              <MetricTile label="Continuidade" value={data.territories.continuidade} />
+              <GamefulMetricCard label="Mobilização" value={data.territories.mobilizacao} compact className="border-zinc-100 shadow-none" />
+              <GamefulMetricCard label="Campo" value={data.territories.campo} compact className="border-zinc-100 shadow-none" />
+              <GamefulMetricCard label="Continuidade" value={data.territories.continuidade} compact className="border-zinc-100 shadow-none" />
             </div>
-            <Button nativeButton={false} variant="outline" className="font-black">
-              <Link href="/relatorios/territorios" className="flex items-center">
-                Ver Territórios <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
+            <Button nativeButton={false} variant="outline" className="font-black" render={<Link href="/relatorios/territorios" className="flex items-center" />}>
+              Ver Territórios <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
@@ -179,14 +177,12 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <MetricTile label="Ações planejadas" value={data.field.plannedActions} />
-              <MetricTile label="Precisando confirmação" value={data.field.actionsNeedingConfirmation} />
-              <MetricTile label="Passadas sem resultado" value={data.field.pastEventsWithoutResult} />
+              <GamefulMetricCard label="Ações planejadas" value={data.field.plannedActions} compact className="border-zinc-100 shadow-none" />
+              <GamefulMetricCard label="Precisando confirmação" value={data.field.actionsNeedingConfirmation} compact className="border-zinc-100 shadow-none" />
+              <GamefulMetricCard label="Passadas sem resultado" value={data.field.pastEventsWithoutResult} compact className="border-zinc-100 shadow-none" />
             </div>
-            <Button nativeButton={false} variant="outline" className="font-black">
-              <Link href="/campo" className="flex items-center">
-                Ver Agenda de Campo <ArrowRight className="h-4 w-4 ml-2" />
-              </Link>
+            <Button nativeButton={false} variant="outline" className="font-black" render={<Link href="/campo" className="flex items-center" />}>
+              Ver Agenda de Campo <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
@@ -200,8 +196,8 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <MetricTile label="Carga média da fila" value={data.wellness.averageQueueLoad} />
-              <MetricTile label="Alertas de excesso" value={data.wellness.overloadAlerts} />
+              <GamefulMetricCard label="Carga média da fila" value={data.wellness.averageQueueLoad} compact className="border-zinc-100 shadow-none" />
+              <GamefulMetricCard label="Alertas de excesso" value={data.wellness.overloadAlerts} compact className="border-zinc-100 shadow-none" />
             </div>
             <div className="p-3 rounded-xl border border-zinc-100 bg-zinc-50/50">
               <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Recomendação</p>
@@ -215,24 +211,6 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardContent>
         </Card>
       </section>
-    </div>
-  );
-}
-
-function MetricTile({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl border border-zinc-100 bg-white p-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</p>
-      <p className="text-xl font-black text-zinc-900">{value}</p>
-    </div>
-  );
-}
-
-function BaseStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="p-3 rounded-xl bg-indigo-700/40 border border-indigo-500/30">
-      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">{label}</p>
-      <p className="text-2xl font-black text-white">{value}</p>
     </div>
   );
 }

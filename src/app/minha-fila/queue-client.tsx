@@ -5,8 +5,11 @@ import Link from "next/link";
 import { PriorityPerson, PersonResponseKind, PersonReferralType } from "@/lib/types";
 import { QueueCard } from "./queue-card";
 import { QueueList } from "./queue-list";
+import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/radar/empty-state";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import {
   PlusCircle,
   CheckCircle2,
@@ -212,13 +215,15 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   if (queue.length === 0) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-12">
-        <EmptyState
-          type="no_data"
+        <GamefulEmptyState
+          variant="journey"
           title="Nenhuma missão na sua trilha"
-          description="Sua jornada do operador está limpa neste momento."
+          description="Nenhuma missão ativa entrou na sua jornada agora. A fila está limpa e o próximo passo é preparar a base antes de abrir nova frente."
+          nextActionLabel="assumir missões abertas"
+          nextActionHref="/abordagem?filter=sem_responsavel"
           primaryAction={
             <Button
-              className="bg-indigo-600 font-black uppercase text-xs tracking-wider hover:bg-indigo-700"
+              className="h-11 rounded-xl bg-indigo-600 font-black uppercase text-xs tracking-wider hover:bg-indigo-700"
               nativeButton={false}
               render={<Link href="/abordagem?filter=sem_responsavel" />}
             >
@@ -228,7 +233,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           secondaryAction={
             <Button
               variant="outline"
-              className="border-zinc-200 font-black uppercase text-xs tracking-wider"
+              className="h-11 rounded-xl border-zinc-200 bg-white font-black uppercase text-xs tracking-wider"
               nativeButton={false}
               render={<Link href="/dashboard" />}
             >
@@ -254,82 +259,46 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
-      <section className="overflow-hidden rounded-[28px] border border-zinc-900/10 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.22),_transparent_26%),linear-gradient(145deg,#09090b_0%,#18181b_58%,#27272a_100%)] p-6 text-white shadow-2xl shadow-zinc-200/50">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white hover:bg-white/10">
-                Fase atual: {missionPhaseLabel(currentPerson)}
-              </Badge>
-              <Badge className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-200 hover:bg-emerald-400/10">
-                Operador: {operatorName}
-              </Badge>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-zinc-400">Jornada do operador</p>
-              <h2 className="max-w-2xl text-4xl font-black tracking-tight text-white">
-                Minha Jornada
-              </h2>
-              <p className="max-w-2xl text-base font-medium leading-relaxed text-zinc-300">
-                Trabalhe o dia inteiro a partir desta trilha: uma missão por vez, próximo passo visível e ritmo sustentável sem perder cuidado.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missão de hoje</p>
-                  <p className="mt-2 text-sm font-black text-white">{mission.objective}</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Progresso do dia</p>
-                  <p className="mt-2 text-3xl font-black text-white">{progressPercent}%</p>
-                  <p className="mt-1 text-xs font-medium text-zinc-400">
-                    {completedCount} de {queue.length} missões atravessadas
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Fase atual</p>
-                  <p className="mt-2 text-sm font-black text-white">{phaseBadge}</p>
-                  <p className="mt-1 text-xs font-medium text-zinc-400">Trilha atual da missão em foco.</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Carga saudável</p>
-                  <p className="mt-2 text-sm font-black text-white">
-                    {wellness.level === "healthy" ? "Ritmo estável" : wellness.level === "warning" ? "Bloco de 5 missões" : "Pausa e redistribuição"}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-zinc-400">{wellness.microcopy}</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
-                onClick={() => window.scrollTo({ top: 720, behavior: "smooth" })}
-              >
-                <Compass className="mr-2 h-4 w-4" />
-                Continuar Jornada
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 border-white/15 bg-white/5 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
-                nativeButton={false}
-                render={<Link href="/abordagem" />}
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Abrir Mural de Missões
-              </Button>
-            </div>
-          </div>
-
+      <GamefulHero
+        eyebrow="Jornada do operador"
+        title="Minha Jornada"
+        description="Trabalhe o dia inteiro a partir desta trilha: uma missão por vez, próximo passo visível e ritmo sustentável sem perder cuidado."
+        variant="dark"
+        badges={
+          <>
+            <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
+            <GamefulHeroBadge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-200">Operador: {operatorName}</GamefulHeroBadge>
+          </>
+        }
+        metrics={
+          <>
+            <GamefulMetricCard label="Missão de hoje" value={mission.objective} tone="dark" detail="Objetivo principal do bloco atual." />
+            <GamefulMetricCard label="Progresso do dia" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} missões atravessadas`} />
+            <GamefulMetricCard label="Fase atual" value={phaseBadge} tone="dark" detail="Trilha atual da missão em foco." />
+            <GamefulMetricCard label="Carga saudável" value={wellness.level === "healthy" ? "Ritmo estável" : wellness.level === "warning" ? "Bloco de 5 missões" : "Pausa e redistribuição"} tone="dark" detail={wellness.microcopy} />
+          </>
+        }
+        actions={
+          <>
+            <Button
+              className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+              onClick={() => window.scrollTo({ top: 720, behavior: "smooth" })}
+            >
+              <Compass className="mr-2 h-4 w-4" />
+              Continuar Jornada
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 border-white/15 bg-white/5 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
+              nativeButton={false}
+              render={<Link href="/abordagem" />}
+            >
+              <ArrowRight className="mr-2 h-4 w-4" />
+              Abrir Mural de Missões
+            </Button>
+          </>
+        }
+        aside={
           <div className="space-y-4 rounded-[24px] border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -359,8 +328,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        }
+      />
 
       {wellness.level !== "healthy" && <OperatorWellnessCard wellness={wellness} />}
 
@@ -537,19 +506,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             </CardContent>
           </Card>
 
-          <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-zinc-400" />
-                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">
-                  Regra de operação
-                </h4>
-              </div>
-              <p className="text-sm font-medium leading-relaxed text-zinc-600">
-                Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto.
-              </p>
-            </CardContent>
-          </Card>
+          <EthicalGuardrailBanner
+            description="Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto."
+            badgeLabel="Operação humana"
+          />
 
           {oldPendencies.length > 0 && (
             <Card className="rounded-[28px] border-amber-100 bg-amber-50/70 shadow-sm">

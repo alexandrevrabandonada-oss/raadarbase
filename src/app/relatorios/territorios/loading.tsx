@@ -5,13 +5,13 @@ import { RadarLoading } from "@/components/radar/radar-loading";
 export default function Loading() {
   return (
     <AppShell>
-      <PageHeader 
+      <PageHeader
         compact
-        eyebrow="Modo Operador"
-        title="Minha Jornada" 
-        description="Montando sua trilha de missões do dia..." 
+        eyebrow="Base Territorial"
+        title="Mapa da Mobilização"
+        description="Lendo bairros, fases e sinais agregados do território..."
       />
-      <RadarLoading variant="journey" message="Preparando jornada, bem-estar e próximas missões..." />
+      <RadarLoading variant="territory" message="Montando o mapa da mobilização..." />
     </AppShell>
   );
 }

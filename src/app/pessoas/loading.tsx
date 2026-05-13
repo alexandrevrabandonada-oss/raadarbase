@@ -11,7 +11,7 @@ export default function Loading() {
         title="Prioridades da Equipe"
         description="Buscando engajamento recente e chance de virar ação concreta..."
       />
-      <RadarLoading message="Calculando prioridades da base..." />
+      <RadarLoading variant="journey" message="Calculando prioridades da base..." />
     </AppShell>
   );
 }

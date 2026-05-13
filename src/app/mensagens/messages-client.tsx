@@ -1,27 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { 
   Copy, 
   Plus, 
   Trash2, 
-  CheckCircle2, 
   ShieldCheck, 
   AlertTriangle, 
   Info,
   Clock,
-  ExternalLink,
-  UserPlus,
   MessageSquare,
-  ArrowRight,
-  AlertCircle,
   History,
-  LayoutDashboard,
-  PlusCircle
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +25,9 @@ import { cn } from "@/lib/utils";
 // Radar Design System
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { RadarMetricCard } from "@/components/radar/radar-metric-card";
-import { EmptyState } from "@/components/radar/empty-state";
 import { OperationalAlert } from "@/components/radar/operational-alert";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 
 
 export function MessagesClient({ initialTemplates }: { initialTemplates: MessageTemplate[] }) {
@@ -256,13 +249,19 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
           <div className="grid gap-6">
             {activeTemplates.length === 0 ? (
-              <EmptyState 
-                type="no_data"
-                title="Sua biblioteca está vazia"
-                description="Crie seu primeiro modelo de mensagem para começar a abordar as pessoas de forma humanizada e eficiente."
+              <GamefulEmptyState
+                variant="memory"
+                title="Nenhum template ativo"
+                description="Sua biblioteca ainda não tem modelos prontos para abrir conversa com segurança e contexto."
+                nextActionLabel="preparar o primeiro modelo"
                 primaryAction={
-                  <Button onClick={() => document.getElementById("template-form-name")?.focus()}>
-                    <Plus className="mr-2 h-4 w-4" /> Criar Primeiro Template
+                  <Button className="h-11 rounded-xl bg-zinc-950 text-xs font-black uppercase tracking-[0.18em] hover:bg-zinc-800" onClick={() => document.getElementById("template-form-name")?.focus()}>
+                    <Plus className="mr-2 h-4 w-4" /> Criar primeiro template
+                  </Button>
+                }
+                secondaryAction={
+                  <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/pessoas" />}>
+                    Abrir prioridades
                   </Button>
                 }
               />

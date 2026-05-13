@@ -1,6 +1,5 @@
-import { ReactNode } from "react";
 import Link from "next/link";
-import { Copy, Instagram, MessageSquare, UserPlus, FileText, ArrowRight } from "lucide-react";
+import { Copy, Instagram, MessageSquare, UserPlus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -60,7 +59,7 @@ export function ActionButtonGroup({
       {instagramUsername && (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<div />}>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-pink-600 p-0" onClick={() => window.open(`https://instagram.com/${instagramUsername}`, '_blank')}>
                 <Instagram className="h-4 w-4" />
               </Button>
@@ -74,7 +73,7 @@ export function ActionButtonGroup({
       {canCopyDM && onCopyDM && (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<div />}>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-indigo-600 p-0" onClick={onCopyDM}>
                 <Copy className="h-4 w-4" />
               </Button>
@@ -88,7 +87,7 @@ export function ActionButtonGroup({
       {canRegisterResponse && onRegisterResponse && (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<div />}>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-emerald-600 p-0" onClick={onRegisterResponse}>
                 <MessageSquare className="h-4 w-4" />
               </Button>
@@ -102,7 +101,7 @@ export function ActionButtonGroup({
       {canReferral && onReferral && (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<div />}>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-amber-600 p-0" onClick={onReferral}>
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -114,10 +113,13 @@ export function ActionButtonGroup({
 
       {/* 6. Ver Ficha (Primary Action) */}
       {personId && (
-        <Button size="sm" className="h-8 text-xs font-bold px-3 p-0 ml-1">
-          <Link href={`/pessoas/${personId}`} className="w-full h-full flex items-center justify-center px-3">
-            Ver ficha
-          </Link>
+        <Button
+          size="sm"
+          className="ml-1 h-8 px-3 text-xs font-bold"
+          nativeButton={false}
+          render={<Link href={`/pessoas/${personId}`} className="flex items-center justify-center" />}
+        >
+          Ver ficha
         </Button>
       )}
     </div>

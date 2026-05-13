@@ -5,6 +5,12 @@ import { useEffect, useState } from "react";
 import { trackOperationalEvent } from "@/app/actions";
 import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { CycleAlertList } from "@/components/radar/cycle-alert-list";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { GamefulPortalCard } from "@/components/radar/gameful-portal-card";
+import { MissionCard as RadarMissionCard } from "@/components/radar/mission-card";
+import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,8 +118,6 @@ type DashboardClientProps = {
   data: DashboardViewData;
 };
 
-const journeySteps = ["Preparar", "Conversar", "Registrar", "Encaminhar", "Concluir"] as const;
-
 export function DashboardClient({ priorityPeople, cycleAlerts, data }: DashboardClientProps) {
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -177,69 +181,37 @@ function HeroSection({ data }: { data: DashboardViewData }) {
   }[data.overallStatus.tone];
 
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-zinc-200 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.14),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.98))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-8">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-40" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_center,_rgba(15,23,42,0.08),_transparent_62%)] lg:block" />
-
-      <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-        <div className="space-y-6">
-          <div className="flex flex-col gap-5">
-            <div className="max-w-2xl space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Badge className={cn("rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.24em] shadow-none", statusTone)}>
-                  {data.overallStatus.label}
-                </Badge>
-                <Badge variant="outline" className="rounded-full border-zinc-300 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-600">
-                  {data.weeklyRhythmState.phase.name}
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <h1 className="text-4xl font-black tracking-tight text-zinc-950 sm:text-5xl">
-                  Base de Operações
-                </h1>
-                <p className="max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg">
-                  Seu centro de missões, ritmo e mobilização territorial.
-                </p>
-              </div>
-              <p className="max-w-2xl text-sm leading-6 text-zinc-600">
-                {data.overallStatus.detail}
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button className="h-12 rounded-xl bg-zinc-950 px-5 text-sm font-black hover:bg-zinc-800" nativeButton={false} render={<Link href="/minha-fila" />}>
-                <Route className="h-4 w-4" />
-                Iniciar Jornada
-              </Button>
-              <Button variant="outline" className="h-12 rounded-xl border-zinc-300 bg-white/85 px-5 text-sm font-black text-zinc-800" nativeButton={false} render={<Link href="/ritmo" />}>
-                <TowerControl className="h-4 w-4" />
-                Abrir Central de Ritmo
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <HeroMetric
-              icon={Target}
-              label="Missão do Dia"
-              value={`${data.missionState.progress}%`}
-              detail={data.missionState.objective}
-            />
-            <HeroMetric
-              icon={Compass}
-              label="Fase da Semana"
-              value={data.weeklyRhythmState.phase.name.split(":")[0] ?? data.weeklyRhythmState.phase.name}
-              detail={data.weeklyRhythmState.phase.description}
-            />
-            <HeroMetric
-              icon={Activity}
-              label="Status Geral"
-              value={data.overallStatus.label}
-              detail={`${data.systemAlerts.staleTasks} paradas, ${data.systemAlerts.fieldWithoutClosure} fechamentos pendentes.`}
-            />
-          </div>
-        </div>
-
+    <GamefulHero
+      eyebrow="Base de comando"
+      title="Base de Operações"
+      description="Seu centro de missões, ritmo e mobilização territorial."
+      variant="light"
+      badges={
+        <>
+          <GamefulHeroBadge light className={statusTone}>{data.overallStatus.label}</GamefulHeroBadge>
+          <GamefulHeroBadge light>{data.weeklyRhythmState.phase.name}</GamefulHeroBadge>
+        </>
+      }
+      actions={
+        <>
+          <Button className="h-12 rounded-xl bg-zinc-950 px-5 text-sm font-black hover:bg-zinc-800" nativeButton={false} render={<Link href="/minha-fila" />}>
+            <Route className="h-4 w-4" />
+            Iniciar Jornada
+          </Button>
+          <Button variant="outline" className="h-12 rounded-xl border-zinc-300 bg-white/85 px-5 text-sm font-black text-zinc-800" nativeButton={false} render={<Link href="/ritmo" />}>
+            <TowerControl className="h-4 w-4" />
+            Abrir Central de Ritmo
+          </Button>
+        </>
+      }
+      metrics={
+        <>
+          <GamefulMetricCard icon={Target} label="Missão do Dia" value={`${data.missionState.progress}%`} detail={data.missionState.objective} />
+          <GamefulMetricCard icon={Compass} label="Fase da Semana" value={data.weeklyRhythmState.phase.name.split(":")[0] ?? data.weeklyRhythmState.phase.name} detail={data.weeklyRhythmState.phase.description} />
+          <GamefulMetricCard icon={Activity} label="Status Geral" value={data.overallStatus.label} detail={`${data.systemAlerts.staleTasks} paradas, ${data.systemAlerts.fieldWithoutClosure} fechamentos pendentes.`} />
+        </>
+      }
+      aside={
         <Card className="border-zinc-200/80 bg-white/90 py-0 shadow-[0_12px_48px_rgba(15,23,42,0.08)]">
           <CardContent className="space-y-5 p-6">
             <div className="flex items-center justify-between gap-3">
@@ -254,9 +226,9 @@ function HeroSection({ data }: { data: DashboardViewData }) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <SignalBadge icon={Users} label="Missões ativas" value={data.missionCounts.active} />
-              <SignalBadge icon={MessageSquare} label="Respostas no ciclo" value={data.missionCounts.replies} />
-              <SignalBadge icon={Flag} label="Encaminhamentos" value={data.missionCounts.referrals} />
+              <GamefulMetricCard icon={Users} label="Missões ativas" value={data.missionCounts.active} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
+              <GamefulMetricCard icon={MessageSquare} label="Respostas no ciclo" value={data.missionCounts.replies} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
+              <GamefulMetricCard icon={Flag} label="Encaminhamentos" value={data.missionCounts.referrals} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
             </div>
 
             <div className="space-y-2">
@@ -285,8 +257,8 @@ function HeroSection({ data }: { data: DashboardViewData }) {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </section>
+      }
+    />
   );
 }
 
@@ -355,120 +327,51 @@ function MissionSection({
         actionLabel="Abrir fila completa"
       />
 
-      {priorityPeople.length > 0 ? (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {priorityPeople.slice(0, 4).map((person) => (
-            <MissionCard key={person.id} person={person} onOpenDetails={onOpenDetails} />
-          ))}
-        </div>
-      ) : (
-        <Card className="border-dashed border-zinc-300 bg-zinc-50 py-0">
-          <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
-            <Radar className="h-10 w-10 text-zinc-300" />
-            <div className="space-y-1">
-              <p className="text-lg font-black text-zinc-800">Nenhuma missão ativa no radar agora.</p>
-              <p className="text-sm text-zinc-500">Abra a fila completa para puxar novos vínculos ou revisar prioridades do ciclo.</p>
-            </div>
-            <Button variant="outline" className="rounded-xl font-black" nativeButton={false} render={<Link href="/pessoas" />}>
-              Abrir fila completa
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </section>
-  );
-}
-
-function MissionCard({
-  person,
-  onOpenDetails,
-}: {
-  person: PriorityPerson;
-  onOpenDetails: (person: PriorityPerson) => void;
-}) {
-  const journey = inferJourney(person);
-  const initials = (person.displayName ?? person.username).slice(0, 2).toUpperCase();
-
-  return (
-    <Card className="h-full overflow-hidden border-zinc-200 bg-[linear-gradient(180deg,_rgba(255,255,255,1),_rgba(248,250,252,1))] py-0 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
-      <CardContent className="flex h-full flex-col gap-5 p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-zinc-950 text-lg font-black text-white shadow-lg">
-              {initials}
-            </div>
-            <div className="min-w-0 space-y-1">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <p className="max-w-full truncate text-lg font-black tracking-tight text-zinc-950">@{person.username}</p>
-                <TemperatureBadge temperature={person.temperature} />
-              </div>
-              <p className="line-clamp-2 text-sm leading-5 text-zinc-500">
-                {person.displayName ?? "Pessoa monitorada"} · {person.latestInteractionLabel}
-              </p>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 sm:text-right">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Fase atual</p>
-            <p className="mt-1 text-sm font-black text-zinc-950">{journey.phase}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-3">
-          <MissionInfo label="Motivo" value={person.priorityReason} />
-          <MissionInfo label="Próxima ação" value={person.nextAction} highlighted />
-        </div>
-
-        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-500">Progresso da Jornada</p>
-            <p className="text-sm font-black text-zinc-900">{journey.progress}%</p>
-          </div>
-          <Progress value={journey.progress} className="h-4 bg-zinc-200" indicatorClassName="bg-zinc-950" />
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-            {journeySteps.map((step, index) => {
-              const isCompleted = index < journey.activeIndex;
-              const isCurrent = index === journey.activeIndex;
-              return (
-                <div key={step} className="min-w-0 space-y-2">
-                  <div
-                    className={cn(
-                      "mx-auto h-5 w-5 rounded-full border-2",
-                      isCompleted ? "border-emerald-500 bg-emerald-500" : isCurrent ? "border-zinc-950 bg-white shadow-[0_0_0_4px_rgba(24,24,27,0.08)]" : "border-zinc-200 bg-white",
+        {priorityPeople.length > 0 ? (
+          <div className="grid gap-5 lg:grid-cols-2">
+            {priorityPeople.slice(0, 4).map((person) => (
+              <RadarMissionCard
+                key={person.id}
+                person={person}
+                primaryActionLabel="Abrir Missão"
+                onPrimaryAction={onOpenDetails}
+                footer={
+                  <div className="flex flex-wrap gap-2">
+                    {person.mainTheme ? (
+                      <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-xs font-bold text-sky-700">
+                        {person.mainTheme}
+                      </Badge>
+                    ) : null}
+                    {person.responsibleName ? (
+                      <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-xs font-bold text-zinc-600">
+                        {person.responsibleName}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-xs font-bold text-amber-700">
+                        Sem responsável
+                      </Badge>
                     )}
-                  />
-                  <p className={cn("truncate text-center text-[10px] font-bold", isCurrent ? "text-zinc-950" : "text-zinc-500")}>{step}</p>
-                </div>
-              );
-            })}
+                  </div>
+                }
+              />
+            ))}
           </div>
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {person.mainTheme ? (
-              <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-xs font-bold text-sky-700">
-                {person.mainTheme}
-              </Badge>
-            ) : null}
-            {person.responsibleName ? (
-              <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-xs font-bold text-zinc-600">
-                {person.responsibleName}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-xs font-bold text-amber-700">
-                Sem responsável
-              </Badge>
-            )}
-          </div>
-
-          <Button className="h-11 rounded-xl bg-zinc-950 font-black hover:bg-zinc-800 sm:min-w-36" onClick={() => onOpenDetails(person)}>
-            Abrir Missão
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        ) : (
+          <GamefulEmptyState
+            variant="journey"
+            title="Nenhuma missão ativa"
+            description="Nada travado agora. A base não encontrou vínculos com contexto suficiente para entrar na trilha imediata."
+            nextActionLabel="preparar a base"
+            nextActionHref="/pessoas"
+            secondaryAction={
+              <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/abordagem" />}>
+                Abrir mural
+              </Button>
+            }
+          />
+        )}
+      </section>
+    );
 }
 
 function OperationPortalsSection({ data }: { data: DashboardViewData }) {
@@ -536,36 +439,18 @@ function OperationPortalsSection({ data }: { data: DashboardViewData }) {
         title="Mapa Rápido"
         description="Mundos principais da operação, cada um com estado, próximo passo e entrada clara."
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         {portals.map((portal) => (
-          <Link key={portal.title} href={portal.href} className="group block">
-            <Card className="h-full border-zinc-200 bg-white py-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
-              <CardContent className="flex h-full flex-col gap-4 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-950">
-                    <portal.icon className="h-5 w-5" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-zinc-400 transition-transform group-hover:translate-x-1" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-lg font-black tracking-tight text-zinc-950">{portal.title}</p>
-                  <p className="text-sm leading-6 text-zinc-600">{portal.description}</p>
-                </div>
-                <div className="mt-auto space-y-3">
-                  <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Status</p>
-                    <p className="mt-1 text-sm font-black text-zinc-950">{portal.status}</p>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-zinc-500">{portal.nextStep}</p>
-                    <span className="rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-black text-white">
-                      {portal.cta}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <GamefulPortalCard
+            key={portal.title}
+            icon={portal.icon}
+            title={portal.title}
+            description={portal.description}
+            status={portal.status}
+            nextStep={portal.nextStep}
+            href={portal.href}
+            ctaLabel={portal.cta}
+          />
         ))}
       </div>
     </section>
@@ -631,27 +516,27 @@ function QuickMapSection({ data }: { data: DashboardViewData }) {
       />
 
       <Card className="overflow-hidden border-zinc-200 py-0">
-        <CardContent className="grid gap-4 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-          <div className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <TerritoryStat
               title="Mobilização"
               value={data.quickMap.counts.mobilizacao}
-              detail={data.quickMap.highlights.mobilizacao?.detail ?? "Sem destaque crítico agora."}
-              neighborhood={data.quickMap.highlights.mobilizacao?.neighborhood ?? "Sem bairro em foco"}
+                detail={data.quickMap.highlights.mobilizacao?.detail ?? "Mapa ainda sem sinais."}
+                neighborhood={data.quickMap.highlights.mobilizacao?.neighborhood ?? "Sem foco"}
               tone="amber"
             />
             <TerritoryStat
               title="Campo"
               value={data.quickMap.counts.campo}
-              detail={data.quickMap.highlights.campo?.detail ?? "Sem destaque crítico agora."}
-              neighborhood={data.quickMap.highlights.campo?.neighborhood ?? "Sem bairro em foco"}
+                detail={data.quickMap.highlights.campo?.detail ?? "Sem campo planejado."}
+                neighborhood={data.quickMap.highlights.campo?.neighborhood ?? "Sem foco"}
               tone="indigo"
             />
             <TerritoryStat
               title="Continuidade"
               value={data.quickMap.counts.continuidade}
-              detail={data.quickMap.highlights.continuidade?.detail ?? "Sem destaque crítico agora."}
-              neighborhood={data.quickMap.highlights.continuidade?.neighborhood ?? "Sem bairro em foco"}
+                detail={data.quickMap.highlights.continuidade?.detail ?? "Ciclo em dia."}
+                neighborhood={data.quickMap.highlights.continuidade?.neighborhood ?? "Sem foco"}
               tone="emerald"
             />
           </div>
@@ -695,9 +580,9 @@ function FieldSection({ data }: { data: DashboardViewData }) {
             <SignalBadge icon={ShieldCheck} label="Sem fechamento" value={data.field.unresolvedCount} />
           </div>
 
-          <FieldColumn title="Próximas ações" items={data.field.upcoming} emptyLabel="Nenhuma ação planejada no momento." />
-          <FieldColumn title="Precisando confirmação" items={data.field.confirmation} emptyLabel="Nenhuma ação aguardando confirmação agora." />
-          <FieldColumn title="Passadas sem fechamento" items={data.field.unresolved} emptyLabel="Nenhuma ação passada sem fechamento." />
+          <FieldColumn title="Próximas ações" items={data.field.upcoming} emptyLabel="Sem campo planejado." />
+          <FieldColumn title="Precisando confirmação" items={data.field.confirmation} emptyLabel="Nada travado agora." />
+          <FieldColumn title="Passadas sem fechamento" items={data.field.unresolved} emptyLabel="Ciclo em dia." />
         </CardContent>
       </Card>
     </section>
@@ -705,12 +590,6 @@ function FieldSection({ data }: { data: DashboardViewData }) {
 }
 
 function CareSection({ data }: { data: DashboardViewData }) {
-  const toneClass = {
-    healthy: "bg-emerald-500/12 text-emerald-900 border-emerald-200",
-    warning: "bg-amber-500/12 text-amber-900 border-amber-200",
-    critical: "bg-rose-500/12 text-rose-900 border-rose-200",
-  }[data.care.wellnessLevel];
-
   return (
     <section className="space-y-4">
       <SectionHeader
@@ -721,42 +600,31 @@ function CareSection({ data }: { data: DashboardViewData }) {
         actionLabel="Cuidar da Base"
       />
 
-      <Card className="overflow-hidden border-zinc-800 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_28%),linear-gradient(135deg,#09090b_0%,#18181b_58%,#27272a_100%)] py-0 text-white shadow-[0_24px_64px_rgba(15,23,42,0.28)]">
-        <CardContent className="grid gap-6 p-5 sm:p-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="flex flex-col justify-between gap-5">
-            <div className="space-y-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-400">Leitura coletiva</p>
-              <p className="text-3xl font-black tracking-tight">Ritmo que sustenta a operação</p>
-              <p className="text-sm leading-6 text-zinc-300">
-                Carga, bem-estar e cuidado da base fecham o ciclo da operação antes de abrir novas frentes.
-              </p>
-            </div>
-            <Badge className={cn("w-fit rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]", toneClass)}>
-              {data.care.wellnessLevel}
-            </Badge>
-            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-400">Cuidar da Base</p>
-              <p className="mt-2 text-lg font-black text-white">{data.care.wellnessMicrocopy}</p>
-              <p className="mt-2 text-sm leading-6 text-zinc-300">{data.care.wellnessRecommendation}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DarkMetric label="Carga da equipe" value={`${data.care.averageQueueLoad}`} helper="média de tarefas abertas" />
-              <DarkMetric label="Alertas de bem-estar" value={`${data.care.overloadAlerts}`} helper="pontos pedindo redistribuição" />
-              <DarkMetric label="Cuidado da base" value={`${data.care.baseReviewCount}`} helper="registros pedindo revisão" />
-              <DarkMetric label="Progresso coletivo" value={`${data.care.collectiveProgress}`} helper="ciclos concluídos no funil" />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <DarkSignal label="Nao Abordar respeitados" value={data.care.doNotContactRespected} />
-              <DarkSignal label="Alertas sensiveis" value={data.care.sensitiveAlertsCount} />
-              <DarkSignal label="Encaminhamentos do ciclo" value={data.care.referralsMade} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <RhythmPanel
+        icon={Heart}
+        eyebrow="Leitura coletiva"
+        title="Ritmo que sustenta a operação"
+        description="Carga, bem-estar e cuidado da base fecham o ciclo da operação antes de abrir novas frentes."
+        badge={data.care.wellnessLevel}
+        metrics={[
+          { label: "Carga da equipe", value: `${data.care.averageQueueLoad}`, helper: "média de tarefas abertas" },
+          { label: "Alertas de bem-estar", value: `${data.care.overloadAlerts}`, helper: "pontos pedindo redistribuição" },
+          { label: "Cuidado da base", value: `${data.care.baseReviewCount}`, helper: "registros pedindo revisão" },
+          { label: "Progresso coletivo", value: `${data.care.collectiveProgress}`, helper: "ciclos concluídos no funil" },
+        ]}
+        signals={[
+          { label: "Nao Abordar respeitados", value: data.care.doNotContactRespected },
+          { label: "Alertas sensiveis", value: data.care.sensitiveAlertsCount },
+          { label: "Encaminhamentos do ciclo", value: data.care.referralsMade },
+        ]}
+        footer={
+          <>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-400">Cuidar da Base</p>
+            <p className="mt-2 text-lg font-black text-white">{data.care.wellnessMicrocopy}</p>
+            <p className="mt-2 text-sm leading-6 text-zinc-300">{data.care.wellnessRecommendation}</p>
+          </>
+        }
+      />
     </section>
   );
 }
@@ -793,29 +661,6 @@ function SectionHeader({
   );
 }
 
-function HeroMetric({
-  icon: Icon,
-  label,
-  value,
-  detail,
-}: {
-  icon: typeof Target;
-  label: string;
-  value: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-[24px] border border-zinc-200 bg-white/82 p-4 shadow-[0_12px_36px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center gap-2 text-zinc-500">
-        <Icon className="h-4 w-4" />
-        <p className="text-[11px] font-black uppercase tracking-[0.2em]">{label}</p>
-      </div>
-      <p className="mt-3 text-2xl font-black tracking-tight text-zinc-950">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-zinc-500">{detail}</p>
-    </div>
-  );
-}
-
 function SignalBadge({
   icon: Icon,
   label,
@@ -826,42 +671,13 @@ function SignalBadge({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
-      <div className="flex items-center gap-2 text-zinc-500">
-        <Icon className="h-4 w-4" />
-        <p className="text-[10px] font-black uppercase tracking-[0.18em]">{label}</p>
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
+        <div className="flex items-center gap-2 text-zinc-500">
+          <Icon className="h-4 w-4" />
+          <p className="text-[9px] font-black uppercase tracking-[0.14em] leading-4">{label}</p>
+        </div>
+        <p className="mt-2 text-2xl font-black text-zinc-950">{value}</p>
       </div>
-      <p className="mt-2 text-2xl font-black text-zinc-950">{value}</p>
-    </div>
-  );
-}
-
-function MissionInfo({ label, value, highlighted }: { label: string; value: string; highlighted?: boolean }) {
-  return (
-    <div className={cn("space-y-2 rounded-2xl border p-4", highlighted ? "border-zinc-300 bg-white" : "border-zinc-200 bg-zinc-50/80")}>
-      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">{label}</p>
-      <p className={cn("text-sm leading-6", highlighted ? "font-black text-zinc-950" : "font-medium text-zinc-700")}>{value}</p>
-    </div>
-  );
-}
-
-function TemperatureBadge({ temperature }: { temperature: PriorityPerson["temperature"] }) {
-  const label = {
-    quente: "Quente",
-    morno: "Morno",
-    frio: "Observação",
-  }[temperature];
-
-  const tone = {
-    quente: "border-rose-200 bg-rose-50 text-rose-700",
-    morno: "border-amber-200 bg-amber-50 text-amber-700",
-    frio: "border-sky-200 bg-sky-50 text-sky-700",
-  }[temperature];
-
-  return (
-    <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em]", tone)}>
-      {label}
-    </Badge>
   );
 }
 
@@ -934,9 +750,9 @@ function TerritoryStat({
 
   return (
     <div className={cn("rounded-[24px] border p-4", toneClass)}>
-      <p className="text-[11px] font-black uppercase tracking-[0.2em]">{title}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.14em]">{title}</p>
       <p className="mt-2 text-3xl font-black tracking-tight">{value}</p>
-      <p className="mt-4 text-sm font-black">{neighborhood}</p>
+      <p className="mt-4 truncate text-sm font-black">{neighborhood}</p>
       <p className="mt-1 text-sm leading-6 opacity-80">{detail}</p>
     </div>
   );
@@ -1004,49 +820,4 @@ function FieldColumn({
       )}
     </div>
   );
-}
-
-function DarkMetric({ label, value, helper }: { label: string; value: string; helper: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">{label}</p>
-      <p className="mt-2 text-3xl font-black tracking-tight text-white">{value}</p>
-      <p className="mt-1 text-xs leading-5 text-zinc-400">{helper}</p>
-    </div>
-  );
-}
-
-function DarkSignal({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400">{label}</p>
-      <p className="mt-2 text-2xl font-black text-white">{value}</p>
-    </div>
-  );
-}
-
-function inferJourney(person: PriorityPerson) {
-  if (person.riskFlags.doNotContact) {
-    return { phase: "Concluir", progress: 100, activeIndex: 4 };
-  }
-
-  const status = person.outreachStatusLabel.toLowerCase();
-
-  if (status.includes("não abordar")) {
-    return { phase: "Concluir", progress: 100, activeIndex: 4 };
-  }
-  if (status.includes("contato confirmado") || status.includes("primeira ação")) {
-    return { phase: "Concluir", progress: 100, activeIndex: 4 };
-  }
-  if (status.includes("encaminhar") || person.hasReferral) {
-    return { phase: "Encaminhar", progress: 80, activeIndex: 3 };
-  }
-  if (status.includes("respondeu")) {
-    return { phase: "Registrar", progress: 60, activeIndex: 2 };
-  }
-  if (status.includes("abordado") || status.includes("mensagem") || person.isPendingResponse) {
-    return { phase: "Conversar", progress: 40, activeIndex: 1 };
-  }
-
-  return { phase: "Preparar", progress: 20, activeIndex: 0 };
 }

@@ -15,6 +15,7 @@ import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { OperationalAlert } from "@/components/radar/operational-alert";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 import { cn } from "@/lib/utils";
 
 
@@ -120,22 +121,19 @@ export default async function VolunteersPage({
             <CardContent className="p-0 overflow-x-auto">
 
               {volunteers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-                  <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6 border-2 border-dashed border-emerald-200">
-                    <Heart className="h-10 w-10 text-emerald-300" />
-                  </div>
-                  <h3 className="font-black text-2xl text-emerald-950 mb-3 tracking-tight">Pronto para começar a rede?</h3>
-                  <p className="text-sm text-emerald-900/60 max-w-md mx-auto mb-8 font-medium leading-relaxed">
-                    A base de voluntários é o coração da mobilização. Comece convertendo seguidores engajados do Instagram em apoio real ou revisando as inscrições recebidas.
-                  </p>
-                  <div className="flex flex-col sm:flex-row justify-center gap-4 w-full sm:w-auto">
-                    <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold px-10" render={<Link href="/voluntarios/inscricoes" />}>
-                      Revisar Inscrições
-                    </Button>
-                    <Button variant="outline" nativeButton={false} className="border-zinc-200 font-bold" render={<Link href="/pessoas" />}>
-                      Identificar nas Prioridades
-                    </Button>
-                  </div>
+                <div className="p-6">
+                  <GamefulEmptyState
+                    variant="field"
+                    title="Nenhum voluntário ativo"
+                    description="A base consentida ainda não recebeu inscrições ou confirmações suficientes para abrir uma frente de apoio."
+                    nextActionLabel="revisar inscrições"
+                    nextActionHref="/voluntarios/inscricoes"
+                    secondaryAction={
+                      <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/pessoas" />}>
+                        Ver prioridades
+                      </Button>
+                    }
+                  />
                 </div>
               ) : (
                 <Table>

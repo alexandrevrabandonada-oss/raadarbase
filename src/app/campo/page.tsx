@@ -7,18 +7,17 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listFieldAgendaEvents, listFieldAgendaEventResultsByEventIds } from "@/lib/data/field-agenda";
 import {
   MapPin,
-  Calendar,
   Plus,
-  History,
-  Users,
   ArrowRight,
   Sparkles,
-  CheckCircle2,
   ClipboardCheck,
   Megaphone,
 } from "lucide-react";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
-import { EmptyState } from "@/components/radar/empty-state";
+import { FieldMissionCard } from "@/components/radar/field-mission-card";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import { GamefulHero } from "@/components/radar/gameful-hero";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { getFieldJourneySnapshot } from "@/lib/data/field-agenda-journey";
 import { FieldJourneyProgressCompact } from "@/components/radar/field-agenda/field-journey-progress";
 
@@ -81,51 +80,21 @@ export default async function FieldAgendaPage() {
       />
 
       <div className="mt-8 space-y-8">
-        <section className="overflow-hidden rounded-[32px] border border-zinc-900/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_24%),linear-gradient(145deg,#09090b_0%,#18181b_58%,#27272a_100%)] p-8 text-white shadow-2xl shadow-zinc-200/50">
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Jornada territorial</p>
-                  <h2 className="mt-1 text-4xl font-black tracking-tight text-white">Missões de Campo</h2>
-                </div>
-              </div>
-
-              <p className="max-w-3xl text-base font-medium leading-relaxed text-zinc-300">
-                Cada ação de campo vira uma missão de campanha com progresso explícito: convidar, confirmar, realizar, registrar presença e sustentar follow-up no território.
-              </p>
-
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                  <CardContent className="p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões ativas</p>
-                    <p className="mt-2 text-3xl font-black">{activeEvents.length}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                  <CardContent className="p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Convites</p>
-                    <p className="mt-2 text-3xl font-black">{totals.invites}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                  <CardContent className="p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Confirmações</p>
-                    <p className="mt-2 text-3xl font-black">{totals.confirmed}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                  <CardContent className="p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Presenças</p>
-                    <p className="mt-2 text-3xl font-black">{totals.attended}</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
+        <GamefulHero
+          eyebrow="Jornada territorial"
+          title="Missões de Campo"
+          description="Cada ação de campo vira uma missão de campanha com progresso explícito: convidar, confirmar, realizar, registrar presença e sustentar follow-up no território."
+          icon={Sparkles}
+          variant="field"
+          metrics={
+            <>
+              <GamefulMetricCard label="Missões ativas" value={activeEvents.length} tone="dark" />
+              <GamefulMetricCard label="Convites" value={totals.invites} tone="dark" />
+              <GamefulMetricCard label="Confirmações" value={totals.confirmed} tone="dark" />
+              <GamefulMetricCard label="Presenças" value={totals.attended} tone="dark" />
+            </>
+          }
+          aside={
             <div className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
               {nextMission ? (
@@ -152,11 +121,27 @@ export default async function FieldAgendaPage() {
                   </Button>
                 </>
               ) : (
-                <p className="text-sm font-medium text-zinc-300">Nenhuma missão ativa no momento.</p>
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-black tracking-tight text-white">Sem campo planejado</h3>
+                  <p className="text-sm font-medium leading-6 text-zinc-300">
+                    Nenhuma missão presencial está aberta agora. O campo depende de território, contexto e confirmação humana.
+                  </p>
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próximo passo</p>
+                    <p className="mt-2 text-sm font-black text-emerald-200">Preparar a base: revisar territórios quentes ou abrir a próxima missão presencial.</p>
+                  </div>
+                  <Button
+                    nativeButton={false}
+                    className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+                    render={<Link href="/campo/novo" />}
+                  >
+                    Criar missão <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <Card className="rounded-[30px] border-zinc-200 shadow-sm">
@@ -212,13 +197,15 @@ export default async function FieldAgendaPage() {
 
           {activeEvents.length === 0 ? (
             <div className="rounded-[30px] border border-zinc-100 bg-white p-6 shadow-sm">
-              <EmptyState
-                type="no_data"
-                title="Nenhuma missão de campo aberta"
-                description="Crie uma missão territorial para conectar mobilização, presença e follow-up."
-                primaryAction={
-                  <Button nativeButton={false} className="font-bold" render={<Link href="/campo/novo" />}>
-                    <Plus className="mr-2 h-4 w-4" /> Criar missão
+              <GamefulEmptyState
+                variant="field"
+                title="Nenhuma missão ativa"
+                description="Sem campo planejado. A campanha ainda não abriu uma ação presencial com convites, confirmações e follow-up."
+                nextActionLabel="criar missão de campo"
+                nextActionHref="/campo/novo"
+                secondaryAction={
+                  <Button nativeButton={false} variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/relatorios/territorios" />}>
+                    Ver mapa
                   </Button>
                 }
               />
@@ -228,55 +215,23 @@ export default async function FieldAgendaPage() {
               {activeEvents.map((event) => {
                 const journey = journeys[event.id];
                 return (
-                  <Link key={event.id} href={`/campo/${event.id}`}>
-                    <Card className="h-full rounded-[30px] border-zinc-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
-                      <CardContent className="space-y-5 p-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">{journey.currentPhaseLabel}</Badge>
-                              {event.neighborhood ? (
-                                <Badge variant="outline" className="border-zinc-200 text-zinc-600">
-                                  <MapPin className="mr-1 h-3 w-3" /> {event.neighborhood}
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <h4 className="mt-3 text-xl font-black tracking-tight text-zinc-950">{event.title}</h4>
-                            <p className="mt-1 text-sm font-medium text-zinc-500">{formatDate(event.startsAt)}</p>
-                          </div>
-                          <FieldJourneyProgressCompact snapshot={journey} />
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Convites</p>
-                            <p className="mt-2 text-lg font-black text-zinc-950">{event.metrics?.totalInvited ?? 0}</p>
-                          </div>
-                          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Confirmações</p>
-                            <p className="mt-2 text-lg font-black text-zinc-950">{event.metrics?.confirmed ?? 0}</p>
-                          </div>
-                          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Presença</p>
-                            <p className="mt-2 text-lg font-black text-zinc-950">{event.metrics?.attended ?? 0}</p>
-                          </div>
-                          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ajuda</p>
-                            <p className="mt-2 text-lg font-black text-zinc-950">{event.metrics?.helped ?? 0}</p>
-                          </div>
-                          <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Follow-up</p>
-                            <p className="mt-2 text-lg font-black text-zinc-950">{journey.hasFollowUpTasks ? "Ativo" : "Pendente"}</p>
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-500">Próximo passo da missão</p>
-                          <p className="mt-2 text-sm font-black text-indigo-950">{journey.nextStep}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                  <FieldMissionCard
+                    key={event.id}
+                    href={`/campo/${event.id}`}
+                    title={event.title}
+                    neighborhood={event.neighborhood}
+                    phaseLabel={journey.currentPhaseLabel}
+                    dateLabel={formatDate(event.startsAt)}
+                    nextStep={journey.nextStep}
+                    progress={<FieldJourneyProgressCompact snapshot={journey} />}
+                    metrics={[
+                      { label: "Convites", value: event.metrics?.totalInvited ?? 0 },
+                      { label: "Confirmações", value: event.metrics?.confirmed ?? 0 },
+                      { label: "Presença", value: event.metrics?.attended ?? 0 },
+                      { label: "Ajuda", value: event.metrics?.helped ?? 0 },
+                      { label: "Follow-up", value: journey.hasFollowUpTasks ? "Ativo" : "Pendente" },
+                    ]}
+                  />
                 );
               })}
             </div>
@@ -292,41 +247,35 @@ export default async function FieldAgendaPage() {
           <div className="grid gap-4">
             {completedEvents.length === 0 ? (
               <Card className="rounded-[30px] border-zinc-100 shadow-sm">
-                <CardContent className="p-6 text-sm font-medium text-zinc-500">
-                  Nenhuma missão concluída recentemente.
+                <CardContent className="p-6">
+                  <GamefulEmptyState
+                    variant="memory"
+                    compact
+                    title="Nenhum fechamento recente"
+                    description="Ainda não há missão concluída para compor a memória recente do campo."
+                    nextActionLabel="fechar o próximo ciclo"
+                  />
                 </CardContent>
               </Card>
             ) : (
               completedEvents.slice(0, 5).map((event) => (
-                <Link key={event.id} href={`/campo/${event.id}`}>
-                  <Card className="rounded-[30px] border-zinc-100 shadow-sm transition-all hover:border-emerald-200 hover:shadow-md">
-                    <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                            <CheckCircle2 className="mr-1 h-3 w-3" /> Concluída
-                          </Badge>
-                          {event.neighborhood ? (
-                            <Badge variant="outline" className="border-zinc-200 text-zinc-600">
-                              {event.neighborhood}
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <h4 className="mt-3 text-lg font-black text-zinc-950">{event.title}</h4>
-                        <p className="mt-1 text-sm font-medium text-zinc-500">{formatDate(event.startsAt)}</p>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="hidden md:block">
-                          <FieldJourneyProgressCompact snapshot={journeys[event.id]} />
-                        </div>
-                        <div className="flex items-center gap-2 rounded-full bg-zinc-50 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-600">
-                          <Users className="h-3 w-3" /> {event.metrics?.attended ?? 0} presenças
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                <FieldMissionCard
+                  key={event.id}
+                  href={`/campo/${event.id}`}
+                  title={event.title}
+                  neighborhood={event.neighborhood}
+                  phaseLabel="Concluída"
+                  dateLabel={formatDate(event.startsAt)}
+                  nextStep={`Missão fechada com ${event.metrics?.attended ?? 0} presenças registradas.`}
+                  completed
+                  progress={<div className="hidden md:block"><FieldJourneyProgressCompact snapshot={journeys[event.id]} /></div>}
+                  metrics={[
+                    { label: "Presenças", value: event.metrics?.attended ?? 0 },
+                    { label: "Confirmações", value: event.metrics?.confirmed ?? 0 },
+                    { label: "Convites", value: event.metrics?.totalInvited ?? 0 },
+                  ]}
+                  className="hover:border-emerald-200"
+                />
               ))
             )}
           </div>

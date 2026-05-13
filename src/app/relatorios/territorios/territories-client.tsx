@@ -1,22 +1,25 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Map,
   Search,
   Loader2,
   ArrowLeft,
-  ShieldCheck,
   Flame,
   ArrowRight,
   Users,
-  Calendar,
-  BookOpenText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
+import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { TerritoryNodeCard } from "@/components/radar/territory-node-card";
 import type { TerritorySummary, TerritoryDetail } from "@/lib/types";
 import type { TerritorialExpansionResult } from "@/lib/data/territorial-expansion";
 import { TerritorialCard } from "@/components/radar/reports/territorial-card";
@@ -29,13 +32,6 @@ import { TerritoryStageBadge } from "@/components/radar/territories/territory-st
 interface TerritoriesClientProps {
   initialSummaries: TerritorySummary[];
   expansionData: TerritorialExpansionResult;
-}
-
-function territoryNodeTone(score: number) {
-  if (score >= 85) return "border-rose-200 bg-rose-50";
-  if (score >= 60) return "border-amber-200 bg-amber-50";
-  if (score >= 35) return "border-sky-200 bg-sky-50";
-  return "border-zinc-200 bg-zinc-50";
 }
 
 export function TerritoriesClient({ initialSummaries, expansionData }: TerritoriesClientProps) {
@@ -63,6 +59,7 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
   }, [summaries]);
 
   const hottest = React.useMemo(() => summaries.slice().sort((a, b) => b.priorityScore - a.priorityScore)[0], [summaries]);
+  const hasTerritories = summaries.length > 0;
 
   const handleSelectBairro = async (name: string) => {
     setSelectedBairro(name);
@@ -117,51 +114,21 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <section className="overflow-hidden rounded-[32px] border border-zinc-900/10 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.20),_transparent_24%),linear-gradient(145deg,#09090b_0%,#18181b_58%,#27272a_100%)] p-8 text-white shadow-2xl shadow-zinc-200/50">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
-                <Map className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Base territorial</p>
-                <h1 className="mt-1 text-4xl font-black tracking-tight text-white">Mapa da Mobilização</h1>
-              </div>
-            </div>
-
-            <p className="max-w-3xl text-base font-medium leading-relaxed text-zinc-300">
-              Cada bairro aparece como nó territorial com fase, calor, temas dominantes e missão recomendada. O foco é decidir onde ouvir, mobilizar, ir a campo e sustentar continuidade.
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Bairros mapeados</p>
-                  <p className="mt-2 text-3xl font-black">{summaries.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Em mobilização</p>
-                  <p className="mt-2 text-3xl font-black">{phaseCounts.mobilizacao}</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Em campo</p>
-                  <p className="mt-2 text-3xl font-black">{phaseCounts.campo}</p>
-                </CardContent>
-              </Card>
-              <Card className="border border-white/10 bg-white/5 text-white shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Em continuidade</p>
-                  <p className="mt-2 text-3xl font-black">{phaseCounts.continuidade}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
+      <GamefulHero
+        eyebrow="Base territorial"
+        title="Mapa da Mobilização"
+        description="Cada bairro aparece como nó territorial com fase, calor, temas dominantes e missão recomendada. O foco é decidir onde ouvir, mobilizar, ir a campo e sustentar continuidade."
+        icon={Map}
+        variant="territory"
+        metrics={
+          <>
+            <GamefulMetricCard label="Bairros mapeados" value={summaries.length} tone="dark" />
+            <GamefulMetricCard label="Em mobilização" value={phaseCounts.mobilizacao} tone="dark" />
+            <GamefulMetricCard label="Em campo" value={phaseCounts.campo} tone="dark" />
+            <GamefulMetricCard label="Em continuidade" value={phaseCounts.continuidade} tone="dark" />
+          </>
+        }
+        aside={
           <div className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Território mais quente</p>
@@ -169,16 +136,14 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
             </div>
             {hottest ? (
               <>
-                <h3 className="text-2xl font-black tracking-tight text-white">{hottest.neighborhood}</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <TerritoryStageBadge phase={mapTerritoryToPhase(hottest)} compact />
-                  <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
-                    Calor {hottest.priorityScore}
-                  </Badge>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Temas que puxam o bairro</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <h3 className="text-2xl font-black tracking-tight text-white">{hottest.neighborhood}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <TerritoryStageBadge phase={mapTerritoryToPhase(hottest)} compact />
+                    <GamefulHeroBadge>Calor {hottest.priorityScore}</GamefulHeroBadge>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Temas que puxam o bairro</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
                     {hottest.topThemes.map((theme) => (
                       <Badge key={theme.theme} className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
                         {theme.theme}
@@ -193,23 +158,44 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
                   Abrir detalhe territorial <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </>
-            ) : null}
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-2xl font-black tracking-tight text-white">Mapa ainda sem sinais</h3>
+                <p className="text-sm leading-6 text-zinc-300">
+                  O mapa territorial depende de bairro declarado ou registrado. Sem isso, a leitura continua agregada, mas ainda não forma nós territoriais.
+                </p>
+                <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missão territorial inicial</p>
+                  <p className="mt-2 text-sm font-black text-amber-200">Registrar bairros, revisar pessoas sem bairro e abrir a primeira ação de campo onde já houver contexto.</p>
+                </div>
+                <div className="grid gap-2">
+                  <Button
+                    className="h-11 bg-indigo-600 px-4 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+                    nativeButton={false}
+                    render={<Link href="/pessoas" />}
+                  >
+                    Revisar pessoas sem bairro
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 border-white/15 bg-white/5 px-4 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
+                    nativeButton={false}
+                    render={<Link href="/campo/novo" />}
+                  >
+                    Criar ação de campo
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        }
+      />
 
-      <div className="flex flex-col gap-4 rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Guardrail territorial</p>
-          <p className="text-sm font-medium text-zinc-600">
-            O mapa mostra leitura agregada por bairro. Nenhuma pessoa é exposta como unidade territorial.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-emerald-700">
-          <ShieldCheck className="h-4 w-4" />
-          <span className="text-xs font-black uppercase tracking-widest">Leitura ética ativa</span>
-        </div>
-      </div>
+      <EthicalGuardrailBanner
+        description="O mapa mostra leitura agregada por bairro. Nenhuma pessoa é exposta como unidade territorial."
+        badgeLabel="Leitura ética ativa"
+        tone="zinc"
+      />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -227,78 +213,26 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {filteredSummaries.map((item) => {
-          const phase = mapTerritoryToPhase(item);
-          return (
-            <button
-              key={item.neighborhood}
-              onClick={() => handleSelectBairro(item.neighborhood)}
-              className={`
-                group rounded-[30px] border p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl
-                ${territoryNodeTone(item.priorityScore)}
-              `}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Nó territorial</p>
-                  <h3 className="mt-2 text-xl font-black tracking-tight text-zinc-950">{item.neighborhood}</h3>
-                </div>
-                <Badge className="border border-zinc-200 bg-white text-zinc-900 hover:bg-white">
-                  {item.priorityScore}
-                </Badge>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <TerritoryStageBadge phase={phase} compact />
-                <Badge variant="outline" className="border-zinc-200 bg-white text-zinc-600">
-                  {item.fieldActions} campo
-                </Badge>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/50 bg-white/70 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Calor</p>
-                  <p className="mt-2 text-lg font-black text-zinc-950">{item.priorityScore}%</p>
-                </div>
-                <div className="rounded-2xl border border-white/50 bg-white/70 p-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ação recomendada</p>
-                  <p className="mt-2 text-sm font-black text-indigo-700">{phase.nextStep}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div className="flex items-center gap-2 text-zinc-500">
-                  <BookOpenText className="h-4 w-4" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em]">Temas principais</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {item.topThemes.map((theme) => (
-                    <Badge key={theme.theme} variant="outline" className="border-zinc-200 bg-white text-zinc-700">
-                      {theme.theme}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-3 gap-3 border-t border-zinc-200/70 pt-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Sinais</p>
-                  <p className="mt-2 text-sm font-black text-zinc-950">{item.peopleMonitored}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Prioridades</p>
-                  <p className="mt-2 text-sm font-black text-zinc-950">{item.priorityPeople}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Voluntários</p>
-                  <p className="mt-2 text-sm font-black text-zinc-950">{item.volunteers}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      {hasTerritories ? (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {filteredSummaries.map((item) => (
+            <TerritoryNodeCard key={item.neighborhood} territory={item} onSelect={handleSelectBairro} />
+          ))}
+        </div>
+      ) : (
+        <GamefulEmptyState
+          variant="territory"
+          title="Mapa ainda sem sinais"
+          description="Nenhum bairro foi mapeado por enquanto. O Radar só abre leitura territorial quando há bairro declarado ou registrado nas interações e ações de campo."
+          nextActionLabel="registrar bairro ou revisar pessoas sem bairro"
+          nextActionHref="/pessoas"
+          secondaryAction={
+            <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/campo/novo" />}>
+              Criar missão de campo
+            </Button>
+          }
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Card className="rounded-[30px] border-zinc-200 shadow-sm">

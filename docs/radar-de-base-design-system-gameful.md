@@ -650,3 +650,49 @@ O design system esta funcionando quando:
 - territorio e campo parecem partes da mesma campanha cooperativa;
 - conclusoes geram continuidade, nao apenas "feito";
 - etica e acessibilidade continuam visiveis na interface.
+
+## 11. Kit de componentes implementado
+
+Na rodada GAMEUX10, os principais padroes visuais deixaram de existir apenas como trechos soltos de Tailwind e passaram a existir como componentes reais reutilizaveis em `src/components/radar/`.
+
+### Componentes-base
+
+- `gameful-hero.tsx`
+  - Hero compartilhado para Base, Jornada, Territorio e Campo.
+  - Props centrais: `eyebrow`, `title`, `description`, `badges`, `actions`, `metrics`, `aside`, `variant`.
+- `gameful-metric-card.tsx`
+  - Cartao unico para metricas pequenas e medias.
+  - Tons: `light`, `dark`, `indigo`, `amber`, `emerald`.
+- `gameful-portal-card.tsx`
+  - Card de navegacao de mundos com `status`, `nextStep` e CTA.
+- `gameful-empty-state.tsx`
+  - Biblioteca de estados vazios por frente: `base`, `journey`, `territory`, `field`, `rhythm`, `memory`, `ethics`.
+
+### Componentes de missao e jornada
+
+- `mission-card.tsx`
+  - Card padrao de missao para pessoa, com fase atual, motivo, proxima acao, bloqueio/espera, trilha e CTA principal.
+- `journey-bar.tsx`
+  - Trilha compartilhada de fases com versoes `compact` e `completa`.
+  - `journey-progress.tsx` virou wrapper fino para preservar compatibilidade com chamadas antigas.
+
+### Componentes de ritmo, territorio e campo
+
+- `rhythm-panel.tsx`
+  - Painel escuro unificado para cuidado, ritmo e saude operacional.
+- `territory-node-card.tsx`
+  - No territorial padrao para bairro, com fase, calor, temas e leitura resumida.
+- `field-mission-card.tsx`
+  - Card padrao para missao de campo ativa ou concluida, com metricas e proximo passo.
+
+### Componente etico
+
+- `ethical-guardrail-banner.tsx`
+  - Banner curto para reforcar leitura agregada, cuidado com consentimento e operacao humana.
+
+### Regras de uso
+
+- novas telas gameful devem compor a partir desses componentes antes de criar novas variacoes locais;
+- variacao visual deve acontecer primeiro por prop (`tone`, `variant`, `compact`, `footer`, `aside`), nao por copia de classes;
+- se um layout novo exigir mais de 8 a 10 classes repetidas em duas rotas, o padrao deve voltar para o kit;
+- componentes locais antigos ainda podem existir por compatibilidade, mas o alvo daqui para frente e convergir para este kit.

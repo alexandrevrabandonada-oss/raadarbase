@@ -484,7 +484,7 @@ export function KanbanClient({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger>
+              <TooltipTrigger render={<div />}>
                 <div className={cn("inline-block", (isDistributing || selectedOperators.length === 0) && "cursor-not-allowed")}>
                   <Button 
                     onClick={runBalance} 
@@ -516,9 +516,9 @@ export function KanbanClient({
                   <p className="mt-1 text-[10px] font-medium text-zinc-400">{description}</p>
                 </div>
                 {columnTasks.some(t => t.isStale) && (
-                   <TooltipProvider>
+                        <TooltipProvider>
                       <Tooltip>
-                        <TooltipTrigger>
+                        <TooltipTrigger render={<div />}>
                            <ShieldAlert className="h-3 w-3 text-rose-500" />
                         </TooltipTrigger>
                         <TooltipContent>Há tarefas paradas nesta coluna.</TooltipContent>

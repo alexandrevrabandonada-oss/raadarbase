@@ -48,7 +48,7 @@ type NavGroup = {
 const navigation: NavGroup[] = [
   {
     label: "Base",
-    description: "Centro da operação e leitura geral do ciclo.",
+    description: "Centro da operação.",
     items: [
       {
         href: "/dashboard",
@@ -60,7 +60,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Jornada",
-    description: "Missões, fila e acompanhamento dos vínculos.",
+    description: "Missões e vínculos.",
     items: [
       {
         href: "/minha-fila",
@@ -90,7 +90,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Território",
-    description: "Mapa de bairros, temas e tração territorial.",
+    description: "Bairros, temas e tração.",
     items: [
       {
         href: "/relatorios/territorios",
@@ -109,7 +109,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Campo",
-    description: "Convites, presença e fechamento das ações presenciais.",
+    description: "Convites, presença e fechamento.",
     items: [
       {
         href: "/campo",
@@ -127,7 +127,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Memória",
-    description: "Aprendizados, devolutivas e continuidade do trabalho.",
+    description: "Aprendizados e continuidade.",
     items: [
       {
         href: "/memoria",
@@ -145,7 +145,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Comando",
-    description: "Ritmo, planos e coordenação entre frentes.",
+    description: "Ritmo e coordenação.",
     items: [
       {
         href: "/ritmo",
@@ -175,7 +175,7 @@ const navigation: NavGroup[] = [
   },
   {
     label: "Sistema",
-    description: "Infraestrutura, integridade e governança.",
+    description: "Infraestrutura e governança.",
     collapsible: true,
     items: [
       {
@@ -277,7 +277,7 @@ export function Sidebar({
               >
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.22em] text-zinc-500">{group.label}</p>
-                  <p className="mt-1 text-xs leading-5 text-zinc-500">{group.description}</p>
+                  <p className="mt-1 line-clamp-1 text-[11px] leading-4 text-zinc-500">{group.description}</p>
                 </div>
                 {group.collapsible ? (
                   <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-zinc-400 transition-transform", isCollapsed && "-rotate-90")} />
@@ -316,7 +316,7 @@ export function Sidebar({
                             <p className="truncate text-sm font-black tracking-tight">{item.label}</p>
                             <p
                               className={cn(
-                                "mt-1 line-clamp-2 text-[11px] leading-4 transition-colors",
+                                "mt-1 line-clamp-2 text-[10px] leading-4 transition-colors",
                                 isActive
                                   ? "text-zinc-300"
                                   : mobile
