@@ -7,7 +7,7 @@ import { QueueClient } from "./queue-client";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Minha Fila | Modo Operador",
+  title: "Minha Jornada | Modo Operador",
   description: "Siga sua trilha de missões diárias com foco, clareza e registro ético.",
 };
 
@@ -22,7 +22,7 @@ export default async function MinhaFilaPage() {
   } catch (error) {
     return (
       <AppShell>
-        <PageHeader title="Minha Fila" description="Trabalhe suas tarefas diárias." />
+        <PageHeader title="Minha Jornada" description="Trabalhe uma missão por vez, com ritmo claro." />
         <RuntimeAlert
           title="Erro ao carregar fila"
           description={error instanceof Error ? error.message : "Não foi possível carregar suas tarefas prioritárias."}
@@ -54,7 +54,7 @@ export default async function MinhaFilaPage() {
       <PageHeader 
         compact
         eyebrow="Modo Operador"
-        title="Minha Fila" 
+        title="Minha Jornada" 
         description="Seu hub de jornada: uma missão por vez, com próximo passo claro e ritmo sustentável." 
       />
       

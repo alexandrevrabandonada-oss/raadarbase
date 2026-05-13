@@ -8,7 +8,7 @@ export default function Loading() {
       <PageHeader 
         compact
         eyebrow="Modo Operador"
-        title="Minha Fila" 
+        title="Minha Jornada" 
         description="Montando sua trilha de missões do dia..." 
       />
       <RadarLoading message="Preparando jornada, bem-estar e próximas missões..." />

@@ -11,12 +11,17 @@ export default async function AppShell({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Mobile Header */}
-      <header className="lg:hidden h-16 border-b bg-card flex items-center justify-between px-4 sticky top-0 z-40">
+      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card px-4 lg:hidden">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-black text-white font-black text-sm shadow-md">
             RB
           </div>
-          <span className="font-black text-sm tracking-tight">Radar de Base</span>
+          <div>
+            <span className="block text-sm font-black tracking-tight">Radar de Base</span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Mapa de Mundos
+            </span>
+          </div>
         </div>
         
         <Sheet>
@@ -27,11 +32,12 @@ export default async function AppShell({ children }: { children: React.ReactNode
               </Button>
             }
           />
-          <SheetContent side="left" className="p-0 w-72">
+          <SheetContent side="left" className="w-[22rem] p-0">
             <Sidebar 
               userEmail={user?.email ?? undefined} 
               useMocks={USE_MOCKS} 
-              className="lg:border-none lg:sticky-none h-full"
+              mobile
+              className="h-full lg:border-none lg:sticky-none"
             />
           </SheetContent>
         </Sheet>

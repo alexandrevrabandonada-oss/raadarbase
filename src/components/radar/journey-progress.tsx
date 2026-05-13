@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Circle, Lock, AlertCircle, ChevronRight } from "lucide-react";
+import { CheckCircle2, Lock, AlertCircle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JourneyPhase, JOURNEY_PHASES_ORDER } from "@/lib/data/journey-mapper";
 
@@ -32,66 +32,74 @@ export function JourneyProgress({
 }: JourneyProgressProps) {
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5">
-        <div className="flex -space-x-1">
+      <div className="min-w-0 space-y-2">
+        <div className="flex items-center gap-2">
           {JOURNEY_PHASES_ORDER.map((phase) => {
             const isCompleted = completedPhases.includes(phase);
             const isCurrent = currentPhase === phase;
-            
+
             return (
-              <div 
+              <div
                 key={phase}
                 className={cn(
-                  "h-1.5 w-4 rounded-full border border-white first:rounded-l-full last:rounded-r-full transition-all duration-300",
+                  "h-3 flex-1 rounded-full border transition-all duration-300",
                   isBlocked && isCurrent ? "bg-rose-500" :
                   isCompleted ? "bg-emerald-500" :
-                  isCurrent ? "bg-indigo-500 scale-x-125 z-10" :
-                  "bg-zinc-200"
+                  isCurrent ? "border-zinc-950 bg-zinc-950 shadow-[0_0_0_3px_rgba(24,24,27,0.08)]" :
+                  "border-zinc-200 bg-zinc-200"
                 )}
+                title={PHASE_LABELS[phase]}
               />
             );
           })}
         </div>
-        <span className="text-[9px] font-black uppercase text-zinc-500 tracking-tighter">
-          {isBlocked ? blockedReason : PHASE_LABELS[currentPhase]}
-        </span>
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <span className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">
+            {isBlocked ? "Em espera" : PHASE_LABELS[currentPhase]}
+          </span>
+          <span className="shrink-0 text-[11px] font-bold text-zinc-500">
+            {completedPhases.length + (isBlocked ? 0 : 1)}/5
+          </span>
+        </div>
+        {isBlocked && blockedReason ? (
+          <p className="line-clamp-2 text-xs font-semibold leading-5 text-rose-700">{blockedReason}</p>
+        ) : null}
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-4">
-      {/* Visual Bar */}
-      <div className="relative flex items-center justify-between px-2">
-        {/* Background Line */}
-        <div className="absolute left-6 right-6 h-0.5 bg-zinc-100 -z-10" />
-        
+      <div className="grid grid-cols-5 gap-2 sm:gap-3">
         {JOURNEY_PHASES_ORDER.map((phase, idx) => {
           const isCompleted = completedPhases.includes(phase);
           const isCurrent = currentPhase === phase;
-          const isNext = !isCompleted && !isCurrent && JOURNEY_PHASES_ORDER[idx - 1] === currentPhase;
 
           return (
-            <div key={phase} className="flex flex-col items-center gap-1.5">
-              <div 
+            <div key={phase} className="min-w-0 space-y-2">
+              <div
                 className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center transition-all duration-500 border-2",
-                  isBlocked && isCurrent ? "bg-rose-50 border-rose-200 text-rose-500" :
-                  isCompleted ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm" :
-                  isCurrent ? "bg-indigo-600 border-indigo-600 text-white shadow-lg scale-110" :
-                  "bg-white border-zinc-200 text-zinc-300"
+                  "flex min-h-16 flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition-all duration-300",
+                  isBlocked && isCurrent ? "border-rose-200 bg-rose-50 text-rose-600" :
+                  isCompleted ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                  isCurrent ? "border-zinc-950 bg-zinc-950 text-white shadow-lg shadow-zinc-200" :
+                  "border-zinc-200 bg-white text-zinc-400"
                 )}
               >
-                {isBlocked && isCurrent ? <Lock className="h-4 w-4" /> :
-                 isCompleted ? <CheckCircle2 className="h-4 w-4" /> :
-                 <span className="text-[10px] font-black">{idx + 1}</span>}
+                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full border border-current/20 bg-current/5">
+                  {isBlocked && isCurrent ? <Lock className="h-3.5 w-3.5" /> :
+                   isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> :
+                   <span className="text-[10px] font-black">{idx + 1}</span>}
+                </div>
+                <span
+                  className={cn(
+                    "block max-w-full text-[10px] font-black uppercase leading-4 tracking-[0.08em]",
+                    isCurrent ? "text-current" : "text-current/85"
+                  )}
+                >
+                  {PHASE_LABELS[phase]}
+                </span>
               </div>
-              <span className={cn(
-                "text-[9px] font-black uppercase tracking-widest transition-colors duration-300",
-                isCurrent ? "text-indigo-600" : "text-zinc-400"
-              )}>
-                {PHASE_LABELS[phase]}
-              </span>
             </div>
           );
         })}
@@ -99,13 +107,13 @@ export function JourneyProgress({
 
       {/* Info Card */}
       <div className={cn(
-        "p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4",
-        isBlocked ? "bg-rose-50 border-rose-100" : "bg-indigo-50/50 border-indigo-100"
+        "flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all duration-300",
+        isBlocked ? "border-rose-100 bg-rose-50" : "border-zinc-200 bg-zinc-50"
       )}>
         <div className="flex items-center gap-3">
           <div className={cn(
             "p-2 rounded-xl",
-            isBlocked ? "bg-rose-100 text-rose-600" : "bg-white text-indigo-600 shadow-sm"
+            isBlocked ? "bg-rose-100 text-rose-600" : "bg-white text-zinc-900 shadow-sm"
           )}>
             {isBlocked ? <AlertCircle className="h-5 w-5" /> : <ChevronRight className="h-5 w-5 animate-pulse" />}
           </div>
@@ -114,15 +122,15 @@ export function JourneyProgress({
               {isBlocked ? "Ação Bloqueada" : "Próximo Passo"}
             </p>
             <p className={cn(
-              "text-sm font-black tracking-tight leading-none",
-              isBlocked ? "text-rose-700" : "text-indigo-900"
+              "text-sm font-black leading-5 tracking-tight",
+              isBlocked ? "text-rose-700" : "text-zinc-950"
             )}>
               {isBlocked ? blockedReason : nextStepLabel}
             </p>
           </div>
         </div>
         {!isBlocked && (
-          <div className="text-[9px] font-bold text-indigo-400 bg-white px-2 py-1 rounded-full border border-indigo-100">
+          <div className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[10px] font-bold text-zinc-500">
             Você está aqui
           </div>
         )}

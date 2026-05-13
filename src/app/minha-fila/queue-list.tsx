@@ -2,7 +2,7 @@
 
 import { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Clock, ShieldAlert } from "lucide-react";
+import { ChevronRight, Clock, MapPinned, ShieldAlert } from "lucide-react";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 
 interface QueueListProps {
@@ -46,7 +46,8 @@ export function QueueList({ tasks, currentIndex, onSelect, className }: QueueLis
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="relative space-y-3 pl-6">
+        <div className="absolute bottom-3 left-[17px] top-3 w-px bg-gradient-to-b from-sky-200 via-indigo-200 to-emerald-200" />
         {nextTasks.map((person, idx) => {
           const absoluteIndex = currentIndex + 1 + idx;
           const blocked = person.status === "nao_abordar" || person.riskFlags.doNotContact;
@@ -55,8 +56,11 @@ export function QueueList({ tasks, currentIndex, onSelect, className }: QueueLis
             <button
               key={person.id}
               onClick={() => onSelect(absoluteIndex)}
-              className="group w-full rounded-3xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition-all hover:border-indigo-200 hover:shadow-md"
+              className="group relative w-full rounded-3xl border border-zinc-200 bg-white p-4 text-left shadow-sm transition-all hover:border-indigo-200 hover:shadow-md"
             >
+              <div className="absolute -left-6 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-indigo-200 bg-white text-indigo-600 shadow-sm">
+                <MapPinned className="h-3 w-3" />
+              </div>
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-zinc-100 text-[10px] font-black text-zinc-500 group-hover:bg-indigo-50 group-hover:text-indigo-700">

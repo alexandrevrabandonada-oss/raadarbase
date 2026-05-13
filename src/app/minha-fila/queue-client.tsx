@@ -22,6 +22,11 @@ import {
   Sparkles,
   ChevronRight,
   ArrowRight,
+  Coffee,
+  MapPinned,
+  PauseCircle,
+  Route,
+  TowerControl,
 } from "lucide-react";
 import {
   trackOperationalEvent,
@@ -114,7 +119,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
     trackOperationalEvent("minha_fila_opened");
   }, []);
 
-  const currentPerson = queue[currentIndex];
   const mission = useMemo(
     () =>
       calculateOperatorMission({
@@ -129,7 +133,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   const wellness = assessQueueWellness(queue.length);
   const completedCount = Math.min(currentIndex, queue.length);
   const progressPercent = queue.length === 0 ? 0 : Math.round((completedCount / queue.length) * 100);
-  const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
 
   const handlePrev = () => {
     if (currentIndex > 0) {
@@ -216,6 +219,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           primaryAction={
             <Button
               className="bg-indigo-600 font-black uppercase text-xs tracking-wider hover:bg-indigo-700"
+              nativeButton={false}
               render={<Link href="/abordagem?filter=sem_responsavel" />}
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Assumir missões abertas
@@ -225,6 +229,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             <Button
               variant="outline"
               className="border-zinc-200 font-black uppercase text-xs tracking-wider"
+              nativeButton={false}
               render={<Link href="/dashboard" />}
             >
               <LayoutDashboard className="mr-2 h-4 w-4" /> Voltar à base
@@ -234,6 +239,18 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       </div>
     );
   }
+
+  const currentPerson = queue[currentIndex];
+  const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
+  const phaseBadge = missionPhaseLabel(currentPerson);
+  const currentBlocked = Boolean(currentPerson.riskFlags.doNotContact);
+  const currentHoldLabel = currentBlocked
+    ? currentPerson.doNotContactReason || "Restrição ética ativa."
+    : currentPerson.riskFlags.recentOutreach
+      ? "Contato recente. Aguarde a janela ética antes de insistir."
+      : currentPerson.isPendingResponse
+        ? "Aguardando retorno da conversa já iniciada."
+        : "Sem bloqueio ativo. A missão pode seguir.";
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
@@ -252,17 +269,17 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             <div className="space-y-3">
               <p className="text-[11px] font-black uppercase tracking-[0.28em] text-zinc-400">Jornada do operador</p>
               <h2 className="max-w-2xl text-4xl font-black tracking-tight text-white">
-                Sua fila virou uma trilha guiada de missões.
+                Minha Jornada
               </h2>
               <p className="max-w-2xl text-base font-medium leading-relaxed text-zinc-300">
-                Avance uma missão por vez, registre o que aconteceu e mantenha o ritmo da base sem perder clareza nem cuidado.
+                Trabalhe o dia inteiro a partir desta trilha: uma missão por vez, próximo passo visível e ritmo sustentável sem perder cuidado.
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Card className="border border-white/10 bg-white/5 text-white shadow-none">
                 <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missão do operador</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missão de hoje</p>
                   <p className="mt-2 text-sm font-black text-white">{mission.objective}</p>
                 </CardContent>
               </Card>
@@ -277,24 +294,18 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               </Card>
               <Card className="border border-white/10 bg-white/5 text-white shadow-none">
                 <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Alerta de bem-estar</p>
-                  <p className="mt-2 text-sm font-black text-white">
-                    {wellness.level === "healthy"
-                      ? "Ritmo estável"
-                      : wellness.level === "warning"
-                        ? "Ajustar cadência"
-                        : "Reduzir pressão"}
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-zinc-400">{wellness.microcopy}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Fase atual</p>
+                  <p className="mt-2 text-sm font-black text-white">{phaseBadge}</p>
+                  <p className="mt-1 text-xs font-medium text-zinc-400">Trilha atual da missão em foco.</p>
                 </CardContent>
               </Card>
               <Card className="border border-white/10 bg-white/5 text-white shadow-none">
                 <CardContent className="p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Carga saudável</p>
                   <p className="mt-2 text-sm font-black text-white">
-                    {currentPerson.displayName || `@${currentPerson.username}`}
+                    {wellness.level === "healthy" ? "Ritmo estável" : wellness.level === "warning" ? "Bloco de 5 missões" : "Pausa e redistribuição"}
                   </p>
-                  <p className="mt-1 text-xs font-medium text-zinc-400">{currentPerson.nextAction}</p>
+                  <p className="mt-1 text-xs font-medium text-zinc-400">{wellness.microcopy}</p>
                 </CardContent>
               </Card>
             </div>
@@ -302,18 +313,19 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             <div className="flex flex-wrap gap-3">
               <Button
                 className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
-                onClick={() => window.scrollTo({ top: 620, behavior: "smooth" })}
+                onClick={() => window.scrollTo({ top: 720, behavior: "smooth" })}
               >
                 <Compass className="mr-2 h-4 w-4" />
-                Iniciar jornada
+                Continuar Jornada
               </Button>
               <Button
                 variant="outline"
                 className="h-12 border-white/15 bg-white/5 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
+                nativeButton={false}
                 render={<Link href="/abordagem" />}
               >
                 <ArrowRight className="mr-2 h-4 w-4" />
-                Abrir mural de missões
+                Abrir Mural de Missões
               </Button>
             </div>
           </div>
@@ -321,7 +333,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           <div className="space-y-4 rounded-[24px] border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Mapa da trilha</p>
                 <h3 className="mt-2 text-xl font-black text-white">
                   {currentPerson.displayName || `@${currentPerson.username}`}
                 </h3>
@@ -330,7 +342,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             </div>
             <p className="text-sm font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
             <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Abertura sugerida</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próximo passo</p>
               <p className="mt-2 text-sm font-black text-white">{currentPerson.nextAction}</p>
             </div>
             <div className="space-y-3">
@@ -351,6 +363,86 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       </section>
 
       {wellness.level !== "healthy" && <OperatorWellnessCard wellness={wellness} />}
+
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+          <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-zinc-950">
+                <Route className="h-5 w-5" />
+                <h3 className="text-2xl font-black tracking-tight">Próxima Missão</h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 hover:bg-zinc-50">
+                  {phaseBadge}
+                </Badge>
+                {currentBlocked ? (
+                  <Badge className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rose-700 hover:bg-rose-50">
+                    Bloqueio ativo
+                  </Badge>
+                ) : currentPerson.isPendingResponse ? (
+                  <Badge className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 hover:bg-amber-50">
+                    Em espera
+                  </Badge>
+                ) : null}
+              </div>
+              <div>
+                <p className="text-2xl font-black tracking-tight text-zinc-950">
+                  {currentPerson.displayName || `@${currentPerson.username}`}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">@{currentPerson.username}</p>
+              </div>
+              <div className="grid gap-3">
+                <MissionPanel label="Motivo" value={currentPerson.priorityReason} />
+                <MissionPanel label="Fase atual" value={phaseBadge} compact />
+                <MissionPanel label="Bloqueios" value={currentHoldLabel} danger={currentBlocked} />
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-[24px] border border-zinc-200 bg-zinc-50/80 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Mensagem sugerida</p>
+                  <p className="mt-1 text-sm font-black text-zinc-950">Abertura da missão</p>
+                </div>
+                <Sparkles className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div className="min-h-[180px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
+                {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  className="h-11 bg-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-zinc-800"
+                  onClick={() => window.scrollTo({ top: 1220, behavior: "smooth" })}
+                >
+                  Continuar Jornada
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 border-zinc-200 bg-white text-xs font-black uppercase tracking-wider"
+                  onClick={handleCopyDM}
+                  disabled={!currentPerson.suggestedMessage || currentBlocked}
+                >
+                  Preparar mensagem
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-zinc-200 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,1))] py-0 shadow-[0_18px_44px_rgba(15,23,42,0.05)]">
+          <CardContent className="space-y-5 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-zinc-950">
+              <MapPinned className="h-5 w-5" />
+              <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
+            </div>
+            <p className="text-sm leading-6 text-zinc-600">
+              As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
+            </p>
+            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
+          </CardContent>
+        </Card>
+      </section>
 
       <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
@@ -403,7 +495,47 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         </div>
 
         <aside className="space-y-6">
-          <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
+          <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+            <CardContent className="space-y-4 p-5">
+              <div className="flex items-center gap-2">
+                <TowerControl className="h-4 w-4 text-zinc-400" />
+                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">
+                  Cuidado e ritmo
+                </h4>
+              </div>
+              <div className="grid gap-3">
+                <WellbeingLine
+                  icon={Coffee}
+                  title={wellness.level === "healthy" ? "Carga saudável" : "Trabalhe em blocos curtos"}
+                  description={wellness.recommendation}
+                />
+                {queue.length > 5 ? (
+                  <WellbeingLine
+                    icon={PauseCircle}
+                    title="Bloco sugerido de 5 missões"
+                    description="Feche um grupo curto, revise o estado da base e só então abra o próximo bloco."
+                  />
+                ) : null}
+                {wellness.shouldSuggestBreak ? (
+                  <WellbeingLine
+                    icon={HeartHandshake}
+                    title="Pausa recomendada"
+                    description="Ao concluir este bloco, faça uma pausa antes de abrir mais conversas."
+                  />
+                ) : null}
+                {wellness.level !== "healthy" ? (
+                  <Button
+                    variant="outline"
+                    className="h-11 border-zinc-200 bg-zinc-50 text-xs font-black uppercase tracking-wider"
+                    nativeButton={false}
+                    render={<Link href="/abordagem?filter=sem_responsavel" />}
+                  >
+                    Redistribuir com coordenação
+                  </Button>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
             <CardContent className="space-y-4 p-5">
@@ -520,6 +652,51 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function MissionPanel({
+  label,
+  value,
+  compact,
+  danger,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <div className={cn("rounded-[20px] border p-4", danger ? "border-rose-200 bg-rose-50/70" : "border-zinc-200 bg-zinc-50/70")}>
+      <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", danger ? "text-rose-700" : "text-zinc-500")}>{label}</p>
+      <p className={cn("mt-2 leading-6", compact ? "text-sm font-black text-zinc-950" : danger ? "text-sm font-semibold text-rose-900" : "text-sm font-semibold text-zinc-700")}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function WellbeingLine({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Coffee;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[20px] border border-zinc-200 bg-zinc-50/70 p-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div>
+          <p className="text-sm font-black text-zinc-950">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-zinc-600">{description}</p>
+        </div>
+      </div>
     </div>
   );
 }

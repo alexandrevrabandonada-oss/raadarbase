@@ -65,10 +65,8 @@ export function CycleAlertList({
                 </Badge>
               </div>
               <div className="mt-3">
-                <Button nativeButton={false} variant="outline" size="sm" className="font-bold">
-                  <Link href={alert.href} className="flex items-center">
-                    Ir para ação <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                <Button nativeButton={false} variant="outline" size="sm" className="font-bold" render={<Link href={alert.href} />}>
+                  Resolver Trava <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
