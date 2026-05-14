@@ -556,10 +556,18 @@ export function KanbanClient({
       ) : null}
 
       {/* Kanban Board */}
-      <div className="-mx-2 overflow-x-auto px-2 pb-6 scrollbar-thin scrollbar-thumb-[#d4c4a8] xl:-mx-4 xl:px-4">
-        <div className="flex gap-4 min-w-max">
+      <div className="-mx-2 px-2 pb-6 xl:-mx-4 xl:overflow-x-auto xl:px-4 xl:scrollbar-thin xl:scrollbar-thumb-[#d4c4a8]">
+        <div className="grid gap-4 md:grid-cols-2 xl:flex xl:min-w-max">
           {groupedColumns.map(({ id, label, description, tasks: columnTasks }) => (
-            <div key={id} className={cn("shrink-0 space-y-4", isCompact ? "w-[272px] xl:w-[288px] 2xl:w-[308px]" : "w-[300px] xl:w-[320px] 2xl:w-[340px]")}>
+            <div
+              key={id}
+              className={cn(
+                "min-w-0 space-y-4",
+                isCompact
+                  ? "xl:w-[288px] 2xl:w-[308px] xl:shrink-0"
+                  : "xl:w-[320px] 2xl:w-[340px] xl:shrink-0",
+              )}
+            >
               <div className="flex items-center justify-between px-2">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-widest text-[#6e604c]">
@@ -580,7 +588,7 @@ export function KanbanClient({
               </div>
 
               <div className={cn(
-                "min-h-[420px] space-y-3 rounded-[22px] border p-2 transition-colors",
+                "space-y-3 rounded-[22px] border p-2 transition-colors xl:min-h-[420px]",
                 id === "concluir"
                   ? "border-[#e7d7c7] bg-[rgba(236,224,209,0.72)]"
                   : "border-[#e2d3bb] bg-[rgba(255,250,242,0.82)]"

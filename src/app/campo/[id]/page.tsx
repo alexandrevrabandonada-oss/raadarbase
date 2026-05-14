@@ -234,7 +234,7 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
                 ) : (
                   <div className="text-center py-6">
                      <p className="text-sm text-muted-foreground mb-4 font-medium italic">O resultado ainda não foi registrado.</p>
-                     <Button size="sm" variant="outline" className="font-bold border-green-200 bg-white" render={<Link href={`/campo/${event.id}/resultado`} />}>
+                     <Button size="sm" variant="outline" className="font-bold border-green-200 bg-white" nativeButton={false} render={<Link href={`/campo/${event.id}/resultado`} />}>
                         Registrar Resultado
                      </Button>
                   </div>
