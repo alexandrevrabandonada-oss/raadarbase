@@ -248,22 +248,29 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   const currentPerson = queue[currentIndex];
   const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
   const phaseBadge = missionPhaseLabel(currentPerson);
-  const currentBlocked = Boolean(currentPerson.riskFlags.doNotContact);
+  const holdTone = currentPerson.riskFlags.doNotContact
+    ? "blocked"
+    : currentPerson.riskFlags.recentOutreach || currentPerson.isPendingResponse
+      ? "waiting"
+      : "free";
+  const currentBlocked = holdTone === "blocked";
+  const currentWaiting = holdTone === "waiting";
   const currentHoldLabel = currentBlocked
     ? currentPerson.doNotContactReason || "Restrição ética ativa."
-    : currentPerson.riskFlags.recentOutreach
-      ? "Contato recente. Aguarde a janela ética antes de insistir."
-      : currentPerson.isPendingResponse
-        ? "Aguardando retorno da conversa já iniciada."
-        : "Sem bloqueio ativo. A missão pode seguir.";
+    : currentWaiting
+      ? currentPerson.riskFlags.recentOutreach
+        ? "Contato recente. Aguarde a janela ética antes de insistir."
+        : "Aguardando retorno da conversa já iniciada."
+      : "Caminho livre. Sem bloqueio ativo agora.";
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
       <GamefulHero
         eyebrow="Jornada do operador"
         title="Minha Jornada"
-        description="Trabalhe o dia inteiro a partir desta trilha: uma missão por vez, próximo passo visível e ritmo sustentável sem perder cuidado."
+        description={`Missão de hoje: ${mission.objective}`}
         variant="dark"
+        metricsClassName="md:grid-cols-2 xl:grid-cols-4"
         badges={
           <>
             <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
@@ -272,10 +279,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         }
         metrics={
           <>
-            <GamefulMetricCard label="Missão de hoje" value={mission.objective} tone="dark" detail="Objetivo principal do bloco atual." />
-            <GamefulMetricCard label="Progresso do dia" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} missões atravessadas`} />
-            <GamefulMetricCard label="Fase atual" value={phaseBadge} tone="dark" detail="Trilha atual da missão em foco." />
-            <GamefulMetricCard label="Carga saudável" value={wellness.level === "healthy" ? "Ritmo estável" : wellness.level === "warning" ? "Bloco de 5 missões" : "Pausa e redistribuição"} tone="dark" detail={wellness.microcopy} />
+            <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
+            <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
+            <GamefulMetricCard label="Fase" value={phaseBadge} tone="dark" detail="Etapa da missão em foco." compact layout="split" valueClassName="max-w-[12ch]" />
+            <GamefulMetricCard label="Carga" value={wellness.level === "healthy" ? "Estável" : wellness.level === "warning" ? "Bloco de 5" : "Pausa"} tone="dark" detail={wellness.level === "healthy" ? "Ritmo saudável." : wellness.level === "warning" ? "Feche um bloco curto." : "Pedir apoio ou redistribuir."} compact layout="split" title={wellness.microcopy} valueClassName="max-w-[11ch]" />
           </>
         }
         actions={
@@ -333,94 +340,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
 
       {wellness.level !== "healthy" && <OperatorWellnessCard wellness={wellness} />}
 
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
-          <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-zinc-950">
-                <Route className="h-5 w-5" />
-                <h3 className="text-2xl font-black tracking-tight">Próxima Missão</h3>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 hover:bg-zinc-50">
-                  {phaseBadge}
-                </Badge>
-                {currentBlocked ? (
-                  <Badge className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rose-700 hover:bg-rose-50">
-                    Bloqueio ativo
-                  </Badge>
-                ) : currentPerson.isPendingResponse ? (
-                  <Badge className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 hover:bg-amber-50">
-                    Em espera
-                  </Badge>
-                ) : null}
-              </div>
-              <div>
-                <p className="text-2xl font-black tracking-tight text-zinc-950">
-                  {currentPerson.displayName || `@${currentPerson.username}`}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-zinc-500">@{currentPerson.username}</p>
-              </div>
-              <div className="grid gap-3">
-                <MissionPanel label="Motivo" value={currentPerson.priorityReason} />
-                <MissionPanel label="Fase atual" value={phaseBadge} compact />
-                <MissionPanel label="Bloqueios" value={currentHoldLabel} danger={currentBlocked} />
-              </div>
-            </div>
-
-            <div className="space-y-4 rounded-[24px] border border-zinc-200 bg-zinc-50/80 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Mensagem sugerida</p>
-                  <p className="mt-1 text-sm font-black text-zinc-950">Abertura da missão</p>
-                </div>
-                <Sparkles className="h-4 w-4 text-indigo-500" />
-              </div>
-              <div className="min-h-[180px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
-                {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  className="h-11 bg-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-zinc-800"
-                  onClick={() => window.scrollTo({ top: 1220, behavior: "smooth" })}
-                >
-                  Continuar Jornada
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11 border-zinc-200 bg-white text-xs font-black uppercase tracking-wider"
-                  onClick={handleCopyDM}
-                  disabled={!currentPerson.suggestedMessage || currentBlocked}
-                >
-                  Preparar mensagem
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="overflow-hidden border-zinc-200 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,1))] py-0 shadow-[0_18px_44px_rgba(15,23,42,0.05)]">
-          <CardContent className="space-y-5 p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-zinc-950">
-              <MapPinned className="h-5 w-5" />
-              <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
-            </div>
-            <p className="text-sm leading-6 text-zinc-600">
-              As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
-            </p>
-            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
-          </CardContent>
-        </Card>
-      </section>
-
       <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Hub da jornada</p>
-              <h3 className="text-2xl font-black tracking-tight text-zinc-950">Missão em campo agora</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+              <h3 className="text-2xl font-black tracking-tight text-zinc-950">Continuar Jornada</h3>
               <p className="max-w-2xl text-sm font-medium text-zinc-500">
-                A tela principal do operador agora aponta o passo atual, a próxima ação e a sequência imediata da trilha.
+                A pessoa em foco, a fase atual e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
               </p>
             </div>
 
@@ -552,6 +479,90 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         </aside>
       </div>
 
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
+          <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-zinc-950">
+                <Route className="h-5 w-5" />
+                <h3 className="text-2xl font-black tracking-tight">Leitura da missão</h3>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 hover:bg-zinc-50">
+                  {phaseBadge}
+                </Badge>
+                {currentBlocked ? (
+                  <Badge className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rose-700 hover:bg-rose-50">
+                    Bloqueio ativo
+                  </Badge>
+                ) : currentWaiting ? (
+                  <Badge className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 hover:bg-amber-50">
+                    Em espera
+                  </Badge>
+                ) : (
+                  <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 hover:bg-emerald-50">
+                    Caminho livre
+                  </Badge>
+                )}
+              </div>
+              <div>
+                <p className="text-2xl font-black tracking-tight text-zinc-950">
+                  {currentPerson.displayName || `@${currentPerson.username}`}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-zinc-500">@{currentPerson.username}</p>
+              </div>
+              <div className="grid gap-3">
+                <MissionPanel label="Motivo" value={currentPerson.priorityReason} />
+                <MissionPanel label="Fase atual" value={phaseBadge} compact />
+                <MissionPanel label={holdTone === "free" ? "Caminho livre" : "Bloqueio ou espera"} value={currentHoldLabel} tone={holdTone} />
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-[24px] border border-zinc-200 bg-zinc-50/80 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Mensagem sugerida</p>
+                  <p className="mt-1 text-sm font-black text-zinc-950">Abertura da missão</p>
+                </div>
+                <Sparkles className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div className="min-h-[180px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
+                {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  className="h-11 bg-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-zinc-800"
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                >
+                  Continuar Jornada
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 border-zinc-200 bg-white text-xs font-black uppercase tracking-wider"
+                  onClick={handleCopyDM}
+                  disabled={!currentPerson.suggestedMessage || currentBlocked}
+                >
+                  Preparar mensagem
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden border-zinc-200 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,1))] py-0 shadow-[0_18px_44px_rgba(15,23,42,0.05)]">
+          <CardContent className="space-y-5 p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-zinc-950">
+              <MapPinned className="h-5 w-5" />
+              <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
+            </div>
+            <p className="text-sm leading-6 text-zinc-600">
+              As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
+            </p>
+            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
+          </CardContent>
+        </Card>
+      </section>
+
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
         <DialogContent className="overflow-hidden border-none p-0 shadow-2xl sm:max-w-[540px]">
           <div className="bg-zinc-950 p-6 text-white">
@@ -620,17 +631,45 @@ function MissionPanel({
   label,
   value,
   compact,
-  danger,
+  tone = "neutral",
 }: {
   label: string;
   value: string;
   compact?: boolean;
-  danger?: boolean;
+  tone?: "neutral" | "blocked" | "waiting" | "free";
 }) {
+  const isBlocked = tone === "blocked";
+  const isWaiting = tone === "waiting";
+  const isFree = tone === "free";
+
   return (
-    <div className={cn("rounded-[20px] border p-4", danger ? "border-rose-200 bg-rose-50/70" : "border-zinc-200 bg-zinc-50/70")}>
-      <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", danger ? "text-rose-700" : "text-zinc-500")}>{label}</p>
-      <p className={cn("mt-2 leading-6", compact ? "text-sm font-black text-zinc-950" : danger ? "text-sm font-semibold text-rose-900" : "text-sm font-semibold text-zinc-700")}>
+    <div
+      className={cn(
+        "rounded-[20px] border p-4",
+        isBlocked
+          ? "border-rose-200 bg-rose-50/70"
+          : isWaiting
+            ? "border-amber-200 bg-amber-50/70"
+            : isFree
+              ? "border-emerald-200 bg-emerald-50/60"
+              : "border-zinc-200 bg-zinc-50/70",
+      )}
+    >
+      <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", isBlocked ? "text-rose-700" : isWaiting ? "text-amber-700" : isFree ? "text-emerald-700" : "text-zinc-500")}>{label}</p>
+      <p
+        className={cn(
+          "mt-2 leading-6",
+          compact
+            ? "text-sm font-black text-zinc-950"
+            : isBlocked
+              ? "text-sm font-semibold text-rose-900"
+              : isWaiting
+                ? "text-sm font-semibold text-amber-900"
+                : isFree
+                  ? "text-sm font-semibold text-emerald-900"
+                  : "text-sm font-semibold text-zinc-700",
+        )}
+      >
         {value}
       </p>
     </div>

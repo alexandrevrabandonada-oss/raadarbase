@@ -4,6 +4,7 @@ import { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronRight, Clock, MapPinned, ShieldAlert } from "lucide-react";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { JourneyBar } from "@/components/radar/journey-bar";
 
 interface QueueListProps {
   tasks: PriorityPerson[];
@@ -51,6 +52,12 @@ export function QueueList({ tasks, currentIndex, onSelect, className }: QueueLis
         {nextTasks.map((person, idx) => {
           const absoluteIndex = currentIndex + 1 + idx;
           const blocked = person.status === "nao_abordar" || person.riskFlags.doNotContact;
+          const journey = mapPersonToJourney(
+            person.status,
+            person.hasPendingTask,
+            person.hasReferral,
+            person.lastInteractionAt,
+          );
 
           return (
             <button
@@ -76,7 +83,7 @@ export function QueueList({ tasks, currentIndex, onSelect, className }: QueueLis
                 <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-zinc-300 group-hover:text-indigo-500" />
               </div>
 
-              <div className="grid gap-2">
+              <div className="grid gap-3">
                 <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest">
                   <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-indigo-700">
                     {phaseLabel(person)}
@@ -95,6 +102,9 @@ export function QueueList({ tasks, currentIndex, onSelect, className }: QueueLis
                 <p className="line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600">
                   {person.nextAction}
                 </p>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3">
+                  <JourneyBar {...journey} compact />
+                </div>
               </div>
             </button>
           );

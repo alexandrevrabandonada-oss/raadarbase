@@ -11,6 +11,7 @@ import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { GamefulPortalCard } from "@/components/radar/gameful-portal-card";
 import { MissionCard as RadarMissionCard } from "@/components/radar/mission-card";
 import { RhythmPanel } from "@/components/radar/rhythm-panel";
+import { AlertBeacon } from "@/components/radar/alert-beacon";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -179,6 +180,12 @@ function HeroSection({ data }: { data: DashboardViewData }) {
     warning: "border-amber-200 bg-amber-500/12 text-amber-900",
     critical: "border-rose-200 bg-rose-500/12 text-rose-900",
   }[data.overallStatus.tone];
+  const weeklyPhaseIndex = {
+    preparar: 1,
+    conversar: 3,
+    fechar: 5,
+    campo: 6,
+  }[data.weeklyRhythmState.phase.dayType];
 
   return (
     <GamefulHero
@@ -186,6 +193,8 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       title="Base de Operações"
       description="Seu centro de missões, ritmo e mobilização territorial."
       variant="light"
+      titleClassName="radar-title-display max-w-[11ch]"
+      descriptionClassName="max-w-[34rem] text-lg sm:text-[1.15rem]"
       badges={
         <>
           <GamefulHeroBadge light className={statusTone}>{data.overallStatus.label}</GamefulHeroBadge>
@@ -194,69 +203,120 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       }
       actions={
         <>
-          <Button className="h-12 rounded-xl bg-zinc-950 px-5 text-sm font-black hover:bg-zinc-800" nativeButton={false} render={<Link href="/minha-fila" />}>
+          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/minha-fila" />}>
             <Route className="h-4 w-4" />
             Iniciar Jornada
           </Button>
-          <Button variant="outline" className="h-12 rounded-xl border-zinc-300 bg-white/85 px-5 text-sm font-black text-zinc-800" nativeButton={false} render={<Link href="/ritmo" />}>
+          <Button variant="outline" className="h-14 rounded-xl border-[#d3b98f] bg-[#f7f0e4] px-6 text-sm font-black text-[#11202a]" nativeButton={false} render={<Link href="/ritmo" />}>
             <TowerControl className="h-4 w-4" />
             Abrir Central de Ritmo
           </Button>
         </>
       }
+      metricsClassName="md:grid-cols-2 xl:grid-cols-4"
       metrics={
         <>
-          <GamefulMetricCard icon={Target} label="Missão do Dia" value={`${data.missionState.progress}%`} detail={data.missionState.objective} />
-          <GamefulMetricCard icon={Compass} label="Fase da Semana" value={data.weeklyRhythmState.phase.name.split(":")[0] ?? data.weeklyRhythmState.phase.name} detail={data.weeklyRhythmState.phase.description} />
-          <GamefulMetricCard icon={Activity} label="Status Geral" value={data.overallStatus.label} detail={`${data.systemAlerts.staleTasks} paradas, ${data.systemAlerts.fieldWithoutClosure} fechamentos pendentes.`} />
+          <GamefulMetricCard
+            icon={<Target className="h-4 w-4" />}
+            label="Rede ativa"
+            value={`${data.missionState.progress}%`}
+            detail="Avanço do bloco principal do dia."
+            tone="light"
+            compact
+            layout="split"
+            title={data.missionState.objective}
+            className="min-w-0"
+          />
+          <GamefulMetricCard
+            icon={<Users className="h-4 w-4" />}
+            label="Territórios"
+            value={data.quickMap.counts.mobilizacao + data.quickMap.counts.campo + data.quickMap.counts.continuidade}
+            detail="Bairros com leitura territorial ativa."
+            tone="light"
+            compact
+            layout="split"
+            title={data.weeklyRhythmState.phase.description}
+            className="min-w-0"
+          />
+          <GamefulMetricCard
+            icon={<Flag className="h-4 w-4" />}
+            label="Ações hoje"
+            value={data.missionCounts.active}
+            detail="Missões operacionais em foco."
+            tone="light"
+            compact
+            layout="split"
+            title={`${data.systemAlerts.staleTasks} tarefas paradas e ${data.systemAlerts.fieldWithoutClosure} ações de campo sem fechamento.`}
+            className="min-w-0"
+          />
+          <GamefulMetricCard
+            icon={<Activity className="h-4 w-4" />}
+            label="Clima da rede"
+            value={data.overallStatus.tone === "healthy" ? "Positivo" : data.overallStatus.tone === "warning" ? "Ajuste" : "Atencao"}
+            detail="Leitura geral da base."
+            tone="light"
+            compact
+            layout="split"
+            title={data.overallStatus.detail}
+            className="min-w-0"
+          />
         </>
       }
       aside={
-        <Card className="border-zinc-200/80 bg-white/90 py-0 shadow-[0_12px_48px_rgba(15,23,42,0.08)]">
-          <CardContent className="space-y-5 p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-500">Painel de Comando</p>
-                <p className="mt-2 text-2xl font-black tracking-tight text-zinc-950">{data.missionState.title}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-right">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Progresso</p>
-                <p className="text-2xl font-black text-zinc-950">{data.missionState.progress}%</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <GamefulMetricCard icon={Users} label="Missões ativas" value={data.missionCounts.active} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
-              <GamefulMetricCard icon={MessageSquare} label="Respostas no ciclo" value={data.missionCounts.replies} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
-              <GamefulMetricCard icon={Flag} label="Encaminhamentos" value={data.missionCounts.referrals} tone="light" compact className="border-zinc-200 bg-zinc-50/90 shadow-none" />
-            </div>
-
-            <div className="space-y-2">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_220px]">
+          <Card className="radar-outline-card radar-panel-dark border-[#23313b] py-0 text-white shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
+            <CardContent className="space-y-5 p-6">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">Avanço da missão do dia</p>
-                <p className="text-sm font-black text-zinc-950">{data.missionState.progress}%</p>
-              </div>
-              <Progress value={data.missionState.progress} className="h-4 bg-zinc-200/70" indicatorClassName="bg-zinc-950" />
-            </div>
-
-            <div className="grid gap-2">
-              {data.missionState.steps.slice(0, 4).map((step) => (
-                <div key={step.id} className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("h-2.5 w-2.5 rounded-full", step.isCompleted ? "bg-emerald-500" : step.isCritical ? "bg-amber-500" : "bg-zinc-300")} />
-                    <div>
-                      <p className="text-sm font-bold text-zinc-900">{step.label}</p>
-                      {step.hint ? <p className="text-xs text-zinc-500">{step.hint}</p> : null}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-[10px] font-black uppercase tracking-[0.18em] text-zinc-600">
-                    {step.isCompleted ? "Feita" : "Aberta"}
-                  </Badge>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Missao do Dia</p>
+                  <p className="mt-2 text-2xl font-black tracking-tight text-white">{data.missionState.title}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <Target className="h-5 w-5 text-[#f0c15b]" />
+              </div>
+              <p className="text-base leading-7 text-zinc-200">{data.missionState.objective}</p>
+              <div className="space-y-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Impacto esperado</p>
+                <p className="text-sm font-semibold text-white">{data.overallStatus.detail}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Progresso</p>
+                <Progress value={data.missionState.progress} className="h-3 bg-white/10" indicatorClassName="bg-[#f0c15b]" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="radar-outline-card radar-panel-light border-[#d8c7ac] py-0 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+            <CardContent className="space-y-5 p-6">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Fase semanal</p>
+                <div className="mt-2 flex items-end gap-2">
+                  <p className="text-6xl font-black leading-none text-[#11202a]">{String(weeklyPhaseIndex).padStart(2, "0")}</p>
+                  <p className="pb-2 text-sm font-semibold text-zinc-600">de 08</p>
+                </div>
+              </div>
+              <p className="text-2xl font-black uppercase leading-8 tracking-tight text-[#4b4337]">
+                {data.weeklyRhythmState.phase.name}
+              </p>
+              <div className="flex gap-2">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "h-3 w-3 rounded-full border",
+                      index < weeklyPhaseIndex
+                        ? "border-[#11202a] bg-[#11202a]"
+                        : "border-[#bda98a] bg-transparent",
+                    )}
+                  />
+                ))}
+              </div>
+              <Button variant="ghost" className="h-auto justify-start px-0 text-sm font-black text-[#11202a] hover:bg-transparent" nativeButton={false} render={<Link href="/ritmo" />}>
+                Ver fases da semana
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       }
     />
   );
@@ -271,7 +331,7 @@ function OperationStartSection({
 }) {
   return (
     <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
-      <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+      <Card className="radar-outline-card overflow-hidden border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
         <CardContent className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-zinc-950">
@@ -283,19 +343,19 @@ function OperationStartSection({
               <p className="max-w-2xl text-sm leading-6 text-zinc-600">{data.missionState.objective}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <SignalBadge icon={Target} label="Missões ativas" value={data.missionCounts.active} />
-              <SignalBadge icon={MessageSquare} label="Respostas" value={data.missionCounts.replies} />
-              <SignalBadge icon={Flag} label="Encaminhamentos" value={data.missionCounts.referrals} />
+              <SignalBadge icon={Target} label="Rede ativa" value={data.missionCounts.active} />
+              <SignalBadge icon={MessageSquare} label="Territorios" value={data.quickMap.counts.mobilizacao + data.quickMap.counts.campo + data.quickMap.counts.continuidade} />
+              <SignalBadge icon={Flag} label="Acoes hoje" value={data.missionCounts.replies + data.missionCounts.referrals} />
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-3xl border border-zinc-200 bg-zinc-50 p-5">
+          <div className="flex flex-col justify-between rounded-3xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-5">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">Próximo passo</p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-zinc-950">{data.missionState.progress}%</p>
-              <Progress value={data.missionState.progress} className="mt-4 h-4 bg-zinc-200" indicatorClassName="bg-zinc-950" />
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b7759]">Proximo passo</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-[#11202a]">Avancar a jornada principal</p>
+              <Progress value={data.missionState.progress} className="mt-4 h-3 bg-[#d7c7ae]" indicatorClassName="bg-[#11202a]" />
             </div>
-            <Button className="mt-5 h-12 rounded-xl bg-zinc-950 font-black hover:bg-zinc-800" nativeButton={false} render={<Link href="/minha-fila" />}>
+            <Button className="mt-5 h-12 rounded-xl bg-[#0f1b24] font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/minha-fila" />}>
               Continuar Jornada
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -303,7 +363,7 @@ function OperationStartSection({
         </CardContent>
       </Card>
 
-      <div className="rounded-[24px] border border-zinc-200 bg-white p-4 shadow-[0_18px_48px_rgba(15,23,42,0.05)]">
+      <div className="radar-outline-card rounded-[24px] border border-[#23313b] bg-[#12202a] p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.18)]">
         <CycleAlertList alerts={cycleAlerts} />
       </div>
     </section>
@@ -467,37 +527,41 @@ function SystemAlertsSection({ data }: { data: DashboardViewData }) {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <BeaconCard
+        <AlertBeacon
           icon={Users}
           title="Sem responsável"
           value={data.systemAlerts.unassignedTasks}
           detail="Missões que ainda não têm dono claro."
           tone={data.systemAlerts.unassignedTasks > 0 ? "warning" : "healthy"}
           href="/abordagem?filter=sem_responsavel"
+          ctaLabel="Resolver trava"
         />
-        <BeaconCard
+        <AlertBeacon
           icon={AlertTriangle}
           title="Tarefas paradas"
           value={data.systemAlerts.staleTasks}
           detail="Pendências sem movimento recente no ciclo."
           tone={data.systemAlerts.staleTasks > 0 ? "critical" : "healthy"}
           href="/abordagem"
+          ctaLabel="Resolver trava"
         />
-        <BeaconCard
+        <AlertBeacon
           icon={MapPinned}
           title="Territórios pedindo ação"
           value={data.systemAlerts.territoriesNeedingAction}
           detail="Bairros sem atualização recente de mobilização."
           tone={data.systemAlerts.territoriesNeedingAction > 0 ? "warning" : "healthy"}
           href="/relatorios/territorios"
+          ctaLabel="Ver mapa"
         />
-        <BeaconCard
+        <AlertBeacon
           icon={Flag}
           title="Campo sem fechamento"
           value={data.systemAlerts.fieldWithoutClosure}
           detail="Ações passadas que ainda precisam de devolutiva."
           tone={data.systemAlerts.fieldWithoutClosure > 0 ? "critical" : "healthy"}
           href="/campo"
+          ctaLabel="Fechar ciclo"
         />
       </div>
     </section>
@@ -518,30 +582,30 @@ function QuickMapSection({ data }: { data: DashboardViewData }) {
       <Card className="overflow-hidden border-zinc-200 py-0">
           <CardContent className="grid gap-4 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <TerritoryStat
-              title="Mobilização"
-              value={data.quickMap.counts.mobilizacao}
+              <QuickMapCard
+                title="Mobilização"
+                value={data.quickMap.counts.mobilizacao}
                 detail={data.quickMap.highlights.mobilizacao?.detail ?? "Mapa ainda sem sinais."}
                 neighborhood={data.quickMap.highlights.mobilizacao?.neighborhood ?? "Sem foco"}
-              tone="amber"
-            />
-            <TerritoryStat
-              title="Campo"
-              value={data.quickMap.counts.campo}
+                tone="amber"
+              />
+              <QuickMapCard
+                title="Campo"
+                value={data.quickMap.counts.campo}
                 detail={data.quickMap.highlights.campo?.detail ?? "Sem campo planejado."}
                 neighborhood={data.quickMap.highlights.campo?.neighborhood ?? "Sem foco"}
-              tone="indigo"
-            />
-            <TerritoryStat
-              title="Continuidade"
-              value={data.quickMap.counts.continuidade}
+                tone="indigo"
+              />
+              <QuickMapCard
+                title="Continuidade"
+                value={data.quickMap.counts.continuidade}
                 detail={data.quickMap.highlights.continuidade?.detail ?? "Ciclo em dia."}
                 neighborhood={data.quickMap.highlights.continuidade?.neighborhood ?? "Sem foco"}
-              tone="emerald"
-            />
-          </div>
+                tone="emerald"
+              />
+            </div>
 
-          <div className="rounded-[24px] border border-zinc-200 bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_50%),linear-gradient(135deg,_rgba(248,250,252,1),_rgba(241,245,249,1))] p-5">
+          <div className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.92))] p-5">
             <div className="flex items-center gap-2">
               <Landmark className="h-5 w-5 text-zinc-900" />
               <p className="text-lg font-black tracking-tight text-zinc-950">Mapa da Mobilização</p>
@@ -572,7 +636,7 @@ function FieldSection({ data }: { data: DashboardViewData }) {
         actionLabel="Abrir Campo"
       />
 
-      <Card className="border-zinc-200 py-0 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
+      <Card className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
         <CardContent className="space-y-5 p-6">
           <div className="grid gap-3 sm:grid-cols-3">
             <SignalBadge icon={Route} label="Próximas ações" value={data.field.plannedCount} />
@@ -649,10 +713,10 @@ function SectionHeader({
           <Icon className="h-5 w-5" />
           <h2 className="text-2xl font-black tracking-tight">{title}</h2>
         </div>
-        <p className="max-w-2xl text-sm leading-6 text-zinc-500">{description}</p>
+        <p className="max-w-2xl text-sm leading-6 text-[#6f6250]">{description}</p>
       </div>
       {actionHref && actionLabel ? (
-        <Button variant="outline" className="rounded-xl border-zinc-300 bg-white font-black text-zinc-800" nativeButton={false} render={<Link href={actionHref} />}>
+        <Button variant="outline" className="rounded-xl border-[#d3b98f] bg-[#f7f0e4] font-black text-[#11202a]" nativeButton={false} render={<Link href={actionHref} />}>
           {actionLabel}
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -671,8 +735,8 @@ function SignalBadge({
   value: number;
 }) {
   return (
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
-        <div className="flex items-center gap-2 text-zinc-500">
+      <div className="radar-outline-card rounded-2xl border border-[#d8c7ac] bg-white/75 p-3">
+        <div className="flex items-center gap-2 text-[#8b7759]">
           <Icon className="h-4 w-4" />
           <p className="text-[9px] font-black uppercase tracking-[0.14em] leading-4">{label}</p>
         </div>
@@ -681,55 +745,7 @@ function SignalBadge({
   );
 }
 
-function BeaconCard({
-  icon: Icon,
-  title,
-  value,
-  detail,
-  tone,
-  href,
-}: {
-  icon: typeof AlertTriangle;
-  title: string;
-  value: number;
-  detail: string;
-  tone: "healthy" | "warning" | "critical";
-  href: string;
-}) {
-  const toneClass = {
-    healthy: "border-emerald-200 bg-emerald-50/70",
-    warning: "border-amber-200 bg-amber-50/70",
-    critical: "border-rose-200 bg-rose-50/80",
-  }[tone];
-
-  const iconClass = {
-    healthy: "text-emerald-600",
-    warning: "text-amber-600",
-    critical: "text-rose-600",
-  }[tone];
-
-  return (
-    <Link href={href} className="block">
-      <Card className={cn("h-full border py-0 transition-transform duration-200 hover:-translate-y-0.5", toneClass)}>
-        <CardContent className="space-y-4 p-5">
-          <div className="flex items-center justify-between">
-            <div className={cn("flex h-10 w-10 items-center justify-center rounded-2xl border border-white/70 bg-white/70", iconClass)}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <ArrowRight className="h-4 w-4 text-zinc-400" />
-          </div>
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">{title}</p>
-            <p className="mt-2 text-3xl font-black tracking-tight text-zinc-950">{value}</p>
-          </div>
-          <p className="text-sm leading-6 text-zinc-600">{detail}</p>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
-
-function TerritoryStat({
+function QuickMapCard({
   title,
   value,
   neighborhood,
@@ -742,18 +758,13 @@ function TerritoryStat({
   detail: string;
   tone: "amber" | "indigo" | "emerald";
 }) {
-  const toneClass = {
-    amber: "border-amber-200 bg-amber-50 text-amber-900",
-    indigo: "border-indigo-200 bg-indigo-50 text-indigo-900",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  }[tone];
-
+  const cardTone = tone === "amber" ? "amber" : tone === "emerald" ? "emerald" : "indigo";
+  const textTone = tone === "amber" ? "text-amber-900" : tone === "emerald" ? "text-emerald-900" : "text-indigo-900";
   return (
-    <div className={cn("rounded-[24px] border p-4", toneClass)}>
-      <p className="text-[10px] font-black uppercase tracking-[0.14em]">{title}</p>
-      <p className="mt-2 text-3xl font-black tracking-tight">{value}</p>
-      <p className="mt-4 truncate text-sm font-black">{neighborhood}</p>
-      <p className="mt-1 text-sm leading-6 opacity-80">{detail}</p>
+    <div className="rounded-[24px] border border-zinc-200 bg-white/90 p-4">
+      <GamefulMetricCard label={title} value={value} tone={cardTone} compact layout="split" className="border-none bg-transparent shadow-none" />
+      <p className={cn("mt-4 truncate text-sm font-black", textTone)}>{neighborhood}</p>
+      <p className="mt-1 text-sm leading-6 text-zinc-600">{detail}</p>
     </div>
   );
 }

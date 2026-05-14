@@ -11,7 +11,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card px-4 lg:hidden">
+      <header className="radar-paper sticky top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-300/70 px-4 lg:hidden">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-lg bg-black text-white font-black text-sm shadow-md">
             RB
@@ -43,13 +43,13 @@ export default async function AppShell({ children }: { children: React.ReactNode
         </Sheet>
       </header>
 
-      <div className="mx-auto flex flex-1 w-full max-w-7xl flex-col lg:flex-row">
+      <div className="mx-auto flex w-full max-w-[1680px] flex-1 flex-col lg:flex-row">
         {/* Desktop Sidebar (Hidden on mobile) */}
         <div className="hidden lg:block shrink-0">
           <Sidebar userEmail={user?.email ?? undefined} useMocks={USE_MOCKS} />
         </div>
         
-        <main className="flex-1 px-4 py-5 sm:px-6 lg:px-8 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden px-4 py-4 sm:px-5 lg:px-6">
           {children}
         </main>
       </div>

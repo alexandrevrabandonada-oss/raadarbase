@@ -37,6 +37,9 @@ import { PersonScoreBadge } from "@/components/radar/person-score-badge";
 import { OperationalAlert } from "@/components/radar/operational-alert";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { MissionCard } from "@/components/radar/mission-card";
+import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 
 import { 
   Tooltip,
@@ -360,16 +363,7 @@ export function KanbanClient({
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-20">
-      <LightweightOnboarding 
-        screenId="abordagem"
-        title="Mural de Missões"
-        highlights={[
-          { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
-          { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
-          { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
-        ]}
-      />
+    <div className="flex flex-col gap-6 pb-20">
       <RadarPageHeader 
         title="Mural de Missões"
         description="Visualize cada vínculo como uma missão cooperativa, da preparação ao fechamento do ciclo."
@@ -382,20 +376,13 @@ export function KanbanClient({
         }
       />
 
-      <ContextHelpCard 
-        title="Como operar o mural"
-        whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
-        whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
-        whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
-      />
-
       {/* Indicadores do Topo */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <RadarMetricCard label="Missões Ativas" value={stats.total} icon={LayoutDashboard} tone="neutral" />
-        <RadarMetricCard label="Sem Dono" value={stats.unassigned} icon={Users} tone="neutral" />
-        <RadarMetricCard label="Em Espera" value={stats.waiting} icon={History} tone="warning" />
-        <RadarMetricCard label="Travadas" value={stats.stale} icon={Clock} tone="danger" />
-        <RadarMetricCard label="Para Encaminhar" value={stats.needReferral} icon={CheckCircle2} tone="info" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <GamefulMetricCard label="Ativas" value={stats.total} icon={<LayoutDashboard className="h-4 w-4" />} compact layout="split" className="border-zinc-200 bg-white shadow-none" />
+        <GamefulMetricCard label="Sem dono" value={stats.unassigned} icon={<Users className="h-4 w-4" />} compact layout="split" className="border-zinc-200 bg-white shadow-none" />
+        <GamefulMetricCard label="Em espera" value={stats.waiting} icon={<History className="h-4 w-4" />} tone="amber" compact layout="split" className="shadow-none" />
+        <GamefulMetricCard label="Travadas" value={stats.stale} icon={<Clock className="h-4 w-4" />} tone="amber" compact layout="split" className="shadow-none" />
+        <GamefulMetricCard label="Encaminhar" value={stats.needReferral} icon={<CheckCircle2 className="h-4 w-4" />} tone="indigo" compact layout="split" className="shadow-none" />
       </div>
 
       {/* 2. Filtros e Gestão */}
@@ -442,66 +429,61 @@ export function KanbanClient({
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
-        <p className="text-xs text-amber-900 font-bold flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" /> 
-          “Silêncio também é resposta. Missão boa respeita tempo e consentimento.”
-        </p>
-      </div>
-
       {/* 5. Painel de Balanceamento */}
-      <Card className="border-indigo-100 bg-indigo-50/20">
-        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-1">
-            <h3 className="text-sm font-black text-indigo-950 flex items-center gap-2">
-              <Users className="h-4 w-4" /> Balanceamento de equipe
-            </h3>
-            <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 justify-center">
-            {operators.map(op => {
-               const isSelected = selectedOperators.includes(op.id);
-               return (
-                  <Button
-                    key={op.id}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedOperators(prev => 
-                      isSelected ? prev.filter(id => id !== op.id) : [...prev, op.id]
-                    )}
-                    className={cn(
-                      "h-8 px-3 text-[10px] font-black uppercase transition-all rounded-lg",
-                      isSelected ? "bg-indigo-600 text-white border-indigo-700 shadow-md" : "bg-white border-zinc-200 text-zinc-600"
-                    )}
-                  >
-                    {isSelected && <Check className="mr-1 h-3 w-3" />}
-                    {op.full_name || op.email.split("@")[0]}
-                  </Button>
-               );
-            })}
-          </div>
+      {stats.unassigned > 0 ? (
+        <Card className="border-indigo-100 bg-indigo-50/20">
+          <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h3 className="text-sm font-black text-indigo-950 flex items-center gap-2">
+                <Users className="h-4 w-4" /> Balanceamento de equipe
+              </h3>
+              <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 justify-center">
+              {operators.map(op => {
+                 const isSelected = selectedOperators.includes(op.id);
+                 return (
+                    <Button
+                      key={op.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedOperators(prev => 
+                        isSelected ? prev.filter(id => id !== op.id) : [...prev, op.id]
+                      )}
+                      className={cn(
+                        "h-8 px-3 text-[10px] font-black uppercase transition-all rounded-lg",
+                        isSelected ? "bg-indigo-600 text-white border-indigo-700 shadow-md" : "bg-white border-zinc-200 text-zinc-600"
+                      )}
+                    >
+                      {isSelected && <Check className="mr-1 h-3 w-3" />}
+                      {op.full_name || op.email.split("@")[0]}
+                    </Button>
+                 );
+              })}
+            </div>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger render={<div />}>
-                <div className={cn("inline-block", (isDistributing || selectedOperators.length === 0) && "cursor-not-allowed")}>
-                  <Button 
-                    onClick={runBalance} 
-                    className={cn("bg-black text-white font-black h-10 px-8 shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "opacity-50 pointer-events-none")}
-                    tabIndex={(isDistributing || selectedOperators.length === 0) ? -1 : 0}
-                  >
-                    {isDistributing ? "Distribuindo..." : "Distribuir Agora"}
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              {selectedOperators.length === 0 && (
-                <TooltipContent>Selecione ao menos um operador.</TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
-        </CardContent>
-      </Card>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger render={<div />}>
+                  <div className={cn("inline-block", (isDistributing || selectedOperators.length === 0) && "cursor-not-allowed")}>
+                    <Button 
+                      onClick={runBalance} 
+                      className={cn("bg-black text-white font-black h-10 px-8 shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "opacity-50 pointer-events-none")}
+                      tabIndex={(isDistributing || selectedOperators.length === 0) ? -1 : 0}
+                    >
+                      {isDistributing ? "Distribuindo..." : "Distribuir Agora"}
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {selectedOperators.length === 0 && (
+                  <TooltipContent>Selecione ao menos um operador.</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Kanban Board */}
       <div className="overflow-x-auto pb-6 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-200">
@@ -528,188 +510,58 @@ export function KanbanClient({
               </div>
 
               <div className={cn(
-                "space-y-3 p-2 rounded-2xl min-h-[500px] transition-colors",
+                "space-y-3 p-2 rounded-2xl min-h-[420px] transition-colors",
                 id === "concluir" ? "bg-rose-50/30" : "bg-zinc-50/50"
               )}>
                 {columnTasks.map((task) => (
-                  <Card 
-                    key={task.id} 
-                    className={cn(
-                      "relative border-none shadow-sm transition-all hover:shadow-md overflow-hidden",
-                      task.isStale ? "bg-rose-50/30 ring-1 ring-rose-100" : "bg-white ring-1 ring-zinc-100"
-                    )}
-                  >
-                    {task.priority?.temperature === "quente" && (
-                       <div className="absolute top-0 right-0 h-1 w-12 bg-orange-500 rounded-bl-full" />
-                    )}
-                    
-                    <CardContent className="p-4 space-y-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                           <Badge variant="outline" className="mb-2 border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                             {boardMicroLabels[task.boardColumn]}
-                           </Badge>
-                           <div className="cursor-pointer hover:underline" onClick={() => task.priority && handleOpenDetails(task.priority)}>
-                             <p className="text-sm font-black text-indigo-950 truncate leading-none mb-1">
-                               @{task.person?.username || "usuario"}
-                             </p>
-                           </div>
-                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest truncate">
-                             {task.title}
-                           </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                           <PersonScoreBadge 
-                             score={task.priority?.priorityScore || 0} 
-                             temperature={task.priority?.temperature || "observar"} 
-                           />
-                           {task.waitingStatus && (
-                             <Badge variant="outline" className={cn(
-                               "text-[8px] font-black uppercase px-1.5 py-0",
-                               task.waitingStatus === "normal" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                               task.waitingStatus === "followup" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                               task.waitingStatus === "review" ? "bg-amber-50 text-amber-700 border-amber-100" :
-                               "bg-rose-50 text-rose-700 border-rose-100"
-                             )}>
-                              {task.waitingStatus === "normal" ? "Aguardando normal" :
-                               task.waitingStatus === "followup" ? "Revisar depois" :
-                               task.waitingStatus === "review" ? "Evitar insistência" :
-                               "Arquivar sugerido"}
-                             </Badge>
-                           )}
-                         </div>
-                      </div>
-
-                      <div className="pt-2">
-                        <JourneyProgress 
-                          {...mapPersonToJourney(
-                            task.priority?.status || "novo",
-                            task.priority?.hasPendingTask ?? !task.completedAt,
-                            task.priority?.hasReferral ?? false,
-                            task.priority?.lastInteractionAt
-                          )} 
-                          compact 
-                        />
-                      </div>
-
-                      {task.isStale && (
-                        <OperationalAlert 
-                          type="contato_recente" 
-                          className="py-1 px-2 border-rose-100 bg-rose-50/50"
-                        />
-                      )}
-
-                      <div className="space-y-2 py-3 border-y border-zinc-50">
-                        <div className="flex items-center justify-between">
-                           <span className="text-[9px] font-black uppercase text-zinc-400 tracking-tighter">Responsável</span>
-                           <span className={cn(
-                             "text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
-                             task.responsibleId ? "bg-indigo-50 text-indigo-600" : "bg-rose-50 text-rose-600"
-                           )}>
-                             {task.priority?.responsibleName || "Órfã"}
-                           </span>
-                        </div>
-                        <p className="text-[10px] font-medium leading-relaxed text-zinc-500 italic">
-                          &quot;{(task.priority?.nextAction || task.notes) || "Aguardando próxima definição..."}&quot;
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1">
-                           <ActionButtonGroup 
-                              personId={task.personId}
-                              instagramUsername={task.person?.username}
-                              onAssume={() => runAssumeTask(task.id)}
-                              onCopyDM={() => copyMessage(task)}
-                              onRegisterResponse={() => document.getElementById(`response-select-${task.id}`)?.focus()}
-
-                              canAssume={!task.responsibleId}
-                              canCopyDM={!!task.priority?.suggestedMessage}
-                              canRegisterResponse={true}
-                              className="w-full justify-start"
-                            />
-                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1 pt-1 border-t border-zinc-50">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-[9px] font-black uppercase"
-                          onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
-                          disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === 0}
-                        >
-                          <MoveLeft className="mr-1 h-3 w-3" /> Recuar
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-[9px] font-black uppercase"
-                          onClick={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
-                          disabled={savingTaskId === task.id || outreachBoardColumns.indexOf(task.boardColumn) === outreachBoardColumns.length - 1}
-                        >
-                          Avançar <MoveRight className="ml-1 h-3 w-3" />
-                        </Button>
-                      </div>
-
-                      {task.boardColumn === "esperando_resposta" && (
-                        <div className="space-y-1.5 pt-3 border-t border-zinc-50">
-                          <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest mb-1">Ações Rápidas</p>
-                          <div className="flex flex-wrap gap-1">
-                            {[
-                              { id: "manter_aguardando", label: "Manter" },
-                              { id: "revisar_depois", label: "Revisar" },
-                              { id: "arquivar_sem_retorno", label: "Arquivar" },
-                              { id: "nao_quer_contato", label: "Não Abordar" },
-                            ].map(action => (
-                              <Button
-                                key={action.id}
-                                variant="outline"
-                                size="sm"
-                                className="h-6 px-2 text-[8px] font-bold uppercase rounded-md border-zinc-200 hover:bg-zinc-100"
-                                onClick={() => {
-                                  setResponseValues(prev => ({ ...prev, [task.id]: action.id as PersonResponseKind }));
-                                  setTimeout(() => runResponse(task), 100);
-                                }}
-                                disabled={savingTaskId === task.id}
-                              >
-                                {action.label}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="space-y-2 pt-2 bg-zinc-50/80 -mx-3 -mb-3 p-3 rounded-b-xl border-t border-zinc-100">
-                        <select
-
-                          id={`response-select-${task.id}`}
-                          className="w-full h-8 rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500"
-                          value={responseValues[task.id] ?? "revisar_depois"}
-                          onChange={(e) => setResponseValues(prev => ({ ...prev, [task.id]: e.target.value as PersonResponseKind }))}
-                        >
-
-                          {PERSON_RESPONSE_OPTIONS.map(opt => (
-                            <option key={opt.key} value={opt.key}>{opt.label}</option>
-                          ))}
-                        </select>
-                        <Button 
-                          size="sm" 
-                          className="w-full h-8 text-[10px] font-black uppercase bg-zinc-800 hover:bg-black"
-                          onClick={() => runResponse(task)}
-                          disabled={savingTaskId === task.id}
-                        >
-                          Confirmar Resposta
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <KanbanTaskCard
+                    key={task.id}
+                    task={task}
+                    savingTaskId={savingTaskId}
+                    responseValue={responseValues[task.id] ?? "revisar_depois"}
+                    onOpenDetails={handleOpenDetails}
+                    onAssume={() => runAssumeTask(task.id)}
+                    onCopyDM={() => copyMessage(task)}
+                    onRegisterResponse={() => document.getElementById(`response-select-${task.id}`)?.focus()}
+                    onMoveBack={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
+                    onMoveForward={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
+                    onQuickResponse={(value) => {
+                      setResponseValues((prev) => ({ ...prev, [task.id]: value }));
+                      setTimeout(() => runResponse(task), 100);
+                    }}
+                    onResponseChange={(value) => setResponseValues((prev) => ({ ...prev, [task.id]: value }))}
+                    onConfirmResponse={() => runResponse(task)}
+                  />
                 ))}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      <EthicalGuardrailBanner
+        tone="zinc"
+        eyebrow="Guardrail do mural"
+        badgeLabel="Operação humana"
+        description="Silêncio também é resposta. Missão boa respeita tempo, consentimento e o ritmo real da conversa."
+      />
+
+      <ContextHelpCard 
+        title="Como operar o mural"
+        whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
+        whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
+        whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
+      />
+
+      <LightweightOnboarding 
+        screenId="abordagem"
+        title="Mural de Missões"
+        highlights={[
+          { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
+          { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
+          { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
+        ]}
+      />
 
       {feedback && (
         <div className={cn(
@@ -727,5 +579,206 @@ export function KanbanClient({
         onActionComplete={() => window.location.reload()}
       />
     </div>
+  );
+}
+
+function KanbanTaskCard({
+  task,
+  savingTaskId,
+  responseValue,
+  onOpenDetails,
+  onAssume,
+  onCopyDM,
+  onRegisterResponse,
+  onMoveBack,
+  onMoveForward,
+  onQuickResponse,
+  onResponseChange,
+  onConfirmResponse,
+}: {
+  task: BoardTask;
+  savingTaskId: string | null;
+  responseValue: PersonResponseKind;
+  onOpenDetails: (person: PriorityPerson) => void;
+  onAssume: () => void;
+  onCopyDM: () => void;
+  onRegisterResponse: () => void;
+  onMoveBack: () => void;
+  onMoveForward: () => void;
+  onQuickResponse: (value: PersonResponseKind) => void;
+  onResponseChange: (value: PersonResponseKind) => void;
+  onConfirmResponse: () => void;
+}) {
+  if (!task.priority) {
+    return (
+      <Card className="ring-1 ring-zinc-100">
+        <CardContent className="space-y-3 p-4">
+          <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+            {boardMicroLabels[task.boardColumn]}
+          </Badge>
+          <div>
+            <p className="text-sm font-black text-zinc-950">@{task.person?.username || "usuario"}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{task.title}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const canMoveBack = outreachBoardColumns.indexOf(task.boardColumn) !== 0;
+  const canMoveForward = outreachBoardColumns.indexOf(task.boardColumn) !== outreachBoardColumns.length - 1;
+
+  return (
+    <MissionCard
+      person={task.priority}
+      primaryActionLabel="Abrir missão"
+      onPrimaryAction={onOpenDetails}
+      className={cn(task.isStale ? "bg-rose-50/30 ring-1 ring-rose-100" : "ring-1 ring-zinc-100")}
+      footer={
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                {boardMicroLabels[task.boardColumn]}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[9px] font-black uppercase tracking-widest",
+                  task.responsibleId ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-rose-200 bg-rose-50 text-rose-700",
+                )}
+              >
+                {task.priority.responsibleName || "Órfã"}
+              </Badge>
+              {task.waitingStatus ? (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[8px] font-black uppercase",
+                    task.waitingStatus === "normal"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : task.waitingStatus === "followup"
+                        ? "bg-blue-50 text-blue-700 border-blue-100"
+                        : task.waitingStatus === "review"
+                          ? "bg-amber-50 text-amber-700 border-amber-100"
+                          : "bg-rose-50 text-rose-700 border-rose-100",
+                  )}
+                >
+                  {task.waitingStatus === "normal"
+                    ? "Aguardando normal"
+                    : task.waitingStatus === "followup"
+                      ? "Revisar depois"
+                      : task.waitingStatus === "review"
+                        ? "Evitar insistência"
+                        : "Arquivar sugerido"}
+                </Badge>
+              ) : null}
+            </div>
+            <PersonScoreBadge score={task.priority.priorityScore} temperature={task.priority.temperature} />
+          </div>
+
+          {task.isStale ? (
+            <EthicalGuardrailBanner
+              tone="rose"
+              eyebrow="Missão parada"
+              badgeLabel="Resolver trava"
+              description="Esta missão ficou tempo demais sem movimento. Revisar contexto, responsável e próximo passo antes de insistir."
+              className="rounded-2xl p-4"
+            />
+          ) : null}
+
+          <div className="space-y-2 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-400">Auditoria curta</span>
+              <span className="text-[10px] font-bold text-zinc-500">{task.title}</span>
+            </div>
+            <p className="text-[10px] font-medium leading-relaxed text-zinc-500 italic">
+              &quot;{task.priority.nextAction || task.notes || "Aguardando próxima definição..."}&quot;
+            </p>
+          </div>
+
+          <ActionButtonGroup
+            personId={task.personId}
+            instagramUsername={task.person?.username}
+            onAssume={onAssume}
+            onCopyDM={onCopyDM}
+            onRegisterResponse={onRegisterResponse}
+            canAssume={!task.responsibleId}
+            canCopyDM={!!task.priority.suggestedMessage}
+            canRegisterResponse
+            className="w-full justify-start"
+          />
+
+          <div className="grid grid-cols-2 gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[9px] font-black uppercase"
+              onClick={onMoveBack}
+              disabled={savingTaskId === task.id || !canMoveBack}
+            >
+              <MoveLeft className="mr-1 h-3 w-3" /> Recuar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[9px] font-black uppercase"
+              onClick={onMoveForward}
+              disabled={savingTaskId === task.id || !canMoveForward}
+            >
+              Avançar <MoveRight className="ml-1 h-3 w-3" />
+            </Button>
+          </div>
+
+          {task.boardColumn === "esperando_resposta" ? (
+            <div className="space-y-1.5 border-t border-zinc-100 pt-3">
+              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-zinc-400">Ações rápidas</p>
+              <div className="flex flex-wrap gap-1">
+                {[
+                  { id: "manter_aguardando", label: "Manter" },
+                  { id: "revisar_depois", label: "Revisar" },
+                  { id: "arquivar_sem_retorno", label: "Arquivar" },
+                  { id: "nao_quer_contato", label: "Não Abordar" },
+                ].map((action) => (
+                  <Button
+                    key={action.id}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 rounded-md border-zinc-200 px-2 text-[8px] font-bold uppercase hover:bg-zinc-100"
+                    onClick={() => onQuickResponse(action.id as PersonResponseKind)}
+                    disabled={savingTaskId === task.id}
+                  >
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="space-y-2 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-3">
+            <select
+              id={`response-select-${task.id}`}
+              className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500"
+              value={responseValue}
+              onChange={(e) => onResponseChange(e.target.value as PersonResponseKind)}
+            >
+              {PERSON_RESPONSE_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              className="h-8 w-full bg-zinc-800 text-[10px] font-black uppercase hover:bg-black"
+              onClick={onConfirmResponse}
+              disabled={savingTaskId === task.id}
+            >
+              Confirmar resposta
+            </Button>
+          </div>
+        </div>
+      }
+    />
   );
 }

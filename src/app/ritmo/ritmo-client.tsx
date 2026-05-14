@@ -72,23 +72,6 @@ type RitmoViewData = {
 export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleAlerts: OperationalCycleAlert[] }) {
   return (
     <div className="space-y-8 pb-12">
-      <CycleAlertList alerts={cycleAlerts} />
-
-      <WeeklyClosureMarkdownGenerator
-        data={{
-          weeklyRhythmState: data.weeklyRhythmState,
-          linksPrepared: data.collectiveNarrative.linksPrepared,
-          conversationsRegistered: data.collectiveNarrative.conversationsRegistered,
-          referralsMade: data.collectiveNarrative.referralsMade,
-          fieldActions: data.collectiveNarrative.fieldActions,
-          territoriesInMobilization: data.collectiveNarrative.territoriesInMobilization,
-          careBase: data.careBase,
-          cycleAlerts,
-        }}
-      />
-
-      <TeamFlowAdoptionPanel data={data.teamAdoption} />
-
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <WeeklyRhythmCard state={data.weeklyRhythmState} />
         <DailyMission state={data.missionState} />
@@ -111,6 +94,14 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
                 Campo sem fechamento: {data.field.pastEventsWithoutResult}
               </Badge>
             </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button nativeButton={false} className="h-10 bg-zinc-950 px-4 text-[10px] font-black uppercase tracking-[0.18em] hover:bg-zinc-800" render={<Link href="/abordagem?filter=stale" />}>
+                Resolver travas
+              </Button>
+              <Button nativeButton={false} variant="outline" className="h-10 border-zinc-200 bg-white px-4 text-[10px] font-black uppercase tracking-[0.18em]" render={<Link href="/campo" />}>
+                Fechar campo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -132,6 +123,8 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardContent>
         </Card>
       </section>
+
+      <CycleAlertList alerts={cycleAlerts} />
 
       <section className="grid lg:grid-cols-2 gap-6">
         <RhythmPanel
@@ -211,6 +204,21 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
           </CardContent>
         </Card>
       </section>
+
+      <TeamFlowAdoptionPanel data={data.teamAdoption} />
+
+      <WeeklyClosureMarkdownGenerator
+        data={{
+          weeklyRhythmState: data.weeklyRhythmState,
+          linksPrepared: data.collectiveNarrative.linksPrepared,
+          conversationsRegistered: data.collectiveNarrative.conversationsRegistered,
+          referralsMade: data.collectiveNarrative.referralsMade,
+          fieldActions: data.collectiveNarrative.fieldActions,
+          territoriesInMobilization: data.collectiveNarrative.territoriesInMobilization,
+          careBase: data.careBase,
+          cycleAlerts,
+        }}
+      />
     </div>
   );
 }

@@ -164,23 +164,23 @@ export function PeopleClient({
 
   return (
     <div className="flex flex-col gap-4 pb-20">
-      <LightweightOnboarding 
-        screenId="pessoas"
-        title="Prioridades da Equipe"
-        highlights={[
-          { title: "Onde começar", description: "Use a 'Barra de Status' para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
-          { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
-          { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
-        ]}
-      />
-      <GuidedOnboarding compact />
-
-      <ContextHelpCard 
-        title="Como filtrar prioridades"
-        whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
-        whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
-        whatToDoNow="Use os filtros da 'Barra de Status' para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
-      />
+      <section className="rounded-[28px] border border-zinc-200 bg-white px-5 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Jornada da equipe</p>
+            <h1 className="text-3xl font-black tracking-tight text-zinc-950">Prioridades da Equipe</h1>
+            <p className="max-w-3xl text-sm leading-6 text-zinc-600">
+              Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível.
+            </p>
+          </div>
+          <Link 
+            href="/pessoas/importar" 
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-10 font-black uppercase text-[10px] border-zinc-200")}
+          >
+            <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Importar base
+          </Link>
+        </div>
+      </section>
 
       <OperationalStatusBar
         activeFilter={priorityFilter}
@@ -192,14 +192,7 @@ export function PeopleClient({
           { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
           { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
         ]}
-        actions={
-          <Link 
-            href="/pessoas/importar" 
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-8 font-black uppercase text-[10px] border-zinc-200")}
-          >
-            <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Importar
-          </Link>
-        }
+        actions={null}
       />
 
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100">
@@ -239,7 +232,7 @@ export function PeopleClient({
       <div className="space-y-6">
         {filteredPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
               {filteredPriorityPeople.slice(0, 15).map((person, index) => (
                 <PersonPriorityCard 
                   key={person.id} 
@@ -272,6 +265,24 @@ export function PeopleClient({
           />
         )}
       </div>
+
+      <LightweightOnboarding 
+        screenId="pessoas"
+        title="Prioridades da Equipe"
+        highlights={[
+          { title: "Onde começar", description: "Use a barra de status para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
+          { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
+          { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
+        ]}
+      />
+      <GuidedOnboarding compact />
+
+      <ContextHelpCard 
+        title="Como filtrar prioridades"
+        whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
+        whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
+        whatToDoNow="Use os filtros da barra de status para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
+      />
 
       <PersonQuickSheet 
         person={selectedPerson}

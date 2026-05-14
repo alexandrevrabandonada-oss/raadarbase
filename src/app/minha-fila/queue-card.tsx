@@ -19,7 +19,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
-import { JourneyProgress } from "@/components/radar/journey-progress";
+import { JourneyBar } from "@/components/radar/journey-bar";
+import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 
 interface QueueCardProps {
   person: PriorityPerson;
@@ -82,6 +83,7 @@ export function QueueCard({
   const isBlocked = person.riskFlags.doNotContact;
   const phase = resolvePhaseRibbon(person);
   const progress = progressPercentage(person);
+  const holdState = isBlocked ? "blocked" : person.riskFlags.recentOutreach || person.isPendingResponse ? "waiting" : "free";
   const holdLabel = isBlocked
     ? person.doNotContactReason || "Restrição ética ativa."
     : person.riskFlags.recentOutreach
@@ -153,7 +155,7 @@ export function QueueCard({
 
       <CardContent className="space-y-6 p-6 md:p-8">
         <div className="rounded-3xl border border-zinc-200 bg-zinc-50/70 p-5">
-          <JourneyProgress {...phase.journey} />
+          <JourneyBar {...phase.journey} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
@@ -180,9 +182,9 @@ export function QueueCard({
               </div>
               <div className="rounded-2xl border border-zinc-200 bg-white p-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
-                  Espera ou bloqueio
+                  {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
                 </p>
-                <p className={cn("mt-2 text-sm font-semibold", isBlocked ? "text-rose-700" : "text-zinc-700")}>
+                <p className={cn("mt-2 text-sm font-semibold", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")}>
                   {holdLabel}
                 </p>
               </div>
@@ -275,16 +277,24 @@ export function QueueCard({
             {(person.riskFlags.recentOutreach || person.riskFlags.doNotContact) && (
               <div className="space-y-2">
                 {person.riskFlags.recentOutreach && (
-                  <div className="flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-3">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <p className="text-xs font-bold text-amber-900">Sinal de espera: houve contato recente.</p>
-                  </div>
+                  <EthicalGuardrailBanner
+                    tone="zinc"
+                    eyebrow="Janela ética"
+                    badgeLabel="Aguardar retorno"
+                    description="Houve contato recente. A missão segue em espera saudável antes de nova abordagem."
+                    icon={AlertCircle}
+                    className="rounded-2xl border-amber-100 bg-amber-50 p-3"
+                  />
                 )}
                 {person.riskFlags.doNotContact && (
-                  <div className="flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
-                    <ShieldAlert className="h-4 w-4 text-zinc-300" />
-                    <p className="text-xs font-bold uppercase tracking-widest text-white">Não abordar ativo</p>
-                  </div>
+                  <EthicalGuardrailBanner
+                    tone="rose"
+                    eyebrow="Guardrail ético"
+                    badgeLabel="Não abordar"
+                    description="A missão está bloqueada por cuidado ético. Não abrir novo contato até revisão manual."
+                    icon={ShieldAlert}
+                    className="rounded-2xl p-3"
+                  />
                 )}
               </div>
             )}

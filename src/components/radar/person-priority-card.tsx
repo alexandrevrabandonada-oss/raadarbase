@@ -1,8 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { AlertCircle, ChevronRight, Clock, ShieldAlert, UserPlus } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { ChevronRight, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,6 +9,7 @@ import type { PriorityPerson } from "@/lib/types";
 import { assumePersonResponsible } from "@/app/actions";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyProgress } from "./journey-progress";
+import { MissionCard } from "./mission-card";
 
 interface PersonPriorityCardProps {
   person: PriorityPerson;
@@ -43,12 +43,22 @@ function getHoldText(person: PriorityPerson) {
     return person.doNotContactReason || "Missão bloqueada por cuidado ético.";
   }
   if (person.riskFlags?.recentOutreach) {
-    return "Contato recente. Melhor aguardar a janela antes de insistir.";
+    return "Contato recente. Aguarde a janela ética antes de insistir.";
   }
   if (person.isPendingResponse) {
     return "Conversa aberta. Registrar retorno quando houver resposta.";
   }
-  return "Sem bloqueio ativo no momento.";
+  return "Sem bloqueio ativo agora.";
+}
+
+function getHoldState(person: PriorityPerson): "blocked" | "waiting" | "free" {
+  if (person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact) {
+    return "blocked";
+  }
+  if (person.riskFlags?.recentOutreach || person.isPendingResponse) {
+    return "waiting";
+  }
+  return "free";
 }
 
 export function PersonPriorityCard({
@@ -65,6 +75,7 @@ export function PersonPriorityCard({
   );
   const phaseLabel = getPhaseLabel(person);
   const holdText = getHoldText(person);
+  const holdState = getHoldState(person);
   const journey = mapPersonToJourney(
     person.status,
     person.hasPendingTask,
@@ -111,21 +122,23 @@ export function PersonPriorityCard({
               <p className="truncate text-base font-black text-zinc-950">
                 {person.displayName || `@${person.username}`}
               </p>
-              <p className="truncate text-xs font-semibold text-zinc-500">@{person.username}</p>
+              <p className="truncate text-xs font-semibold text-zinc-500" title={`@${person.username}`}>@{person.username}</p>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Motivo</p>
-                <p className="mt-1 text-xs font-medium leading-relaxed text-zinc-600">{person.priorityReason}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600" title={person.priorityReason}>{person.priorityReason}</p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima ação</p>
-                <p className="mt-1 text-xs font-black text-indigo-700">{person.nextAction}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-black text-indigo-700" title={person.nextAction}>{person.nextAction}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Espera ou bloqueio</p>
-                <p className={cn("mt-1 text-xs font-medium", isBlocked ? "text-rose-700" : "text-zinc-600")}>
+                <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")}>
+                  {holdState === "free" ? "Caminho livre" : "Espera ou bloqueio"}
+                </p>
+                <p className={cn("mt-1 line-clamp-2 text-xs font-medium", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")} title={holdText}>
                   {holdText}
                 </p>
               </div>
@@ -159,74 +172,28 @@ export function PersonPriorityCard({
   }
 
   return (
-    <Card
-      className={cn(
-        "group overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl",
-        isBlocked && "bg-zinc-50",
-        className,
-      )}
-    >
-      <CardContent className="space-y-5 p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              {index !== undefined ? (
-                <Badge variant="outline" className="rounded-full border-zinc-200 text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                  Missão {index + 1}
-                </Badge>
-              ) : null}
-              <Badge className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-50">
-                {phaseLabel}
-              </Badge>
-            </div>
-
-            <div className="min-w-0 cursor-pointer" onClick={() => onOpenDetails?.(person)}>
-              <p className="truncate text-lg font-black text-zinc-950">
-                {person.displayName || `@${person.username}`}
-              </p>
-              <p className="truncate text-xs font-semibold text-zinc-500">@{person.username}</p>
-            </div>
-          </div>
-
-          {isBlocked ? (
-            <div className="rounded-2xl bg-rose-50 p-2 text-rose-600">
-              <ShieldAlert className="h-4 w-4" />
-            </div>
-          ) : person.isPendingResponse ? (
-            <div className="rounded-2xl bg-amber-50 p-2 text-amber-600">
-              <Clock className="h-4 w-4" />
-            </div>
+    <MissionCard
+      person={person}
+      primaryActionLabel="Iniciar etapa"
+      onPrimaryAction={onOpenDetails}
+      className={cn("group h-full rounded-[30px] transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl", isBlocked && "bg-zinc-50", className)}
+      footer={
+        <div className="flex flex-wrap items-center gap-2">
+          {index !== undefined ? (
+            <Badge variant="outline" className="rounded-full border-zinc-200 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+              Missão {index + 1}
+            </Badge>
+          ) : null}
+          {person.responsibleName ? (
+            <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-[9px] font-black uppercase tracking-widest text-zinc-600">
+              {person.responsibleName}
+            </Badge>
           ) : (
-            <div className="rounded-2xl bg-emerald-50 p-2 text-emerald-600">
-              <AlertCircle className="h-4 w-4" />
-            </div>
+            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-[9px] font-black uppercase tracking-widest text-amber-700">
+              Sem responsável
+            </Badge>
           )}
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Motivo</p>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-zinc-600">{person.priorityReason}</p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ação principal</p>
-              <p className="mt-2 text-sm font-black text-indigo-700">{person.nextAction}</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Bloqueio ou espera</p>
-              <p className={cn("mt-2 text-sm font-medium", isBlocked ? "text-rose-700" : "text-zinc-600")}>
-                {holdText}
-              </p>
-            </div>
-          </div>
-
-          <JourneyProgress {...journey} compact />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4">
-          {!person.responsibleId && !isBlocked && (
+          {!person.responsibleId && !isBlocked ? (
             <Button
               variant="outline"
               className="h-10 border-zinc-200 text-xs font-black uppercase tracking-wider"
@@ -236,15 +203,9 @@ export function PersonPriorityCard({
               <UserPlus className="mr-2 h-4 w-4" />
               Assumir
             </Button>
-          )}
-          <Button
-            className="h-10 flex-1 bg-indigo-600 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
-            onClick={() => onOpenDetails?.(person)}
-          >
-            Iniciar etapa <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
+          ) : null}
         </div>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }

@@ -118,7 +118,7 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
         eyebrow="Base territorial"
         title="Mapa da Mobilização"
         description="Cada bairro aparece como nó territorial com fase, calor, temas dominantes e missão recomendada. O foco é decidir onde ouvir, mobilizar, ir a campo e sustentar continuidade."
-        icon={Map}
+        icon={<Map className="h-5 w-5 text-white" />}
         variant="territory"
         metrics={
           <>

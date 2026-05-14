@@ -667,6 +667,8 @@ Na rodada GAMEUX10, os principais padroes visuais deixaram de existir apenas com
   - Card de navegacao de mundos com `status`, `nextStep` e CTA.
 - `gameful-empty-state.tsx`
   - Biblioteca de estados vazios por frente: `base`, `journey`, `territory`, `field`, `rhythm`, `memory`, `ethics`.
+- `alert-beacon.tsx`
+  - Beacon compartilhado para sinais operacionais com `tone`, `detail`, `value`, `href` e micro-CTA curto.
 
 ### Componentes de missao e jornada
 
@@ -696,3 +698,49 @@ Na rodada GAMEUX10, os principais padroes visuais deixaram de existir apenas com
 - variacao visual deve acontecer primeiro por prop (`tone`, `variant`, `compact`, `footer`, `aside`), nao por copia de classes;
 - se um layout novo exigir mais de 8 a 10 classes repetidas em duas rotas, o padrao deve voltar para o kit;
 - componentes locais antigos ainda podem existir por compatibilidade, mas o alvo daqui para frente e convergir para este kit.
+
+## 12. Convergencia por rota
+
+### `/dashboard`
+
+- `GamefulHero` para o topo principal.
+- `AlertBeacon` para `Alertas do Sistema`.
+- `GamefulMetricCard` tambem nos mini-resumos do hero e do `Mapa Rapido`.
+- `MissionCard` para `Proximas Missoes`.
+
+### `/minha-fila`
+
+- `JourneyBar` compartilhado na trilha das proximas missoes e no card principal.
+- `EthicalGuardrailBanner` para janelas eticas e sinais sensiveis.
+- `QueueCard` e `QueueList` devem atuar como composicoes do kit, nao como sistema visual paralelo.
+
+### `/pessoas`
+
+- `PersonPriorityCard` em modo card deve preferir `MissionCard`.
+- `JourneyBar` e guardrails eticos devem seguir a mesma leitura da fila e do dashboard.
+
+### `/abordagem`
+
+- Cards do mural devem ser tratados como variacao operacional de `MissionCard`.
+- O que muda e o bloco de auditoria, responsavel, movimento entre colunas e resposta rapida; o shell visual deve continuar o mesmo mundo.
+
+### `PersonQuickSheet`
+
+- Trilha principal com `JourneyBar`.
+- Sinais eticos com `EthicalGuardrailBanner`.
+- Vazios de memoria e encaminhamento com `GamefulEmptyState`.
+
+## 13. Quando usar cada componente
+
+- `MissionCard`
+  - Quando a unidade principal for uma pessoa/missao com fase, motivo, proximo passo e CTA.
+- `AlertBeacon`
+  - Quando a unidade principal for um sinal operacional resumido com link para destravar.
+- `GamefulMetricCard`
+  - Quando o conteudo for numerico ou resumido e o card nao precisar carregar narrativa longa.
+- `JourneyBar`
+  - Sempre que a leitura principal for etapa atual e caminho restante.
+- `EthicalGuardrailBanner`
+  - Sempre que a interface precisar reforcar cuidado, consentimento, janela etica ou leitura agregada.
+- `GamefulEmptyState`
+  - Sempre que o vazio precisar responder o que falta, por que falta e o que fazer agora.

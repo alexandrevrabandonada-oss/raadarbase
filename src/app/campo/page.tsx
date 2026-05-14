@@ -84,7 +84,7 @@ export default async function FieldAgendaPage() {
           eyebrow="Jornada territorial"
           title="Missões de Campo"
           description="Cada ação de campo vira uma missão de campanha com progresso explícito: convidar, confirmar, realizar, registrar presença e sustentar follow-up no território."
-          icon={Sparkles}
+          icon={<Sparkles className="h-5 w-5 text-white" />}
           variant="field"
           metrics={
             <>
@@ -143,56 +143,16 @@ export default async function FieldAgendaPage() {
           }
         />
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
-            <CardContent className="p-6">
-              <div className="mb-5 flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-indigo-600" />
-                <h3 className="text-lg font-black text-zinc-950">Leitura da jornada</h3>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                {[
-                  { label: "Planejar", count: events.filter((event) => journeys[event.id].currentPhase === "planejar").length },
-                  { label: "Convidar", count: events.filter((event) => journeys[event.id].currentPhase === "convidar").length },
-                  { label: "Confirmar", count: events.filter((event) => journeys[event.id].currentPhase === "confirmar").length },
-                  { label: "Realizar/Registrar", count: events.filter((event) => journeys[event.id].currentPhase === "realizar" || journeys[event.id].currentPhase === "registrar").length },
-                  { label: "Follow-up", count: events.filter((event) => journeys[event.id].currentPhase === "follow_up").length },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">{item.label}</p>
-                    <p className="mt-2 text-2xl font-black text-zinc-950">{item.count}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
-            <CardContent className="space-y-4 p-6">
-              <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-emerald-600" />
-                <h3 className="text-lg font-black text-zinc-950">Fechamento de ciclo</h3>
-              </div>
-              <div className="grid gap-3">
-                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Convites pendentes</p>
-                  <p className="mt-2 text-2xl font-black text-zinc-950">{Math.max(totals.invites - totals.confirmed, 0)}</p>
-                </div>
-                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões com follow-up</p>
-                  <p className="mt-2 text-2xl font-black text-zinc-950">{totals.followUp}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         <section className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões ativas</p>
               <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Campo em andamento</h3>
             </div>
+            <Button nativeButton={false} variant="outline" className="font-black border-zinc-200" render={<Link href={nextMission ? `/campo/${nextMission.id}` : "/campo/novo"} />}>
+              {nextMission ? "Fechar ciclo" : "Criar missão"}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
 
           {activeEvents.length === 0 ? (
@@ -237,6 +197,50 @@ export default async function FieldAgendaPage() {
             </div>
           )}
         </section>
+
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="mb-5 flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-indigo-600" />
+                <h3 className="text-lg font-black text-zinc-950">Leitura da jornada</h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                {[
+                  { label: "Planejar", count: events.filter((event) => journeys[event.id].currentPhase === "planejar").length },
+                  { label: "Convidar", count: events.filter((event) => journeys[event.id].currentPhase === "convidar").length },
+                  { label: "Confirmar", count: events.filter((event) => journeys[event.id].currentPhase === "confirmar").length },
+                  { label: "Realizar/Registrar", count: events.filter((event) => journeys[event.id].currentPhase === "realizar" || journeys[event.id].currentPhase === "registrar").length },
+                  { label: "Follow-up", count: events.filter((event) => journeys[event.id].currentPhase === "follow_up").length },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">{item.label}</p>
+                    <p className="mt-2 text-2xl font-black text-zinc-950">{item.count}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
+            <CardContent className="space-y-4 p-6">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                <h3 className="text-lg font-black text-zinc-950">Fechamento de ciclo</h3>
+              </div>
+              <div className="grid gap-3">
+                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Convites pendentes</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-950">{Math.max(totals.invites - totals.confirmed, 0)}</p>
+                </div>
+                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões com follow-up</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-950">{totals.followUp}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <section className="space-y-5">
           <div>

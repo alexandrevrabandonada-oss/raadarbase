@@ -66,7 +66,9 @@ import {
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
-import { JourneyProgress } from "@/components/radar/journey-progress";
+import { JourneyBar } from "@/components/radar/journey-bar";
+import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -219,6 +221,12 @@ export function PersonQuickSheet({
   if (!person) return null;
 
   const isBlocked = !!(person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact);
+  const journey = mapPersonToJourney(
+    person.status,
+    person.hasPendingTask,
+    person.hasReferral,
+    person.lastInteractionAt,
+  );
 
   const handleAssume = () => {
     if (isTraining) {
@@ -401,24 +409,10 @@ export function PersonQuickSheet({
                     registrar: "Registrar",
                     encaminhar: "Encaminhar",
                     concluir: "Concluir",
-                  }[
-                    mapPersonToJourney(
-                      person.status,
-                      person.hasPendingTask,
-                      person.hasReferral,
-                      person.lastInteractionAt
-                    ).currentPhase
-                  ]}
+                  }[journey.currentPhase]}
                 </p>
               </div>
-              <JourneyProgress 
-                {...mapPersonToJourney(
-                  person.status,
-                  person.hasPendingTask,
-                  person.hasReferral,
-                  person.lastInteractionAt
-                )} 
-              />
+              <JourneyBar {...journey} />
             </div>
           </div>
 
@@ -468,22 +462,24 @@ export function PersonQuickSheet({
                 {/* Sinais da Missão */}
                 <div className="space-y-3">
                   {isBlocked && (
-                    <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
-                      <ShieldAlert className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-black text-rose-900 uppercase tracking-tight">Não Abordar</p>
-                        <p className="text-xs text-rose-700 font-medium">{person.doNotContactReason || "Restrição manual ativa."}</p>
-                      </div>
-                    </div>
+                    <EthicalGuardrailBanner
+                      tone="rose"
+                      eyebrow="Guardrail ético"
+                      badgeLabel="Não abordar"
+                      description={person.doNotContactReason || "Restrição manual ativa."}
+                      icon={ShieldAlert}
+                      className="rounded-xl p-4"
+                    />
                   )}
                   {person.riskFlags?.recentOutreach && (
-                    <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-orange-600 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-black text-orange-900 uppercase tracking-tight">Contato Recente</p>
-                        <p className="text-xs text-orange-700 font-medium">Houve uma DM manual nas últimas 24h. Evite redundância.</p>
-                      </div>
-                    </div>
+                    <EthicalGuardrailBanner
+                      tone="zinc"
+                      eyebrow="Janela ética"
+                      badgeLabel="Contato recente"
+                      description="Houve uma DM manual nas últimas 24h. Evite redundância."
+                      icon={AlertCircle}
+                      className="rounded-xl border-orange-100 bg-orange-50 p-4"
+                    />
                   )}
                 </div>
 
@@ -618,9 +614,12 @@ export function PersonQuickSheet({
                       ))}
                     </div>
                   ) : (
-                    <div className="p-4 text-center text-xs text-zinc-400 font-medium italic bg-zinc-50/30 rounded-xl border border-dashed border-zinc-200">
-                      Nenhuma interação recente registrada.
-                    </div>
+                    <GamefulEmptyState
+                      variant="memory"
+                      compact
+                      title="Memória recente vazia"
+                      description="Ainda não há registro recente desta missão no painel rápido."
+                    />
                   )}
                 </div>
 
@@ -869,10 +868,12 @@ export function PersonQuickSheet({
                   </div>
                 );
               })() : (
-                <div className="h-full flex flex-col items-center justify-center text-center py-12 text-zinc-300">
-                  <ArrowRight className="h-12 w-12 mb-4 opacity-20" />
-                  <p className="text-sm font-black uppercase tracking-widest">Selecione um destino à esquerda</p>
-                </div>
+                <GamefulEmptyState
+                  variant="journey"
+                  compact
+                  title="Escolha um destino"
+                  description="Selecione à esquerda para ver o cuidado, o próximo passo e o registro desse encaminhamento."
+                />
               )}
             </div>
           </div>
