@@ -40,16 +40,16 @@ export function FieldMissionCard({
 }: FieldMissionCardProps) {
   return (
     <Link href={href} className="block h-full">
-      <Card className={cn("h-full rounded-[30px] border-zinc-200 bg-white py-0 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl", className)}>
+      <Card className={cn("radar-outline-card h-full rounded-[30px] border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.92))] py-0 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#d39b2a]/45 hover:shadow-xl", className)}>
         <CardContent className="space-y-5 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className={cn(completed ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-indigo-50 text-indigo-700 hover:bg-indigo-50")}>
+                <Badge className={cn(completed ? "border border-emerald-200 bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]")}>
                   {phaseLabel}
                 </Badge>
                 {neighborhood ? (
-                  <Badge variant="outline" className="border-zinc-200 text-zinc-600">
+                  <Badge variant="outline" className="border-[#d8c7ac] bg-white/75 text-zinc-600">
                     <MapPin className="mr-1 h-3 w-3" /> {neighborhood}
                   </Badge>
                 ) : null}
@@ -68,16 +68,16 @@ export function FieldMissionCard({
                 value={metric.value}
                 tone="light"
                 compact
-                className="border-zinc-100 bg-zinc-50 shadow-none"
+                className="border-[#d8c7ac] bg-white/75 shadow-none"
               />
             ))}
           </div>
 
-          <div className={cn("rounded-2xl p-4", completed ? "border border-emerald-100 bg-emerald-50/60" : "border border-indigo-100 bg-indigo-50/60")}>
-            <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", completed ? "text-emerald-600" : "text-indigo-500")}>
+          <div className={cn("rounded-2xl p-4", completed ? "border border-emerald-100 bg-emerald-50/60" : "border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)]")}>
+            <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", completed ? "text-emerald-600" : "text-[#8b7759]")}>
               {completed ? "Fechamento do ciclo" : "Próximo passo da missão"}
             </p>
-            <p className={cn("mt-2 text-sm font-black", completed ? "text-emerald-950" : "text-indigo-950")}>{nextStep}</p>
+            <p className={cn("mt-2 text-sm font-black", completed ? "text-emerald-950" : "text-[#11202a]")}>{nextStep}</p>
           </div>
         </CardContent>
       </Card>

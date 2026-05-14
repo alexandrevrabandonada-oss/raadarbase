@@ -93,16 +93,16 @@ export function QueueCard({
         : "Caminho livre para avançar nesta missão.";
 
   return (
-    <Card className="overflow-hidden border-zinc-900/10 bg-white shadow-2xl shadow-zinc-200/50">
+    <Card className="radar-outline-card overflow-hidden border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.94))] shadow-2xl shadow-zinc-200/50">
       <CardHeader className="p-0">
-        <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(129,140,248,0.28),_transparent_34%),linear-gradient(135deg,#09090b_0%,#18181b_55%,#27272a_100%)] px-6 py-6 text-white">
+        <div className="border-b border-[#23313b] radar-panel-dark px-6 py-6 text-white">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 space-y-3">
-              <Badge className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white hover:bg-white/10">
+              <Badge className="rounded-full border border-[#f0c15b]/25 bg-[#f0c15b]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-[#f7d88c] hover:bg-[#f0c15b]/10">
                 Fase atual: {phase.label}
               </Badge>
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-lg font-black shadow-lg">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#f0c15b]/25 bg-black/20 text-lg font-black text-[#f1c15a] shadow-lg">
                   {person.username.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
@@ -114,14 +114,14 @@ export function QueueCard({
               </div>
             </div>
 
-            <div className="min-w-[180px] rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+            <div className="min-w-[180px] rounded-2xl border border-white/10 bg-black/15 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">
                 Progresso da jornada
               </p>
               <p className="mt-2 text-3xl font-black leading-none text-white">{progress}%</p>
               <div className="mt-3 h-2 rounded-full bg-white/10">
                 <div
-                  className="h-2 rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-emerald-400 transition-all duration-500"
+                  className="h-2 rounded-full bg-gradient-to-r from-[#d39b2a] via-[#f0c15b] to-[#e8dfbf] transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -129,22 +129,22 @@ export function QueueCard({
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+            <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">
                 Motivo da missão
               </p>
               <p className="mt-2 text-sm font-semibold leading-relaxed text-zinc-100">
                 {person.priorityReason}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+            <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">
                 Próxima ação
               </p>
-              <p className="mt-2 text-sm font-black leading-relaxed text-white">{person.nextAction}</p>
+              <p className="mt-2 text-sm font-black leading-relaxed text-[#f7f1e5]">{person.nextAction}</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+            <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">
                 Estado da missão
               </p>
               <p className="mt-2 text-sm font-semibold leading-relaxed text-zinc-100">{holdLabel}</p>
@@ -154,25 +154,25 @@ export function QueueCard({
       </CardHeader>
 
       <CardContent className="space-y-6 p-6 md:p-8">
-        <div className="rounded-3xl border border-zinc-200 bg-zinc-50/70 p-5">
+        <div className="rounded-3xl border border-[#d8c7ac] bg-white/70 p-5">
           <JourneyBar {...phase.journey} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-4">
-            <div className="rounded-3xl border border-indigo-100 bg-indigo-50/70 p-5">
-              <div className="mb-3 flex items-center gap-2 text-indigo-700">
+            <div className="rounded-3xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-5">
+              <div className="mb-3 flex items-center gap-2 text-[#8b7759]">
                 <Sparkles className="h-4 w-4" />
                 <p className="text-[10px] font-black uppercase tracking-[0.24em]">Ação principal</p>
               </div>
-              <p className="text-base font-black leading-tight text-indigo-950">
+              <p className="text-base font-black leading-tight text-[#11202a]">
                 {isBlocked ? "Respeitar a trava ética e revisar contexto." : "Abrir Instagram, personalizar a abordagem e registrar o avanço."}
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+              <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
                   Última interação
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-zinc-700">
@@ -180,8 +180,8 @@ export function QueueCard({
                   {person.latestInteractionLabel}
                 </p>
               </div>
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+              <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
                   {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
                 </p>
                 <p className={cn("mt-2 text-sm font-semibold", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")}>
@@ -197,7 +197,7 @@ export function QueueCard({
                 Mensagem de missão
               </label>
               <div className="relative">
-                <div className="min-h-[168px] rounded-3xl border border-zinc-200 bg-zinc-50 p-5 text-sm font-medium leading-relaxed text-zinc-800">
+                <div className="min-h-[168px] rounded-3xl border border-[#d8c7ac] bg-[rgba(255,252,247,0.9)] p-5 text-sm font-medium leading-relaxed text-zinc-800">
                   {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
                 </div>
                 {person.suggestedMessage && (
@@ -302,10 +302,10 @@ export function QueueCard({
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-wrap items-center gap-3 border-t border-zinc-100 bg-zinc-50 px-6 py-5">
+      <CardFooter className="flex flex-wrap items-center gap-3 border-t border-[#d8c7ac] bg-[rgba(255,250,242,0.75)] px-6 py-5">
         <Button
           size="lg"
-          className="h-12 bg-pink-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-pink-700"
+          className="h-12 bg-[#0f1b24] px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-[#172733]"
           onClick={() => window.open(person.instagramUrl || `https://instagram.com/${person.username}`, "_blank")}
         >
           <Instagram className="mr-2 h-4 w-4" /> Abrir Instagram

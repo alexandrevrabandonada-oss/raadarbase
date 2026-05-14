@@ -16,10 +16,10 @@ export function DailyMission({ state, className }: DailyMissionProps) {
 
   return (
     <div className={cn(
-      "w-full rounded-3xl border transition-all duration-500 overflow-hidden",
-      state.status === "concluido" ? "bg-emerald-50 border-emerald-100 shadow-emerald-100/50 shadow-xl" :
-      state.status === "atencao" ? "bg-rose-50 border-rose-100 shadow-rose-100/50 shadow-xl" :
-      "bg-white border-zinc-100 shadow-xl shadow-zinc-200/50",
+      "radar-outline-card w-full rounded-3xl border transition-all duration-500 overflow-hidden",
+      state.status === "concluido" ? "border-emerald-100 bg-[linear-gradient(180deg,_rgba(243,252,246,0.98),_rgba(226,248,233,0.95))] shadow-emerald-100/50 shadow-xl" :
+      state.status === "atencao" ? "border-[#d39b2a]/45 bg-[linear-gradient(180deg,_rgba(255,250,242,0.98),_rgba(255,241,223,0.95))] shadow-xl" :
+      "border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.95))] shadow-xl shadow-zinc-200/50",
       className
     )}>
       {/* Header Section */}
@@ -32,25 +32,22 @@ export function DailyMission({ state, className }: DailyMissionProps) {
             <div className={cn(
               "h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500",
               state.status === "concluido" ? "bg-emerald-500 text-white" :
-              state.status === "atencao" ? "bg-rose-500 text-white" :
-              "bg-indigo-600 text-white"
+              "bg-[#0f1b24] text-[#f0c15b]"
             )}>
               {state.status === "concluido" ? <CheckCircle2 className="h-6 w-6" /> : <Target className="h-6 w-6" />}
             </div>
             <div>
               <h3 className={cn(
                 "text-lg font-black tracking-tight leading-none mb-1",
-                state.status === "concluido" ? "text-emerald-900" :
-                state.status === "atencao" ? "text-rose-900" :
-                "text-zinc-900"
+                state.status === "concluido" ? "text-emerald-900" : "text-zinc-900"
               )}>
                 {state.title}
               </h3>
               <p className={cn(
                 "text-xs font-bold uppercase tracking-widest opacity-60",
                 state.status === "concluido" ? "text-emerald-700" :
-                state.status === "atencao" ? "text-rose-700" :
-                "text-zinc-500"
+                state.status === "atencao" ? "text-[#b47a0e]" :
+                "text-[#6f6250]"
               )}>
                 {state.isCompleted ? "Missão Cumprida" : "Em Andamento"}
               </p>
@@ -61,8 +58,8 @@ export function DailyMission({ state, className }: DailyMissionProps) {
             <span className={cn(
               "text-3xl font-black tabular-nums tracking-tighter leading-none block",
               state.status === "concluido" ? "text-emerald-600" :
-              state.status === "atencao" ? "text-rose-600" :
-              "text-indigo-600"
+              state.status === "atencao" ? "text-[#b47a0e]" :
+              "text-[#11202a]"
             )}>
               {state.progress}%
             </span>
@@ -85,8 +82,8 @@ export function DailyMission({ state, className }: DailyMissionProps) {
             className="h-2.5 bg-zinc-100"
             indicatorClassName={cn(
               state.status === "concluido" ? "bg-emerald-500" :
-              state.status === "atencao" ? "bg-rose-500" :
-              "bg-indigo-600"
+              state.status === "atencao" ? "bg-[#d39b2a]" :
+              "bg-[#11202a]"
             )}
           />
         </div>
@@ -99,7 +96,7 @@ export function DailyMission({ state, className }: DailyMissionProps) {
       )}>
         <div className="overflow-hidden">
           <div className="p-6 pt-0 space-y-3">
-            <div className="h-px bg-zinc-100 w-full my-2" />
+            <div className="my-2 h-px w-full bg-[#d8c7ac]" />
             
             {state.steps.map((step) => (
               <div 
@@ -107,7 +104,7 @@ export function DailyMission({ state, className }: DailyMissionProps) {
                 className={cn(
                   "flex items-start gap-3 p-3 rounded-xl border transition-all duration-300",
                   step.isCompleted ? "bg-emerald-50/50 border-emerald-100 text-emerald-800" :
-                  step.isCritical ? "bg-white border-zinc-200" : "bg-zinc-50/50 border-transparent text-zinc-500"
+                  step.isCritical ? "bg-white/80 border-[#d8c7ac]" : "bg-white/50 border-transparent text-zinc-500"
                 )}
               >
                 <div className="mt-0.5">
@@ -116,7 +113,7 @@ export function DailyMission({ state, className }: DailyMissionProps) {
                   ) : (
                     <Circle className={cn(
                       "h-4 w-4",
-                      step.isCritical ? "text-rose-400" : "text-zinc-200"
+                      step.isCritical ? "text-[#d39b2a]" : "text-zinc-200"
                     )} />
                   )}
                 </div>
@@ -135,7 +132,7 @@ export function DailyMission({ state, className }: DailyMissionProps) {
             ))}
 
             {state.isCompleted && (
-              <div className="mt-6 p-4 rounded-2xl bg-indigo-600 text-white flex items-center justify-between gap-4 animate-in zoom-in duration-500">
+              <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#0f1b24] p-4 text-white duration-500 animate-in zoom-in">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 fill-white" />

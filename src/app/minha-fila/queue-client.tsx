@@ -270,11 +270,12 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         title="Minha Jornada"
         description={`Missão de hoje: ${mission.objective}`}
         variant="dark"
+        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
         metricsClassName="md:grid-cols-2 xl:grid-cols-4"
         badges={
           <>
             <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
-            <GamefulHeroBadge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-200">Operador: {operatorName}</GamefulHeroBadge>
+            <GamefulHeroBadge className="border-[#f0c15b]/25 bg-[#f0c15b]/10 text-[#f7d88c]">Operador: {operatorName}</GamefulHeroBadge>
           </>
         }
         metrics={
@@ -288,7 +289,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         actions={
           <>
             <Button
-              className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+              className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
               onClick={() => window.scrollTo({ top: 720, behavior: "smooth" })}
             >
               <Compass className="mr-2 h-4 w-4" />
@@ -306,24 +307,24 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           </>
         }
         aside={
-          <div className="space-y-4 rounded-[24px] border border-white/10 bg-white/5 p-5">
+          <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/15 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Mapa da trilha</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Mapa da trilha</p>
                 <h3 className="mt-2 text-xl font-black text-white">
                   {currentPerson.displayName || `@${currentPerson.username}`}
                 </h3>
               </div>
-              <Sparkles className="h-5 w-5 text-indigo-300" />
+              <Sparkles className="h-5 w-5 text-[#f0c15b]" />
             </div>
             <p className="text-sm font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próximo passo</p>
-              <p className="mt-2 text-sm font-black text-white">{currentPerson.nextAction}</p>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
+              <p className="mt-2 text-sm font-black text-[#f7f1e5]">{currentPerson.nextAction}</p>
             </div>
             <div className="space-y-3">
               {nextFive.map((person, idx) => (
-                <div key={person.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                <div key={person.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-white">
                       {idx + 2}. {person.displayName || `@${person.username}`}
@@ -362,7 +363,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               </Button>
               <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-[#d39b2a] via-[#f0c15b] to-[#11202a]/35 transition-all duration-500"
                   style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
                 />
               </div>
@@ -391,11 +392,11 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         </div>
 
         <aside className="space-y-6">
-          <Card className="rounded-[28px] border-zinc-200 bg-white shadow-sm">
+          <Card className="radar-outline-card rounded-[28px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center gap-2">
-                <TowerControl className="h-4 w-4 text-zinc-400" />
-                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">
+                <TowerControl className="h-4 w-4 text-[#8b7759]" />
+                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
                   Cuidado e ritmo
                 </h4>
               </div>
@@ -422,7 +423,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
                 {wellness.level !== "healthy" ? (
                   <Button
                     variant="outline"
-                    className="h-11 border-zinc-200 bg-zinc-50 text-xs font-black uppercase tracking-wider"
+                    className="h-11 border-[#d8c7ac] bg-white/80 text-xs font-black uppercase tracking-wider"
                     nativeButton={false}
                     render={<Link href="/abordagem?filter=sem_responsavel" />}
                   >
@@ -439,7 +440,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           />
 
           {oldPendencies.length > 0 && (
-            <Card className="rounded-[28px] border-amber-100 bg-amber-50/70 shadow-sm">
+            <Card className="radar-outline-card rounded-[28px] border-[#d39b2a]/35 bg-[linear-gradient(180deg,_rgba(255,250,242,0.98),_rgba(255,241,223,0.95))] shadow-sm">
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -457,7 +458,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
                   {oldPendencies.slice(0, 4).map((person) => (
                     <button
                       key={person.id}
-                      className="w-full rounded-2xl border border-amber-100 bg-white p-4 text-left transition-colors hover:border-amber-200"
+                      className="w-full rounded-2xl border border-[#d8c7ac] bg-white/85 p-4 text-left transition-colors hover:border-[#d39b2a]/45"
                       onClick={() => {
                         setQueue((prev) => [person, ...prev.filter((p) => p.id !== person.id)]);
                         setCurrentIndex(0);

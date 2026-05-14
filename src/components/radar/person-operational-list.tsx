@@ -74,7 +74,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   return (
     <tr
       className={cn(
-        "group h-16 cursor-pointer border-b border-zinc-100 transition-colors hover:bg-zinc-50/80",
+        "group h-16 cursor-pointer border-b border-[#d8c7ac] transition-colors hover:bg-[rgba(17,32,42,0.03)]",
         isBlocked && "bg-zinc-50",
       )}
       onClick={() => onOpenDetails?.(person)}
@@ -87,7 +87,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         </div>
       </td>
       <td className="px-2 py-3">
-        <Badge className="rounded-full border border-indigo-100 bg-indigo-50 text-[9px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-50">
+        <Badge className="rounded-full border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] text-[9px] font-black uppercase tracking-widest text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]">
           {phaseLabel(person)}
         </Badge>
       </td>
@@ -95,7 +95,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         <p className="max-w-[240px] truncate text-[11px] font-medium text-zinc-600">{person.priorityReason}</p>
       </td>
       <td className="px-2 py-3">
-        <p className="max-w-[240px] truncate text-[11px] font-black text-indigo-700">{person.nextAction}</p>
+        <p className="max-w-[240px] truncate text-[11px] font-black text-[#11202a]">{person.nextAction}</p>
       </td>
       <td className="px-2 py-3">
         <JourneyProgress
@@ -169,7 +169,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
                 ? "bg-indigo-50 text-indigo-600"
                 : copyStatus === "confirmed"
                   ? "bg-emerald-50 text-emerald-600"
-                  : "text-zinc-400 hover:bg-indigo-50 hover:text-indigo-600",
+                  : "text-zinc-400 hover:bg-[#11202a]/5 hover:text-[#11202a]",
             )}
             onClick={handleCopyDM}
             disabled={!person.suggestedMessage || isBlocked}
@@ -194,7 +194,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           )}
           <Button
             size="sm"
-            className="h-8 bg-indigo-600 px-3 text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700"
+            className="h-8 bg-[#0f1b24] px-3 text-[10px] font-black uppercase tracking-wider text-white hover:bg-[#172733]"
             onClick={(e) => {
               e.stopPropagation();
               onOpenDetails?.(person);
@@ -237,9 +237,9 @@ interface PersonOperationalListProps {
 
 export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className }: PersonOperationalListProps) {
   return (
-    <div className={cn("relative overflow-x-auto rounded-[28px] border border-zinc-100 bg-white shadow-sm", className)}>
+    <div className={cn("radar-outline-card relative overflow-x-auto rounded-[28px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.94)] shadow-sm", className)}>
       <table className="w-full min-w-[1180px] border-collapse text-left">
-        <thead className="sticky top-0 z-20 border-b border-zinc-200 bg-zinc-50">
+        <thead className="sticky top-0 z-20 border-b border-[#d8c7ac] bg-[rgba(247,240,228,0.98)]">
           <tr>
             <th className="w-10 px-3 py-3 text-center text-[10px] font-black uppercase tracking-widest text-zinc-400">#</th>
             <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pessoa</th>

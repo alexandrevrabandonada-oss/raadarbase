@@ -13,18 +13,15 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Info,
   MapPin,
   Heart,
   Zap,
-  CheckCircle,
-  ChevronRight
+  CheckCircle
 } from "lucide-react";
 
 import { 
   Sheet, 
   SheetContent, 
-  SheetHeader, 
   SheetTitle, 
   SheetDescription 
 } from "@/components/ui/sheet";
@@ -34,8 +31,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-  DialogFooter
+  DialogTitle
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType, PersonReferralStatus } from "@/lib/types";
@@ -190,7 +186,7 @@ export function PersonQuickSheet({
     try {
       const data = await getPersonInteractionsAction(personId);
       setInteractions(data || []);
-    } catch (err) {
+    } catch {
       toast({ title: "Erro", description: "Falha ao carregar histórico.", variant: "destructive" });
     } finally {
       setIsLoadingHistory(false);
@@ -201,8 +197,8 @@ export function PersonQuickSheet({
     try {
       const data = await listFieldAgendaEventsAction();
       setEvents(data || []);
-    } catch (err) {
-      console.error("Erro ao carregar eventos", err);
+    } catch (error) {
+      console.error("Erro ao carregar eventos", error);
     }
   }, []);
 
@@ -262,7 +258,7 @@ export function PersonQuickSheet({
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
-    } catch (err) {
+    } catch {
       toast({ title: "Erro", description: "Falha ao salvar nota.", variant: "destructive" });
     } finally {
       setIsSavingNote(false);
@@ -366,16 +362,16 @@ export function PersonQuickSheet({
         <SheetContent 
           side={isMobile ? "bottom" : "right"} 
           className={cn(
-            "overflow-y-auto p-0 border-none shadow-2xl flex flex-col bg-white",
+            "radar-paper radar-outline-card flex flex-col overflow-y-auto border-[#d7c6ab] bg-[rgba(255,250,242,0.98)] p-0 shadow-[0_28px_90px_rgba(15,23,42,0.18)]",
             isMobile ? "h-[90vh] rounded-t-3xl" : "w-full sm:max-w-md lg:max-w-lg h-full"
           )}
         >
           {/* Header Section */}
-          <div className="bg-zinc-950 text-white p-6 pt-10 shrink-0">
+          <div className="radar-panel-dark shrink-0 border-b border-[#24313b] p-6 pt-10 text-white">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-white/10 text-white border-white/20 font-black uppercase text-[10px] tracking-widest">
+                  <Badge variant="outline" className="border-[#d0b072]/50 bg-[rgba(212,182,120,0.14)] text-[#f0dfbf] font-black uppercase text-[10px] tracking-widest">
                     Painel de missão
                   </Badge>
                   <SheetTitle className="text-2xl font-black text-white">
@@ -385,7 +381,7 @@ export function PersonQuickSheet({
                     {person.status.replace(/_/g, " ")}
                   </Badge>
                 </div>
-                <SheetDescription className="text-zinc-400 font-bold">
+                <SheetDescription className="font-bold text-[#d7c9b1]">
                   @{person.username} • {person.mainTheme || "Geral"}
                 </SheetDescription>
               </div>
@@ -399,10 +395,10 @@ export function PersonQuickSheet({
             </div>
 
             {/* Journey Progress Integrated */}
-            <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.06)] p-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Fase atual</p>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-200">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d7c9b1]">Fase atual</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f0dfbf]">
                   {{
                     preparar: "Preparar",
                     conversar: "Conversar",
@@ -424,14 +420,14 @@ export function PersonQuickSheet({
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-black text-zinc-900">Ciclo fechado</h3>
-                  <p className="text-sm font-medium text-zinc-500 max-w-[280px]">
+                  <p className="max-w-[280px] text-sm font-medium text-[#786a57]">
                     A etapa de {person.displayName || `@${person.username}`} foi registrada. Escolha a próxima missão ou encerre este painel.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 w-full max-w-xs">
                   {onNextPerson && (
                     <Button 
-                      className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider h-12"
+                      className="h-12 bg-[#13212b] font-black uppercase text-xs tracking-wider text-white hover:bg-[#0d1820]"
                       onClick={() => {
                         trackOperationalEvent("next_person_clicked", person.id);
                         onNextPerson();
@@ -442,7 +438,7 @@ export function PersonQuickSheet({
                   )}
                   <Button 
                     variant="outline" 
-                    className="font-black uppercase text-xs tracking-wider h-12"
+                    className="h-12 border-[#d4c4a8] bg-[rgba(255,250,242,0.88)] font-black uppercase text-xs tracking-wider text-[#13212b] hover:bg-white"
                     nativeButton={false}
                     render={<Link href="/dashboard" />}
                   >
@@ -478,7 +474,7 @@ export function PersonQuickSheet({
                       badgeLabel="Contato recente"
                       description="Houve uma DM manual nas últimas 24h. Evite redundância."
                       icon={AlertCircle}
-                      className="rounded-xl border-orange-100 bg-orange-50 p-4"
+                      className="rounded-xl border-amber-200 bg-amber-50 p-4"
                     />
                   )}
                 </div>
@@ -486,23 +482,23 @@ export function PersonQuickSheet({
                 {/* Painel da Missão */}
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-4">
-                    <div className="bg-zinc-50 border border-zinc-100 p-4 rounded-xl">
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-2">Contexto</label>
+                    <div className="rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Contexto</label>
                       <p className="text-sm font-bold text-zinc-800 leading-relaxed">{person.priorityReason}</p>
                     </div>
 
-                    <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl">
-                      <label className="text-[10px] font-black uppercase text-indigo-400 tracking-widest block mb-2">Objetivo e ação</label>
-                      <p className="text-sm font-black text-indigo-900">{person.nextAction}</p>
+                    <div className="rounded-xl border border-[#d5b378] bg-[rgba(212,182,120,0.12)] p-4">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Objetivo e ação</label>
+                      <p className="text-sm font-black text-[#13212b]">{person.nextAction}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Ação sugerida</label>
+                    <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ação sugerida</label>
                     <div className="relative group">
                       <div className={cn(
-                        "bg-white border border-zinc-200 p-5 rounded-xl text-sm font-medium text-zinc-700 leading-relaxed min-h-[100px] shadow-sm italic transition-all",
-                        copyStatus === "waiting" && "border-indigo-400 bg-indigo-50/20"
+                        "min-h-[100px] rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.94)] p-5 text-sm font-medium italic leading-relaxed text-zinc-700 shadow-sm transition-all",
+                        copyStatus === "waiting" && "border-[#d5b378] bg-[rgba(212,182,120,0.08)]"
                       )}>
                         {person.suggestedMessage || "Nenhum modelo específico sugerido para este caso."}
                       </div>
@@ -519,7 +515,7 @@ export function PersonQuickSheet({
                     </div>
 
                     {copyStatus === "waiting" && (
-                      <div className="bg-indigo-600 p-4 rounded-xl text-white space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="radar-panel-dark space-y-3 rounded-xl border border-[#24313b] p-4 text-white animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="flex items-start gap-3">
                           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                           <p className="text-[11px] font-bold leading-tight">
@@ -530,7 +526,7 @@ export function PersonQuickSheet({
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
-                            className="bg-white text-indigo-600 hover:bg-white/90 font-black uppercase text-[10px] tracking-wider h-8 flex-1"
+                            className="h-8 flex-1 bg-[#d4b678] font-black uppercase tracking-wider text-[10px] text-[#13212b] hover:bg-[#c9aa66]"
                             onClick={handleConfirmSent}
                             disabled={isPending}
                           >
@@ -559,17 +555,17 @@ export function PersonQuickSheet({
                 </div>
 
                 {/* Registro */}
-                <div className="space-y-4 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                <div className="space-y-4 rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black uppercase text-zinc-500 tracking-widest block">Registro</label>
-                    <Badge variant="outline" className="text-[9px] border-zinc-200 text-zinc-400 bg-white">Privado</Badge>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Registro</label>
+                    <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] text-[#8a7962]">Privado</Badge>
                   </div>
                   <Textarea 
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Ex: Demonstrou interesse no evento de sábado..."
                     className={cn(
-                      "text-xs font-bold border-zinc-200 focus:border-indigo-300 min-h-[80px]",
+                      "min-h-[80px] border-[#dccdaf] bg-white text-xs font-bold focus:border-[#d5b378]",
                       containsForbiddenMemoryTerm(note).length > 0 && "border-amber-400 bg-amber-50/30"
                     )}
                   />
@@ -582,12 +578,12 @@ export function PersonQuickSheet({
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] text-zinc-400 font-medium italic">Anote apenas o necessário. Não registre dados sensíveis.</p>
+                    <p className="text-[9px] font-medium italic text-[#8a7962]">Anote apenas o necessário. Não registre dados sensíveis.</p>
                     <Button 
                       size="sm" 
                       onClick={handleSaveNote}
                       disabled={isSavingNote || note === person.notes}
-                      className="h-7 text-[10px] font-black uppercase tracking-wider bg-zinc-900"
+                      className="h-7 bg-[#13212b] text-[10px] font-black uppercase tracking-wider text-white hover:bg-[#0d1820]"
                     >
                       {isSavingNote ? <Loader2 className="h-3 w-3 animate-spin" /> : "Salvar Nota"}
                     </Button>
@@ -596,20 +592,20 @@ export function PersonQuickSheet({
 
                 {/* Histórico Curto */}
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block px-1">Memória recente</label>
+                  <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Memória recente</label>
                   {isLoadingHistory ? (
                     <div className="p-8 flex justify-center">
                       <Loader2 className="h-6 w-6 animate-spin text-zinc-300" />
                     </div>
                   ) : interactions.length > 0 ? (
-                    <div className="border border-zinc-100 rounded-xl divide-y divide-zinc-50 overflow-hidden">
+                    <div className="overflow-hidden rounded-xl border border-[#dccdaf] divide-y divide-[#efe4d3]">
                       {interactions.slice(0, 3).map((interaction) => (
-                        <div key={interaction.id} className="p-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
+                        <div key={interaction.id} className="flex items-center justify-between p-4 transition-colors hover:bg-[rgba(212,182,120,0.08)]">
                           <div className="flex items-center gap-3">
-                            <Clock className="h-4 w-4 text-zinc-400" />
+                            <Clock className="h-4 w-4 text-[#8a7962]" />
                             <span className="text-xs font-bold text-zinc-700 line-clamp-1">{interaction.text || interaction.type}</span>
                           </div>
-                          <Badge variant="outline" className="text-[9px] font-black uppercase shrink-0">{interaction.type}</Badge>
+                          <Badge variant="outline" className="shrink-0 border-[#dccdaf] bg-white text-[9px] font-black uppercase text-[#8a7962]">{interaction.type}</Badge>
                         </div>
                       ))}
                     </div>
@@ -624,16 +620,16 @@ export function PersonQuickSheet({
                 </div>
 
                 {/* Encaminhamento operacional */}
-                <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                <div className="flex items-center justify-between rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4">
                    <div>
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest block mb-1">Responsável da missão</label>
+                      <label className="mb-1 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Responsável da missão</label>
                       <p className="text-sm font-black text-zinc-800">{person.responsibleName || "Sem responsável"}</p>
                    </div>
                    {!person.responsibleId && !isBlocked && (
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="font-black uppercase text-[10px] tracking-wider border-zinc-200"
+                        className="border-[#d4c4a8] bg-white font-black uppercase text-[10px] tracking-wider text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
                         onClick={handleAssume}
                         disabled={isPending}
                       >
@@ -648,9 +644,9 @@ export function PersonQuickSheet({
 
           {/* Floating Actions Footer */}
           {!isResolved && (
-            <div className="fixed bottom-0 right-0 left-0 lg:left-auto lg:w-[32rem] p-6 bg-white/80 backdrop-blur-md border-t border-zinc-100 flex items-center gap-3 z-50">
+            <div className="fixed bottom-0 right-0 left-0 z-50 flex items-center gap-3 border-t border-[#d7c6ab] bg-[rgba(255,250,242,0.9)] p-6 backdrop-blur-md lg:left-auto lg:w-[32rem]">
               <Button 
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider h-12 shadow-lg shadow-indigo-100"
+                className="h-12 flex-1 bg-[#13212b] font-black uppercase text-xs tracking-wider text-white shadow-lg shadow-[rgba(15,23,42,0.14)] hover:bg-[#0d1820]"
                 onClick={() => {
                   trackOperationalEvent("instagram_opened", person.id);
                   window.open(person.instagramUrl || `https://instagram.com/${person.username}`, '_blank');
@@ -665,7 +661,7 @@ export function PersonQuickSheet({
                     <Button 
                       size="icon" 
                       variant={copyStatus === "waiting" ? "default" : "outline"}
-                      className={cn("h-12 w-12 border-zinc-200", copyStatus === "waiting" && "bg-indigo-600 border-indigo-600")} 
+                      className={cn("h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]", copyStatus === "waiting" && "border-[#13212b] bg-[#13212b] text-white")} 
                       title="Copiar DM" 
                       disabled={!person.suggestedMessage || isPending} 
                       onClick={() => handleCopyDM(person.suggestedMessage!, "floating_footer")}
@@ -675,7 +671,7 @@ export function PersonQuickSheet({
                     <Button 
                       size="icon" 
                       variant="outline" 
-                      className="h-12 w-12 border-zinc-200" 
+                      className="h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]" 
                       title="Registrar Resposta"
                       onClick={() => setActiveModal("response")}
                     >
@@ -684,7 +680,7 @@ export function PersonQuickSheet({
                     <Button 
                       size="icon" 
                       variant="outline" 
-                      className="h-12 w-12 border-zinc-200" 
+                      className="h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]" 
                       title="Encaminhar"
                       onClick={() => setActiveModal("referral")}
                     >
@@ -695,7 +691,7 @@ export function PersonQuickSheet({
                 <Button 
                   size="icon" 
                   variant="secondary" 
-                  className="h-12 w-12 bg-zinc-100"
+                  className="h-12 w-12 border border-[#d4c4a8] bg-[rgba(255,252,247,0.92)] text-[#13212b] hover:bg-white"
                   nativeButton={false}
                   render={
                     <Link href={`/pessoas/${person.id}`} title="Ficha Completa">

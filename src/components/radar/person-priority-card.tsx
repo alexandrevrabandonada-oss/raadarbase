@@ -94,21 +94,21 @@ export function PersonPriorityCard({
     return (
       <div
         className={cn(
-          "group flex flex-col gap-4 rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-indigo-200 hover:shadow-md md:flex-row md:items-center md:justify-between",
+          "group radar-outline-card flex flex-col gap-4 rounded-[28px] border border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.92))] p-5 shadow-sm transition-all hover:border-[#d39b2a]/45 hover:shadow-md md:flex-row md:items-center md:justify-between",
           isBlocked && "bg-zinc-50",
           className,
         )}
       >
         <div className="flex min-w-0 flex-1 items-start gap-4">
           {index !== undefined && (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-[10px] font-black text-zinc-500">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] text-[10px] font-black text-[#6f6250]">
               {index + 1}
             </div>
           )}
 
           <div className="min-w-0 flex-1 cursor-pointer space-y-3" onClick={() => onOpenDetails?.(person)}>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-indigo-700 hover:bg-indigo-50">
+              <Badge className="rounded-full border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]">
                 Fase: {phaseLabel}
               </Badge>
               {person.responsibleName ? (
@@ -127,12 +127,12 @@ export function PersonPriorityCard({
 
             <div className="grid gap-3 lg:grid-cols-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Motivo</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Motivo</p>
                 <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600" title={person.priorityReason}>{person.priorityReason}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima ação</p>
-                <p className="mt-1 line-clamp-2 text-xs font-black text-indigo-700" title={person.nextAction}>{person.nextAction}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Próxima ação</p>
+                <p className="mt-1 line-clamp-2 text-xs font-black text-[#11202a]" title={person.nextAction}>{person.nextAction}</p>
               </div>
               <div>
                 <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")}>
@@ -161,7 +161,7 @@ export function PersonPriorityCard({
             </Button>
           )}
           <Button
-            className="h-10 bg-indigo-600 px-5 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+              className="h-10 bg-[#0f1b24] px-5 text-xs font-black uppercase tracking-wider text-white hover:bg-[#172733]"
             onClick={() => onOpenDetails?.(person)}
           >
             Iniciar etapa <ChevronRight className="ml-1 h-4 w-4" />
@@ -176,7 +176,7 @@ export function PersonPriorityCard({
       person={person}
       primaryActionLabel="Iniciar etapa"
       onPrimaryAction={onOpenDetails}
-      className={cn("group h-full rounded-[30px] transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl", isBlocked && "bg-zinc-50", className)}
+      className={cn("group h-full rounded-[30px] transition-all hover:-translate-y-0.5 hover:border-[#d39b2a]/45 hover:shadow-xl", isBlocked && "bg-zinc-50", className)}
       footer={
         <div className="flex flex-wrap items-center gap-2">
           {index !== undefined ? (

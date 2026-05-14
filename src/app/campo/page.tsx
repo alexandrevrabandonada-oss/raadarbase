@@ -67,11 +67,11 @@ export default async function FieldAgendaPage() {
         description="Jornadas de campanha no território, da convocação ao follow-up."
         actions={
           <div className="flex gap-2">
-            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold shadow-sm" render={<Link href="/campo/novo" />}>
+            <Button nativeButton={false} className="bg-[#d39b2a] font-bold text-[#11202a] shadow-sm hover:bg-[#e0aa3b]" render={<Link href="/campo/novo" />}>
               <Plus className="mr-2 h-4 w-4" />
               Nova missão
             </Button>
-            <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href="/territorios" />}>
+            <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-bold text-[#11202a]" render={<Link href="/territorios" />}>
               <MapPin className="mr-2 h-4 w-4" />
               Ver mapa
             </Button>
@@ -86,6 +86,7 @@ export default async function FieldAgendaPage() {
           description="Cada ação de campo vira uma missão de campanha com progresso explícito: convidar, confirmar, realizar, registrar presença e sustentar follow-up no território."
           icon={<Sparkles className="h-5 w-5 text-white" />}
           variant="field"
+          titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
           metrics={
             <>
               <GamefulMetricCard label="Missões ativas" value={activeEvents.length} tone="dark" />
@@ -95,8 +96,8 @@ export default async function FieldAgendaPage() {
             </>
           }
           aside={
-            <div className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
+            <div className="space-y-4 rounded-[28px] border border-white/10 bg-black/15 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próxima missão</p>
               {nextMission ? (
                 <>
                   <h3 className="text-2xl font-black tracking-tight text-white">{nextMission.title}</h3>
@@ -108,13 +109,13 @@ export default async function FieldAgendaPage() {
                       {journeys[nextMission.id].currentPhaseLabel}
                     </Badge>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próximo passo</p>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
                     <p className="mt-2 text-sm font-black text-indigo-200">{journeys[nextMission.id].nextStep}</p>
                   </div>
                   <Button
                     nativeButton={false}
-                    className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+                    className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
                     render={<Link href={`/campo/${nextMission.id}`} />}
                   >
                     Abrir missão <ArrowRight className="ml-2 h-4 w-4" />
@@ -126,13 +127,13 @@ export default async function FieldAgendaPage() {
                   <p className="text-sm font-medium leading-6 text-zinc-300">
                     Nenhuma missão presencial está aberta agora. O campo depende de território, contexto e confirmação humana.
                   </p>
-                  <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próximo passo</p>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
                     <p className="mt-2 text-sm font-black text-emerald-200">Preparar a base: revisar territórios quentes ou abrir a próxima missão presencial.</p>
                   </div>
                   <Button
                     nativeButton={false}
-                    className="h-12 bg-indigo-600 px-6 text-xs font-black uppercase tracking-wider hover:bg-indigo-700"
+                    className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
                     render={<Link href="/campo/novo" />}
                   >
                     Criar missão <ArrowRight className="ml-2 h-4 w-4" />
@@ -149,7 +150,7 @@ export default async function FieldAgendaPage() {
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões ativas</p>
               <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Campo em andamento</h3>
             </div>
-            <Button nativeButton={false} variant="outline" className="font-black border-zinc-200" render={<Link href={nextMission ? `/campo/${nextMission.id}` : "/campo/novo"} />}>
+            <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-black text-[#11202a]" render={<Link href={nextMission ? `/campo/${nextMission.id}` : "/campo/novo"} />}>
               {nextMission ? "Fechar ciclo" : "Criar missão"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -199,10 +200,10 @@ export default async function FieldAgendaPage() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
+          <Card className="radar-outline-card rounded-[30px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
             <CardContent className="p-6">
               <div className="mb-5 flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-indigo-600" />
+                <Megaphone className="h-4 w-4 text-[#b47a0e]" />
                 <h3 className="text-lg font-black text-zinc-950">Leitura da jornada</h3>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -213,8 +214,8 @@ export default async function FieldAgendaPage() {
                   { label: "Realizar/Registrar", count: events.filter((event) => journeys[event.id].currentPhase === "realizar" || journeys[event.id].currentPhase === "registrar").length },
                   { label: "Follow-up", count: events.filter((event) => journeys[event.id].currentPhase === "follow_up").length },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">{item.label}</p>
+                  <div key={item.label} className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">{item.label}</p>
                     <p className="mt-2 text-2xl font-black text-zinc-950">{item.count}</p>
                   </div>
                 ))}
@@ -222,19 +223,19 @@ export default async function FieldAgendaPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[30px] border-zinc-200 shadow-sm">
+          <Card className="radar-outline-card rounded-[30px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                <ClipboardCheck className="h-4 w-4 text-[#b47a0e]" />
                 <h3 className="text-lg font-black text-zinc-950">Fechamento de ciclo</h3>
               </div>
               <div className="grid gap-3">
-                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Convites pendentes</p>
+                <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Convites pendentes</p>
                   <p className="mt-2 text-2xl font-black text-zinc-950">{Math.max(totals.invites - totals.confirmed, 0)}</p>
                 </div>
-                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões com follow-up</p>
+                <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Missões com follow-up</p>
                   <p className="mt-2 text-2xl font-black text-zinc-950">{totals.followUp}</p>
                 </div>
               </div>

@@ -1,43 +1,30 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { 
-  AlertCircle, 
-  Copy, 
-  ExternalLink, 
   MoveLeft, 
   MoveRight, 
-  Flame, 
-  User, 
   Instagram, 
-  MessageSquare, 
   CheckCircle2, 
   Clock, 
   ShieldAlert,
   Users,
-  Search,
   Filter,
   Check,
-  ChevronDown,
   LayoutDashboard,
-  History,
-  AlertTriangle,
-  PlusCircle
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // Radar Design System
-import { RadarPageHeader } from "@/components/radar/radar-page-header";
-import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { ActionButtonGroup } from "@/components/radar/action-button-group";
 import { PersonScoreBadge } from "@/components/radar/person-score-badge";
-import { OperationalAlert } from "@/components/radar/operational-alert";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { MissionCard } from "@/components/radar/mission-card";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 
@@ -48,7 +35,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
-import { formatDateTime } from "@/lib/mock-data";
 import { 
   assumeTaskResponsible, 
   recordPersonResponse, 
@@ -56,14 +42,10 @@ import {
   trackOperationalEvent
 } from "@/app/actions";
 import { PERSON_RESPONSE_OPTIONS } from "@/lib/data/person-profile";
-import { normalizeOutreachColumn, nextBoardColumn, outreachBoardColumns, outreachColumnLabels, type BoardColumnId } from "@/lib/outreach-workflow";
+import { normalizeOutreachColumn, nextBoardColumn, outreachBoardColumns, type BoardColumnId } from "@/lib/outreach-workflow";
 import type { OutreachTask, PersonResponseKind, PriorityPerson } from "@/lib/types";
 import { balanceTasks } from "./team-actions";
 import { cn } from "@/lib/utils";
-
-import { StatusBadge } from "@/components/status-badge";
-import { mapPersonToJourney } from "@/lib/data/journey-mapper";
-import { JourneyProgress } from "@/components/radar/journey-progress";
 
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
@@ -169,7 +151,6 @@ export function KanbanClient({
   const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [responseValues, setResponseValues] = useState<Record<string, PersonResponseKind>>({});
-  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<"todos" | "meus" | "sem_responsavel" | "stale" | "encaminhar" | "waiting_3d" | "waiting_7d">("todos");
   const [operatorFilter, setOperatorFilter] = useState<string>("todos");
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
@@ -327,9 +308,7 @@ export function KanbanClient({
   async function copyMessage(task: BoardTask) {
     if (!task.priority?.suggestedMessage) return;
     await navigator.clipboard.writeText(task.priority.suggestedMessage);
-    setCopiedTaskId(task.id);
     setFeedback({ text: "Mensagem copiada para o clipboard.", type: "success" });
-    window.setTimeout(() => setCopiedTaskId(null), 2000);
     setTimeout(() => setFeedback(null), 3000);
   }
 
@@ -364,31 +343,56 @@ export function KanbanClient({
 
   return (
     <div className="flex flex-col gap-6 pb-20">
-      <RadarPageHeader 
+      <GamefulHero
+        eyebrow="Fluxo cooperativo"
         title="Mural de Missões"
-        description="Visualize cada vínculo como uma missão cooperativa, da preparação ao fechamento do ciclo."
+        description="Organize cada vínculo como uma missão em andamento, com leitura clara de dono, fase e próximo passo."
+        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
+        badges={
+          <>
+            <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
+            <GamefulHeroBadge light>{stats.unassigned} sem dono</GamefulHeroBadge>
+            <GamefulHeroBadge light>{stats.stale} paradas</GamefulHeroBadge>
+          </>
+        }
+        metricsClassName="md:grid-cols-2 xl:grid-cols-4"
+        metrics={
+          <>
+            <GamefulMetricCard label="Ativas" value={stats.total} icon={<LayoutDashboard className="h-4 w-4" />} compact layout="split" />
+            <GamefulMetricCard label="Sem dono" value={stats.unassigned} icon={<Users className="h-4 w-4" />} compact layout="split" />
+            <GamefulMetricCard label="Em espera" value={stats.waiting} icon={<History className="h-4 w-4" />} tone="amber" compact layout="split" />
+            <GamefulMetricCard label="Encaminhar" value={stats.needReferral} icon={<CheckCircle2 className="h-4 w-4" />} compact layout="split" />
+          </>
+        }
         actions={
-          <div className="flex items-center gap-2">
-             <Button variant="outline" size="sm" className="font-bold border-zinc-200" onClick={() => runBalance()}>
+          <div className="flex items-center gap-3">
+             <Button size="sm" className="h-11 bg-[#13212b] px-5 font-black uppercase tracking-[0.16em] text-white hover:bg-[#0d1820]" onClick={() => runBalance()}>
                Dividir Trabalho
              </Button>
           </div>
         }
+        aside={
+          <div className="radar-panel-dark space-y-4 rounded-[24px] border border-[#24313b] p-5 text-white">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Regra do mural</p>
+              <h2 className="text-2xl font-black text-white">O próximo passo precisa aparecer.</h2>
+              <p className="text-sm leading-6 text-zinc-300">
+                Assuma missão, registre resposta e mova a etapa. Quando travar, resolva contexto antes de insistir.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <GamefulMetricCard label="Travadas" value={stats.stale} icon={<Clock className="h-4 w-4" />} tone="dark" compact layout="split" />
+              <GamefulMetricCard label="Espera longa" value={tasks.filter((task) => task.waitingStatus === "review" || task.waitingStatus === "archive").length} icon={<History className="h-4 w-4" />} tone="dark" compact layout="split" />
+              <GamefulMetricCard label="Prontas p/ assumir" value={stats.unassigned} icon={<Users className="h-4 w-4" />} tone="dark" compact layout="split" />
+            </div>
+          </div>
+        }
       />
 
-      {/* Indicadores do Topo */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <GamefulMetricCard label="Ativas" value={stats.total} icon={<LayoutDashboard className="h-4 w-4" />} compact layout="split" className="border-zinc-200 bg-white shadow-none" />
-        <GamefulMetricCard label="Sem dono" value={stats.unassigned} icon={<Users className="h-4 w-4" />} compact layout="split" className="border-zinc-200 bg-white shadow-none" />
-        <GamefulMetricCard label="Em espera" value={stats.waiting} icon={<History className="h-4 w-4" />} tone="amber" compact layout="split" className="shadow-none" />
-        <GamefulMetricCard label="Travadas" value={stats.stale} icon={<Clock className="h-4 w-4" />} tone="amber" compact layout="split" className="shadow-none" />
-        <GamefulMetricCard label="Encaminhar" value={stats.needReferral} icon={<CheckCircle2 className="h-4 w-4" />} tone="indigo" compact layout="split" className="shadow-none" />
-      </div>
-
       {/* 2. Filtros e Gestão */}
-      <div className="flex flex-col lg:flex-row gap-4 items-end">
+      <div className="radar-outline-card grid gap-4 rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] p-5 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
         <div className="flex-1 space-y-2">
-          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">
             <Filter className="h-3 w-3" /> Filtros de missão
           </label>
           <div className="flex flex-wrap gap-2">
@@ -405,7 +409,7 @@ export function KanbanClient({
                 key={f.id}
                 variant={filterType === f.id ? "default" : "outline"}
                 size="sm"
-                className={cn("h-8 font-bold px-4 rounded-full", filterType === f.id ? "bg-black" : "border-zinc-200")}
+                className={cn("h-9 rounded-full px-4 font-black uppercase tracking-[0.12em]", filterType === f.id ? "bg-[#13212b] text-white" : "border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]")}
                 onClick={() => setFilterType(f.id as typeof filterType)}
               >
                 {f.label}
@@ -414,10 +418,10 @@ export function KanbanClient({
           </div>
         </div>
 
-        <div className="w-full lg:w-64 space-y-2">
-          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Por operador</label>
+        <div className="w-full space-y-2 lg:w-64">
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">Por operador</label>
           <select
-            className="w-full h-8 rounded-full border border-zinc-200 bg-white px-4 text-xs font-bold"
+            className="h-10 w-full rounded-full border border-[#d4c4a8] bg-white px-4 text-xs font-bold text-[#13212b]"
             value={operatorFilter}
             onChange={(e) => setOperatorFilter(e.target.value)}
           >
@@ -431,13 +435,13 @@ export function KanbanClient({
 
       {/* 5. Painel de Balanceamento */}
       {stats.unassigned > 0 ? (
-        <Card className="border-indigo-100 bg-indigo-50/20">
+        <Card className="radar-outline-card border-[#d5b378] bg-[rgba(212,182,120,0.12)]">
           <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-1">
-              <h3 className="text-sm font-black text-indigo-950 flex items-center gap-2">
+              <h3 className="flex items-center gap-2 text-sm font-black text-[#13212b]">
                 <Users className="h-4 w-4" /> Balanceamento de equipe
               </h3>
-              <p className="text-[10px] font-bold text-indigo-700/70 uppercase tracking-widest">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#7d6f59]">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
             </div>
             
             <div className="flex flex-wrap gap-2 justify-center">
@@ -453,7 +457,7 @@ export function KanbanClient({
                       )}
                       className={cn(
                         "h-8 px-3 text-[10px] font-black uppercase transition-all rounded-lg",
-                        isSelected ? "bg-indigo-600 text-white border-indigo-700 shadow-md" : "bg-white border-zinc-200 text-zinc-600"
+                        isSelected ? "border-[#13212b] bg-[#13212b] text-white shadow-md" : "border-[#d4c4a8] bg-white text-[#13212b]"
                       )}
                     >
                       {isSelected && <Check className="mr-1 h-3 w-3" />}
@@ -469,7 +473,7 @@ export function KanbanClient({
                   <div className={cn("inline-block", (isDistributing || selectedOperators.length === 0) && "cursor-not-allowed")}>
                     <Button 
                       onClick={runBalance} 
-                      className={cn("bg-black text-white font-black h-10 px-8 shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "opacity-50 pointer-events-none")}
+                      className={cn("h-10 bg-[#13212b] px-8 font-black text-white shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "opacity-50 pointer-events-none")}
                       tabIndex={(isDistributing || selectedOperators.length === 0) ? -1 : 0}
                     >
                       {isDistributing ? "Distribuindo..." : "Distribuir Agora"}
@@ -486,16 +490,16 @@ export function KanbanClient({
       ) : null}
 
       {/* Kanban Board */}
-      <div className="overflow-x-auto pb-6 -mx-4 px-4 scrollbar-thin scrollbar-thumb-zinc-200">
+      <div className="-mx-4 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-thumb-[#d4c4a8]">
         <div className="flex gap-4 min-w-max">
           {groupedColumns.map(({ id, label, description, tasks: columnTasks }) => (
             <div key={id} className="w-[340px] shrink-0 space-y-4">
               <div className="flex items-center justify-between px-2">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
-                    {label} <span className="ml-1 text-zinc-400">({columnTasks.length})</span>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#6e604c]">
+                    {label} <span className="ml-1 text-[#9b8c74]">({columnTasks.length})</span>
                   </h3>
-                  <p className="mt-1 text-[10px] font-medium text-zinc-400">{description}</p>
+                  <p className="mt-1 text-[10px] font-medium text-[#8a7962]">{description}</p>
                 </div>
                 {columnTasks.some(t => t.isStale) && (
                         <TooltipProvider>
@@ -510,8 +514,10 @@ export function KanbanClient({
               </div>
 
               <div className={cn(
-                "space-y-3 p-2 rounded-2xl min-h-[420px] transition-colors",
-                id === "concluir" ? "bg-rose-50/30" : "bg-zinc-50/50"
+                "min-h-[420px] space-y-3 rounded-[22px] border p-2 transition-colors",
+                id === "concluir"
+                  ? "border-[#e7d7c7] bg-[rgba(236,224,209,0.72)]"
+                  : "border-[#e2d3bb] bg-[rgba(255,250,242,0.82)]"
               )}>
                 {columnTasks.map((task) => (
                   <KanbanTaskCard
@@ -633,19 +639,19 @@ function KanbanTaskCard({
       person={task.priority}
       primaryActionLabel="Abrir missão"
       onPrimaryAction={onOpenDetails}
-      className={cn(task.isStale ? "bg-rose-50/30 ring-1 ring-rose-100" : "ring-1 ring-zinc-100")}
+      className={cn(task.isStale ? "border-rose-200 bg-rose-50/50 ring-1 ring-rose-100" : "border-[#dccdaf] bg-[rgba(255,252,247,0.96)] ring-1 ring-[#ece1d0]")}
       footer={
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+              <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
                 {boardMicroLabels[task.boardColumn]}
               </Badge>
               <Badge
                 variant="outline"
                 className={cn(
                   "text-[9px] font-black uppercase tracking-widest",
-                  task.responsibleId ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-rose-200 bg-rose-50 text-rose-700",
+                  task.responsibleId ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#d5b378] bg-[rgba(212,182,120,0.14)] text-[#8f6e2e]",
                 )}
               >
                 {task.priority.responsibleName || "Órfã"}
@@ -687,12 +693,12 @@ function KanbanTaskCard({
             />
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4">
+          <div className="space-y-2 rounded-2xl border border-[#dccdaf] bg-[rgba(255,252,247,0.9)] p-4">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase tracking-tighter text-zinc-400">Auditoria curta</span>
-              <span className="text-[10px] font-bold text-zinc-500">{task.title}</span>
+              <span className="text-[9px] font-black uppercase tracking-tighter text-[#8a7962]">Auditoria curta</span>
+              <span className="text-[10px] font-bold text-[#8a7962]">{task.title}</span>
             </div>
-            <p className="text-[10px] font-medium leading-relaxed text-zinc-500 italic">
+            <p className="text-[10px] font-medium leading-relaxed italic text-[#6e604c]">
               &quot;{task.priority.nextAction || task.notes || "Aguardando próxima definição..."}&quot;
             </p>
           </div>
@@ -713,7 +719,7 @@ function KanbanTaskCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-[9px] font-black uppercase"
+              className="h-7 text-[9px] font-black uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
               onClick={onMoveBack}
               disabled={savingTaskId === task.id || !canMoveBack}
             >
@@ -722,7 +728,7 @@ function KanbanTaskCard({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-[9px] font-black uppercase"
+              className="h-7 text-[9px] font-black uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
               onClick={onMoveForward}
               disabled={savingTaskId === task.id || !canMoveForward}
             >
@@ -731,8 +737,8 @@ function KanbanTaskCard({
           </div>
 
           {task.boardColumn === "esperando_resposta" ? (
-            <div className="space-y-1.5 border-t border-zinc-100 pt-3">
-              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-zinc-400">Ações rápidas</p>
+            <div className="space-y-1.5 border-t border-[#e9decd] pt-3">
+              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-[#8a7962]">Ações rápidas</p>
               <div className="flex flex-wrap gap-1">
                 {[
                   { id: "manter_aguardando", label: "Manter" },
@@ -744,7 +750,7 @@ function KanbanTaskCard({
                     key={action.id}
                     variant="outline"
                     size="sm"
-                    className="h-6 rounded-md border-zinc-200 px-2 text-[8px] font-bold uppercase hover:bg-zinc-100"
+                    className="h-6 rounded-md border-[#dccdaf] bg-white px-2 text-[8px] font-bold uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
                     onClick={() => onQuickResponse(action.id as PersonResponseKind)}
                     disabled={savingTaskId === task.id}
                   >
@@ -755,10 +761,10 @@ function KanbanTaskCard({
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-3">
+          <div className="space-y-2 rounded-2xl border border-[#dccdaf] bg-[rgba(255,252,247,0.9)] p-3">
             <select
               id={`response-select-${task.id}`}
-              className="h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500"
+              className="h-8 w-full rounded-lg border border-[#dccdaf] bg-white px-2 text-[10px] font-bold text-[#13212b] focus:ring-2 focus:ring-[#d5b378]"
               value={responseValue}
               onChange={(e) => onResponseChange(e.target.value as PersonResponseKind)}
             >

@@ -30,6 +30,8 @@ import { EmptyState } from "@/components/radar/empty-state";
 import { OperationalStatusBar } from "@/components/radar/operational-status-bar";
 import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { PersonOperationalList } from "@/components/radar/person-operational-list";
+import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
+import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboarding";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
@@ -164,23 +166,47 @@ export function PeopleClient({
 
   return (
     <div className="flex flex-col gap-4 pb-20">
-      <section className="rounded-[28px] border border-zinc-200 bg-white px-5 py-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Jornada da equipe</p>
-            <h1 className="text-3xl font-black tracking-tight text-zinc-950">Prioridades da Equipe</h1>
-            <p className="max-w-3xl text-sm leading-6 text-zinc-600">
-              Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível.
-            </p>
-          </div>
-          <Link 
-            href="/pessoas/importar" 
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-10 font-black uppercase text-[10px] border-zinc-200")}
-          >
-            <PlusCircle className="mr-1.5 h-3.5 w-3.5" /> Importar base
-          </Link>
-        </div>
-      </section>
+      <GamefulHero
+        eyebrow="Sala de vínculos"
+        title="Prioridades da Equipe"
+        description="Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível."
+        variant="light"
+        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
+        badges={
+          <>
+            <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
+            <GamefulHeroBadge light>{stats.semResponsavel} sem dono</GamefulHeroBadge>
+          </>
+        }
+        metrics={
+          <>
+            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail="Vínculos operacionais no radar." />
+            <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail="Missões com maior calor." />
+            <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail="Conversas pedindo retorno." />
+            <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail="Interesses prontos para destino." />
+          </>
+        }
+        actions={
+          <>
+            <Button
+              className="h-12 bg-[#0f1b24] px-6 text-xs font-black uppercase tracking-[0.18em] text-white hover:bg-[#172733]"
+              onClick={() => setPriorityFilter("sem_responsavel")}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Assumir missões
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 border-[#d8c7ac] bg-[#f7f0e4] px-6 text-xs font-black uppercase tracking-[0.18em] text-[#11202a]"
+              nativeButton={false}
+              render={<Link href="/pessoas/importar" />}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Importar base
+            </Button>
+          </>
+        }
+      />
 
       <OperationalStatusBar
         activeFilter={priorityFilter}
@@ -195,34 +221,34 @@ export function PeopleClient({
         actions={null}
       />
 
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-zinc-50/50 p-2 rounded-xl border border-zinc-100">
+      <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] p-2 md:flex-row">
         <div className="relative w-full md:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
           <Input 
             placeholder="Buscar username..." 
-            className="pl-9 h-8 text-xs border-zinc-200 bg-white"
+            className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-zinc-100 shadow-sm">
+          <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
             <Button 
               variant={viewMode === "cards" ? "secondary" : "ghost"} 
               size="icon" 
-              className={cn("h-7 w-7", viewMode === "cards" && "bg-zinc-100")}
+              className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
               onClick={() => toggleViewMode("cards")}
             >
-              <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-indigo-600" : "text-zinc-400")} />
+              <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
             </Button>
             <Button 
               variant={viewMode === "list" ? "secondary" : "ghost"} 
               size="icon" 
-              className={cn("h-7 w-7", viewMode === "list" && "bg-zinc-100")}
+              className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
               onClick={() => toggleViewMode("list")}
             >
-              <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-indigo-600" : "text-zinc-400")} />
+              <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
             </Button>
           </div>
         </div>
@@ -293,8 +319,8 @@ export function PeopleClient({
       />
 
       {/* Governance Banner */}
-      <footer className="mt-12 p-6 rounded-2xl bg-indigo-900 text-indigo-50 flex flex-col md:flex-row items-center gap-6">
-        <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+      <footer className="radar-panel-dark mt-12 flex flex-col items-center gap-6 rounded-2xl border border-[#23313b] p-6 text-indigo-50 md:flex-row">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10">
           <Info className="h-6 w-6" />
         </div>
         <div className="space-y-1">
