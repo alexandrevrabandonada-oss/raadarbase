@@ -19,43 +19,93 @@ import {
 import type { ActionResult } from "@/app/actions";
 import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 
+async function createStrategicMemoryRecord(
+  input: TableInsert<"strategic_memories">,
+  session: { id: string; email: string | null },
+) {
+  const safety = await validateMemoryInput(
+    input.title,
+    input.summary,
+    session.email!,
+    session.id,
+  );
+
+  if (!safety.isSafe) {
+    throw new Error("O conteúdo contém termos proibidos pela política de governança.");
+  }
+
+  const sanitizedInput = sanitizeMemoryInputObject({
+    ...input,
+    created_by: session.id,
+    created_by_email: session.email,
+  });
+
+  const memory = await createStrategicMemory(sanitizedInput);
+
+  await writeAuditLog({
+    actorId: session.id,
+    actorEmail: session.email!,
+    action: "strategic_memory.created",
+    entityType: "strategic_memories",
+    entityId: memory.id,
+    summary: `Memória estratégica criada: ${memory.title}`,
+  });
+
+  return memory;
+}
+
 export async function createStrategicMemoryAction(input: TableInsert<"strategic_memories">): Promise<ActionResult> {
   try {
     const session = await requireInternalSession();
     await requireRole(["admin", "operador", "comunicacao"]);
 
-    const safety = await validateMemoryInput(
-      input.title,
-      input.summary,
-      session.email!,
-      session.id
-    );
-
-    if (!safety.isSafe) {
-      throw new Error("O conteúdo contém termos proibidos pela política de governança.");
-    }
-
-    const sanitizedInput = sanitizeMemoryInputObject({
-      ...input,
-      created_by: session.id,
-      created_by_email: session.email
-    });
-
-    const memory = await createStrategicMemory(sanitizedInput);
-
-    await writeAuditLog({
-      actorId: session.id,
-      actorEmail: session.email!,
-      action: "strategic_memory.created",
-      entityType: "strategic_memories",
-      entityId: memory.id,
-      summary: `Memória estratégica criada: ${memory.title}`
-    });
+    const memory = await createStrategicMemoryRecord(input, session);
 
     revalidatePath("/memoria");
     return { ok: true, message: "Memória estratégica criada com sucesso.", id: memory.id };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Erro ao criar memória." };
+  }
+}
+
+export async function createStrategicMemoryFromFieldResultAction(
+  input: TableInsert<"strategic_memories">,
+  source: { resultId: string; eventId: string },
+): Promise<ActionResult> {
+  try {
+    const session = await requireInternalSession();
+    await requireRole(["admin", "operador", "comunicacao"]);
+
+    const memory = await createStrategicMemoryRecord(input, session);
+
+    await linkMemoryToEntity(memory.id, "result", source.resultId);
+
+    await writeAuditLog({
+      actorId: session.id,
+      actorEmail: session.email!,
+      action: "strategic_memory.linked",
+      entityType: "strategic_memories",
+      entityId: memory.id,
+      summary: `Vínculo criado: result -> ${source.resultId}`,
+      metadata: { entityType: "result", entityId: source.resultId, eventId: source.eventId },
+    });
+
+    revalidatePath("/memoria");
+    revalidatePath(`/memoria/${memory.id}`);
+    revalidatePath("/campo");
+    revalidatePath(`/campo/${source.eventId}`);
+    revalidatePath("/ritmo");
+
+    return {
+      ok: true,
+      message: "Memória estratégica criada e vinculada ao resultado de campo.",
+      id: memory.id,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao criar memória vinculada ao resultado.",
+    };
   }
 }
 

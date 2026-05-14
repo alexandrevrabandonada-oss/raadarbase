@@ -105,6 +105,8 @@ export function PersonActions({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
+  const contactGuardrailCopy =
+    person.doNotContactReason ?? "Pedido de não contato respeitado.";
   const nextActionLabel =
     status === "nao_abordar" || person.doNotContactReason
       ? `Não abordar: ${person.doNotContactReason ?? "pessoa pediu para não receber contato."}`
@@ -196,7 +198,12 @@ export function PersonActions({
 
         <div className="flex flex-wrap gap-2">
           {person.username && (
-            <Button variant="outline" className="font-black border-zinc-200" onClick={() => window.open(`https://instagram.com/${person.username}`, '_blank')}>
+            <Button
+              variant="outline"
+              className="font-black border-zinc-200"
+              onClick={() => window.open(`https://instagram.com/${person.username}`, "_blank")}
+              disabled={!canApproach}
+            >
               <Instagram className="mr-2 h-4 w-4" /> Instagram
             </Button>
           )}
@@ -351,12 +358,17 @@ export function PersonActions({
                 </div>
                 <div className="flex items-center justify-between">
                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest flex items-center gap-1">
-                     <AlertTriangle className="h-3 w-3" /> Revise antes de enviar
+                     <AlertTriangle className="h-3 w-3" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
-                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage} className="bg-black text-white font-black h-9 px-6">
+                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage || !canApproach} className="bg-black text-white font-black h-9 px-6">
                      <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado" : "Copiar Texto"}
                    </Button>
                 </div>
+                {!canApproach && (
+                  <p className="mt-3 text-[11px] font-bold text-rose-700">
+                    {contactGuardrailCopy}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </section>
@@ -432,10 +444,20 @@ export function PersonActions({
              </CardHeader>
              <CardContent className="grid gap-2">
                 <Button
-                  
                   className="w-full bg-indigo-600 hover:bg-indigo-700 font-black h-12"
+                  disabled={!canApproach}
                 >
-                  <a href={`https://instagram.com/${person.username}`} target="_blank" rel="noreferrer">
+                  <a
+                    href={canApproach ? `https://instagram.com/${person.username}` : undefined}
+                    target={canApproach ? "_blank" : undefined}
+                    rel={canApproach ? "noreferrer" : undefined}
+                    aria-disabled={!canApproach}
+                    onClick={(event) => {
+                      if (!canApproach) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
                     <Instagram className="mr-3 h-5 w-5" /> Abrir no App
                   </a>
                 </Button>
@@ -465,6 +487,11 @@ export function PersonActions({
                 >
                   Marcar como não abordar
                 </Button>
+                {!canApproach && (
+                  <p className="text-[11px] font-bold text-amber-300">
+                    {contactGuardrailCopy}
+                  </p>
+                )}
              </CardContent>
           </Card>
 

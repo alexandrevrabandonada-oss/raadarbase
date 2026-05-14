@@ -12,6 +12,7 @@ import { GamefulPortalCard } from "@/components/radar/gameful-portal-card";
 import { MissionCard as RadarMissionCard } from "@/components/radar/mission-card";
 import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { AlertBeacon } from "@/components/radar/alert-beacon";
+import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +23,7 @@ import type { PilotDashboardData } from "@/lib/data/pilot-stats";
 import type { MissionState } from "@/lib/data/mission-engine";
 import type { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
 import type { OperationalCycleAlert } from "@/lib/data/operational-cycle-alerts";
+import type { DailyNarrative, SeasonNarrative, WeeklyNarrative } from "@/lib/narrative/narrative-types";
 import {
   Activity,
   AlertTriangle,
@@ -56,6 +58,11 @@ type DashboardMissionEvent = {
 };
 
 export type DashboardViewData = {
+  narrative: {
+    today: DailyNarrative;
+    week: WeeklyNarrative;
+    season: SeasonNarrative;
+  };
   missionState: MissionState;
   weeklyRhythmState: WeeklyRhythmState;
   overallStatus: {
@@ -145,8 +152,37 @@ export function DashboardClient({ priorityPeople, cycleAlerts, data }: Dashboard
   };
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-32 lg:pb-16">
       <HeroSection data={data} />
+
+      <OperationalCommandBar
+        title="Barra de comando"
+        statusLabel="Status geral"
+        statusValue={data.overallStatus.label}
+        statusDetail={data.overallStatus.detail}
+        primaryAction={{
+          label: "Iniciar Jornada",
+          href: "/minha-fila",
+          icon: Route,
+        }}
+        secondaryActions={[
+          {
+            label: "Abrir Central de Ritmo",
+            href: "/ritmo",
+            icon: TowerControl,
+          },
+          {
+            label: "Ver Mural de Missões",
+            href: "/abordagem",
+            icon: Radar,
+          },
+        ]}
+        shortcutAction={{
+          label: "Abrir Minha Jornada",
+          href: "/minha-fila",
+          icon: ArrowRight,
+        }}
+      />
 
       <OperationStartSection data={data} cycleAlerts={cycleAlerts} />
 
@@ -191,14 +227,16 @@ function HeroSection({ data }: { data: DashboardViewData }) {
     <GamefulHero
       eyebrow="Base de comando"
       title="Base de Operações"
-      description="Seu centro de missões, ritmo e mobilização territorial."
+      description={data.narrative.season.summary}
       variant="light"
-      titleClassName="radar-title-display max-w-[11ch]"
-      descriptionClassName="max-w-[34rem] text-lg sm:text-[1.15rem]"
+      compact
+      titleClassName="radar-title-display max-w-[11ch] text-4xl lg:text-5xl 2xl:text-6xl"
+      descriptionClassName="max-w-[32rem] text-base xl:text-[1.05rem]"
       badges={
         <>
           <GamefulHeroBadge light className={statusTone}>{data.overallStatus.label}</GamefulHeroBadge>
-          <GamefulHeroBadge light>{data.weeklyRhythmState.phase.name}</GamefulHeroBadge>
+          <GamefulHeroBadge light>{data.narrative.today.label}</GamefulHeroBadge>
+          <GamefulHeroBadge light>{data.narrative.week.label}</GamefulHeroBadge>
         </>
       }
       actions={
@@ -213,47 +251,47 @@ function HeroSection({ data }: { data: DashboardViewData }) {
           </Button>
         </>
       }
-      metricsClassName="md:grid-cols-2 xl:grid-cols-4"
+      metricsClassName="sm:grid-cols-2 xl:grid-cols-4"
       metrics={
         <>
           <GamefulMetricCard
             icon={<Target className="h-4 w-4" />}
             label="Rede ativa"
             value={`${data.missionState.progress}%`}
-            detail="Avanço do bloco principal do dia."
+            detail="Avanço do bloco principal."
             tone="light"
             compact
             layout="split"
-            title={data.missionState.objective}
+            title={data.narrative.today.nextStep}
             className="min-w-0"
           />
           <GamefulMetricCard
             icon={<Users className="h-4 w-4" />}
             label="Territórios"
             value={data.quickMap.counts.mobilizacao + data.quickMap.counts.campo + data.quickMap.counts.continuidade}
-            detail="Bairros com leitura territorial ativa."
+            detail="Bairros com leitura ativa."
             tone="light"
             compact
             layout="split"
-            title={data.weeklyRhythmState.phase.description}
+            title={data.narrative.season.nextStep}
             className="min-w-0"
           />
           <GamefulMetricCard
             icon={<Flag className="h-4 w-4" />}
             label="Ações hoje"
             value={data.missionCounts.active}
-            detail="Missões operacionais em foco."
+            detail="Missões em foco."
             tone="light"
             compact
             layout="split"
-            title={`${data.systemAlerts.staleTasks} tarefas paradas e ${data.systemAlerts.fieldWithoutClosure} ações de campo sem fechamento.`}
+            title={data.narrative.week.support}
             className="min-w-0"
           />
           <GamefulMetricCard
             icon={<Activity className="h-4 w-4" />}
             label="Clima da rede"
             value={data.overallStatus.tone === "healthy" ? "Positivo" : data.overallStatus.tone === "warning" ? "Ajuste" : "Atencao"}
-            detail="Leitura geral da base."
+            detail="Leitura geral."
             tone="light"
             compact
             layout="split"
@@ -263,23 +301,24 @@ function HeroSection({ data }: { data: DashboardViewData }) {
         </>
       }
       aside={
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_220px]">
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.1fr)_220px]">
           <Card className="radar-outline-card radar-panel-dark border-[#23313b] py-0 text-white shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
             <CardContent className="space-y-5 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Missao do Dia</p>
-                  <p className="mt-2 text-2xl font-black tracking-tight text-white">{data.missionState.title}</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Hoje</p>
+                  <p className="mt-2 text-2xl font-black tracking-tight text-white">{data.narrative.today.headline}</p>
                 </div>
                 <Target className="h-5 w-5 text-[#f0c15b]" />
               </div>
-              <p className="text-base leading-7 text-zinc-200">{data.missionState.objective}</p>
+              <p className="text-base leading-7 text-zinc-200">{data.narrative.today.summary}</p>
               <div className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Impacto esperado</p>
-                <p className="text-sm font-semibold text-white">{data.overallStatus.detail}</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Leitura do ciclo</p>
+                <p className="text-sm font-semibold text-white">{data.narrative.today.support}</p>
               </div>
               <div className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Progresso</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Próximo passo</p>
+                <p className="text-sm font-semibold text-white">{data.narrative.today.nextStep}</p>
                 <Progress value={data.missionState.progress} className="h-3 bg-white/10" indicatorClassName="bg-[#f0c15b]" />
               </div>
             </CardContent>
@@ -288,15 +327,20 @@ function HeroSection({ data }: { data: DashboardViewData }) {
           <Card className="radar-outline-card radar-panel-light border-[#d8c7ac] py-0 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
             <CardContent className="space-y-5 p-6">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Fase semanal</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Semana</p>
                 <div className="mt-2 flex items-end gap-2">
                   <p className="text-6xl font-black leading-none text-[#11202a]">{String(weeklyPhaseIndex).padStart(2, "0")}</p>
                   <p className="pb-2 text-sm font-semibold text-zinc-600">de 08</p>
                 </div>
               </div>
-              <p className="text-2xl font-black uppercase leading-8 tracking-tight text-[#4b4337]">
-                {data.weeklyRhythmState.phase.name}
-              </p>
+              <div className="space-y-2">
+                <p className="text-2xl font-black uppercase leading-8 tracking-tight text-[#4b4337]">
+                  {data.narrative.week.label}
+                </p>
+                <p className="text-sm leading-6 text-zinc-600">{data.narrative.week.summary}</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b7759]">Temporada</p>
+                <p className="text-sm font-semibold text-[#4b4337]">{data.narrative.season.label}</p>
+              </div>
               <div className="flex gap-2">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <div
@@ -311,7 +355,7 @@ function HeroSection({ data }: { data: DashboardViewData }) {
                 ))}
               </div>
               <Button variant="ghost" className="h-auto justify-start px-0 text-sm font-black text-[#11202a] hover:bg-transparent" nativeButton={false} render={<Link href="/ritmo" />}>
-                Ver fases da semana
+                Ver leitura da semana
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
@@ -330,17 +374,17 @@ function OperationStartSection({
   cycleAlerts: OperationalCycleAlert[];
 }) {
   return (
-    <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
+    <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
       <Card className="radar-outline-card overflow-hidden border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
-        <CardContent className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-zinc-950">
               <Sparkles className="h-5 w-5" />
               <h2 className="text-2xl font-black tracking-tight">Começar Jornada</h2>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-black text-zinc-950">{data.missionState.title}</p>
-              <p className="max-w-2xl text-sm leading-6 text-zinc-600">{data.missionState.objective}</p>
+              <p className="text-lg font-black text-zinc-950">{data.narrative.today.headline}</p>
+              <p className="max-w-2xl text-sm leading-6 text-zinc-600">{data.narrative.today.summary}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <SignalBadge icon={Target} label="Rede ativa" value={data.missionCounts.active} />
@@ -352,7 +396,7 @@ function OperationStartSection({
           <div className="flex flex-col justify-between rounded-3xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-5">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b7759]">Proximo passo</p>
-              <p className="mt-2 text-2xl font-black tracking-tight text-[#11202a]">Avancar a jornada principal</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-[#11202a]">{data.narrative.today.nextStep}</p>
               <Progress value={data.missionState.progress} className="mt-4 h-3 bg-[#d7c7ae]" indicatorClassName="bg-[#11202a]" />
             </div>
             <Button className="mt-5 h-12 rounded-xl bg-[#0f1b24] font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/minha-fila" />}>
@@ -499,7 +543,7 @@ function OperationPortalsSection({ data }: { data: DashboardViewData }) {
         title="Mapa Rápido"
         description="Mundos principais da operação, cada um com estado, próximo passo e entrada clara."
       />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {portals.map((portal) => (
           <GamefulPortalCard
             key={portal.title}
@@ -580,8 +624,8 @@ function QuickMapSection({ data }: { data: DashboardViewData }) {
       />
 
       <Card className="overflow-hidden border-zinc-200 py-0">
-          <CardContent className="grid gap-4 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <CardContent className="grid gap-4 p-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
               <QuickMapCard
                 title="Mobilização"
                 value={data.quickMap.counts.mobilizacao}

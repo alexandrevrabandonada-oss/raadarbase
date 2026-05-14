@@ -1,3 +1,4 @@
+import type { RadarMission } from "@/lib/missions/mission-types";
 import type { Database, TableRow } from "@/lib/supabase/database.types";
 
 export type PersonStatus = Database["public"]["Enums"]["person_status"];
@@ -366,6 +367,17 @@ export type PriorityPerson = PersonWithContact & {
     recentOutreach: boolean;
     doNotContact: boolean;
   };
+  missionPlan?: RadarMission | null;
+  missionTypeLabel?: string | null;
+  missionPhaseLabel?: string | null;
+  missionStateLabel?: string | null;
+  missionReason?: string | null;
+  missionNextStep?: string | null;
+  missionGuardrailText?: string | null;
+  missionSignals?: string[];
+  missionBlocksContact?: boolean;
+  missionExplainability?: string | null;
+  missionFallbackUsed?: boolean;
 };
 
 export type PersonResponseKind =

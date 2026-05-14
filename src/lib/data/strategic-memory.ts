@@ -232,6 +232,27 @@ export async function getStrategicMemoryStats() {
   };
 }
 
+export async function countStrategicMemoryLinksByEntity(entityType: string, entityIds: string[]) {
+  if (shouldUseMockData() || entityIds.length === 0) {
+    return {} as Record<string, number>;
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("strategic_memory_links")
+    .select("entity_id")
+    .eq("entity_type", entityType)
+    .in("entity_id", entityIds);
+
+  if (error) throw new Error(`Falha ao buscar vínculos de memória: ${error.message}`);
+
+  const counts: Record<string, number> = {};
+  for (const row of data || []) {
+    counts[row.entity_id] = (counts[row.entity_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /**
  * Sugere memórias a partir de resultados de execução.
  * Implementação sem IA, focada em síntese de padrões.
@@ -291,7 +312,6 @@ export async function suggestMemoriesFromResults(filters?: { topic_id?: string }
   // Agrupa por tema
   results.forEach(r => {
     const topicId = (r.item as any)?.plan?.topic_id;
-    const topicName = (r.item as any)?.plan?.topic?.name || "Geral";
     if (!groups[topicId]) groups[topicId] = [];
     groups[topicId].push(r);
   });

@@ -100,7 +100,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
     total: templates.length,
     active: templates.filter(t => t.active).length,
     escuta: templates.filter(t => t.theme === "escuta").length,
-    conversao: templates.filter(t => t.theme === "conversao").length,
+    continuidade: templates.filter(t => t.theme === "conversao").length,
   };
 
   const activeTemplates = templates.filter(t => t.active);
@@ -122,10 +122,10 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <RadarMetricCard label="Total de DMs" value={stats.total} icon={MessageSquare} tone="neutral" />
+        <RadarMetricCard label="Modelos totais" value={stats.total} icon={MessageSquare} tone="neutral" />
         <RadarMetricCard label="Templates Ativos" value={stats.active} icon={ShieldCheck} tone="success" />
         <RadarMetricCard label="Foco: Escuta" value={stats.escuta} icon={Info} tone="info" />
-        <RadarMetricCard label="Foco: Conversão" value={stats.conversao} icon={History} tone="warning" />
+        <RadarMetricCard label="Foco: Continuidade" value={stats.continuidade} icon={History} tone="warning" />
       </div>
 
       <div className="grid gap-8 xl:grid-cols-[380px_1fr]">

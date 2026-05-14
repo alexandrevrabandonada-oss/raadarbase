@@ -2,7 +2,6 @@
 
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 // ─── Metric Chip ───────────────────────────────────────────────────────────────
 interface MetricChipProps {
@@ -100,7 +99,7 @@ export function OperationalStatusBar({
   return (
     <div
       className={cn(
-        "flex flex-nowrap lg:flex-wrap items-center gap-2 rounded-xl border border-zinc-100 bg-white px-4 py-2 shadow-sm overflow-x-auto lg:overflow-x-visible no-scrollbar",
+        "flex flex-wrap items-center gap-2 rounded-xl border border-zinc-100 bg-white px-4 py-2 shadow-sm",
         className
       )}
     >

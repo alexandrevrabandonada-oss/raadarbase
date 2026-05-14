@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardCopy, Download, FileText } from "lucide-react";
 import type { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
-import type { OperationalCycleAlert } from "@/lib/data/operational-cycle-alerts";
+
+type WeeklyClosureAlert = {
+  title: string;
+  nextStep: string;
+  count: number;
+};
 
 type WeeklyClosureNarrativeData = {
   weeklyRhythmState: WeeklyRhythmState;
@@ -21,7 +26,7 @@ type WeeklyClosureNarrativeData = {
     dataUnderReview: number;
     eligibleForReviewCount: number;
   };
-  cycleAlerts: OperationalCycleAlert[];
+  cycleAlerts: WeeklyClosureAlert[];
 };
 
 function sanitizePrivacy(text: string) {

@@ -61,10 +61,20 @@ import {
 } from "@/components/ui/select";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
-import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyBar } from "@/components/radar/journey-bar";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import {
+  getPriorityPersonHoldState,
+  getPriorityPersonHoldText,
+  getPriorityPersonJourney,
+  getPriorityPersonMission,
+  getPriorityPersonMissionNextStep,
+  getPriorityPersonMissionPhaseLabel,
+  getPriorityPersonMissionReason,
+  getPriorityPersonMissionTypeLabel,
+} from "@/lib/missions/priority-person-mission-adapter";
+import type { RadarMission } from "@/lib/missions/mission-types";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -136,6 +146,92 @@ interface PersonQuickSheetProps {
   onNextPerson?: () => void;
   isTraining?: boolean;
   onTrainingAction?: (action: string, payload?: unknown) => void;
+}
+
+type QuickSheetMissionView = {
+  hasMission: boolean;
+  typeLabel: string;
+  phaseLabel: string;
+  stateLabel: string;
+  reason: string;
+  signals: string[];
+  guardrailLabel: string;
+  guardrailText: string;
+  nextStep: string;
+  primaryActionLabel: string;
+  secondaryActionLabels: string[];
+  expectedOutcome: string;
+  contactBlocked: boolean;
+  manualMessageWarning: string | null;
+};
+
+function missionStateLabel(state: RadarMission["state"]) {
+  const labels: Record<RadarMission["state"], string> = {
+    SUGERIDA: "Sugerida",
+    ASSUMIDA: "Assumida",
+    EM_ANDAMENTO: "Em andamento",
+    EM_ESPERA: "Em espera",
+    BLOQUEADA: "Bloqueada",
+    CONCLUIDA: "Concluída",
+    ARQUIVADA: "Arquivada",
+  };
+
+  return labels[state];
+}
+
+function missionExpectedOutcome(mission: RadarMission | null, person: PriorityPerson): string {
+  if (!mission) {
+    if (person.status === "nao_abordar" || person.doNotContactReason) {
+      return "Conclusão esperada: pedido de não contato respeitado e histórico preservado.";
+    }
+    if (person.isPendingResponse) {
+      return "Conclusão esperada: registrar o retorno e salvar o próximo passo.";
+    }
+    return "Conclusão esperada: deixar a próxima etapa clara sem perder contexto.";
+  }
+
+  switch (mission.type) {
+    case "ESCUTA":
+      return "Conclusão esperada: resposta contextual preparada e conversa aberta com cuidado.";
+    case "VINCULO":
+      return "Conclusão esperada: vínculo iniciado sem presumir intenção ou consentimento.";
+    case "RETORNO":
+      return "Conclusão esperada: o que já aconteceu fica registrado antes de seguir.";
+    case "ENCAMINHAMENTO":
+      return "Conclusão esperada: a pessoa recebe um caminho claro com consentimento explícito.";
+    case "CUIDADO":
+      return mission.state === "BLOQUEADA"
+        ? "Conclusão esperada: bloqueio respeitado e base protegida."
+        : "Conclusão esperada: a pausa fica registrada sem perda de histórico.";
+    case "CAMPO":
+      return "Conclusão esperada: resultado registrado e próximo ciclo preparado.";
+    case "MEMORIA":
+      return "Conclusão esperada: aprendizado salvo para orientar a base.";
+  }
+}
+
+export function buildQuickSheetMissionView(person: PriorityPerson): QuickSheetMissionView {
+  const mission = getPriorityPersonMission(person);
+  const holdState = getPriorityPersonHoldState(person);
+  const holdText = getPriorityPersonHoldText(person);
+  const hasMission = Boolean(mission);
+
+  return {
+    hasMission,
+    typeLabel: getPriorityPersonMissionTypeLabel(person) ?? "Missão em leitura",
+    phaseLabel: getPriorityPersonMissionPhaseLabel(person),
+    stateLabel: mission ? missionStateLabel(mission.state) : holdState === "blocked" ? "Bloqueada" : holdState === "waiting" ? "Em espera" : "Ativa",
+    reason: getPriorityPersonMissionReason(person),
+    signals: person.missionSignals ?? [],
+    guardrailLabel: mission?.guardrail.label ?? (holdState === "blocked" ? "Proteção ética" : holdState === "waiting" ? "Janela ética" : "Sem bloqueio"),
+    guardrailText: holdText,
+    nextStep: getPriorityPersonMissionNextStep(person),
+    primaryActionLabel: mission?.primaryAction.label ?? "Registrar avanço",
+    secondaryActionLabels: mission?.secondaryActions.map((action) => action.label) ?? [],
+    expectedOutcome: missionExpectedOutcome(mission, person),
+    contactBlocked: mission?.guardrail.blocksContact ?? holdState === "blocked",
+    manualMessageWarning: person.suggestedMessage ? "Use como base. Personalize antes de enviar." : null,
+  };
 }
 
 export function PersonQuickSheet({ 
@@ -216,13 +312,9 @@ export function PersonQuickSheet({
 
   if (!person) return null;
 
-  const isBlocked = !!(person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact);
-  const journey = mapPersonToJourney(
-    person.status,
-    person.hasPendingTask,
-    person.hasReferral,
-    person.lastInteractionAt,
-  );
+  const missionView = buildQuickSheetMissionView(person);
+  const isBlocked = missionView.contactBlocked;
+  const journey = getPriorityPersonJourney(person);
 
   const handleAssume = () => {
     if (isTraining) {
@@ -323,7 +415,7 @@ export function PersonQuickSheet({
     
     // 1. Copiar
     await navigator.clipboard.writeText(text);
-    toast({ title: "Copiado", description: "Mensagem pronta para colar no Instagram." });
+    toast({ title: "Mensagem copiada", description: "Use como base. Personalize antes de enviar manualmente." });
     
     // 2. Telemetria
     if (isTraining) {
@@ -372,17 +464,17 @@ export function PersonQuickSheet({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="border-[#d0b072]/50 bg-[rgba(212,182,120,0.14)] text-[#f0dfbf] font-black uppercase text-[10px] tracking-widest">
-                    Painel de missão
+                    Ficha de missão
                   </Badge>
                   <SheetTitle className="text-2xl font-black text-white">
                     {person.displayName || `@${person.username}`}
                   </SheetTitle>
                   <Badge variant="outline" className="bg-white/10 text-white border-white/20 font-black uppercase text-[10px] tracking-widest">
-                    {person.status.replace(/_/g, " ")}
+                    {missionView.stateLabel}
                   </Badge>
                 </div>
                 <SheetDescription className="font-bold text-[#d7c9b1]">
-                  @{person.username} • {person.mainTheme || "Geral"}
+                  @{person.username} • {missionView.typeLabel}
                 </SheetDescription>
               </div>
               <PersonScoreBadge 
@@ -399,13 +491,7 @@ export function PersonQuickSheet({
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d7c9b1]">Fase atual</p>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#f0dfbf]">
-                  {{
-                    preparar: "Preparar",
-                    conversar: "Conversar",
-                    registrar: "Registrar",
-                    encaminhar: "Encaminhar",
-                    concluir: "Concluir",
-                  }[journey.currentPhase]}
+                  {missionView.phaseLabel}
                 </p>
               </div>
               <JourneyBar {...journey} />
@@ -461,13 +547,13 @@ export function PersonQuickSheet({
                     <EthicalGuardrailBanner
                       tone="rose"
                       eyebrow="Guardrail ético"
-                      badgeLabel="Não abordar"
-                      description={person.doNotContactReason || "Restrição manual ativa."}
+                      badgeLabel="Contato bloqueado"
+                      description={missionView.guardrailText || "Pedido de não contato respeitado."}
                       icon={ShieldAlert}
                       className="rounded-xl p-4"
                     />
                   )}
-                  {person.riskFlags?.recentOutreach && (
+                  {!isBlocked && person.riskFlags?.recentOutreach && (
                     <EthicalGuardrailBanner
                       tone="zinc"
                       eyebrow="Janela ética"
@@ -483,18 +569,59 @@ export function PersonQuickSheet({
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-4">
                     <div className="rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Contexto</label>
-                      <p className="text-sm font-bold text-zinc-800 leading-relaxed">{person.priorityReason}</p>
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Motivo da missão</label>
+                      <p className="text-sm font-bold text-zinc-800 leading-relaxed">{missionView.reason}</p>
                     </div>
 
                     <div className="rounded-xl border border-[#d5b378] bg-[rgba(212,182,120,0.12)] p-4">
-                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Objetivo e ação</label>
-                      <p className="text-sm font-black text-[#13212b]">{person.nextAction}</p>
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Próximo passo</label>
+                      <p className="text-sm font-black text-[#13212b]">{missionView.nextStep}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="border-[#d3b98f] bg-[#f7f0e4] text-[9px] font-black uppercase tracking-widest text-[#8f6e2e]">
+                          {missionView.typeLabel}
+                        </Badge>
+                        <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+                          {missionView.phaseLabel}
+                        </Badge>
+                        <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+                          {missionView.stateLabel}
+                        </Badge>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Guardrail</label>
+                          <p className="mt-1 text-sm font-semibold leading-relaxed text-zinc-700">{missionView.guardrailText}</p>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Conclusão esperada</label>
+                          <p className="mt-1 text-sm font-semibold leading-relaxed text-zinc-700">{missionView.expectedOutcome}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Sinais usados</label>
+                      {missionView.signals.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {missionView.signals.slice(0, 5).map((signal) => (
+                            <Badge key={signal} variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+                              {signal}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm font-medium leading-relaxed text-zinc-600">
+                          A ficha está usando a leitura operacional atual enquanto a missão não traz sinais extras.
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ação sugerida</label>
+                    <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Modelo de conversa</label>
                     <div className="relative group">
                       <div className={cn(
                         "min-h-[100px] rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.94)] p-5 text-sm font-medium italic leading-relaxed text-zinc-700 shadow-sm transition-all",
@@ -502,6 +629,11 @@ export function PersonQuickSheet({
                       )}>
                         {person.suggestedMessage || "Nenhum modelo específico sugerido para este caso."}
                       </div>
+                      {missionView.manualMessageWarning ? (
+                        <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">
+                          {missionView.manualMessageWarning}
+                        </p>
+                      ) : null}
                       {person.suggestedMessage && !isBlocked && copyStatus === "idle" && (
                         <Button 
                           size="icon" 
@@ -551,6 +683,28 @@ export function PersonQuickSheet({
                         <p className="text-xs font-bold text-emerald-900">Envio registrado. A missão agora aguarda retorno.</p>
                       </div>
                     )}
+
+                    <div className="rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                      <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ações da missão</label>
+                      <div className="space-y-3">
+                        <div className="rounded-lg border border-[#d5b378] bg-[rgba(212,182,120,0.12)] p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Ação primária</p>
+                          <p className="mt-1 text-sm font-black text-[#13212b]">{missionView.primaryActionLabel}</p>
+                        </div>
+                        {missionView.secondaryActionLabels.length > 0 ? (
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ações secundárias</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {missionView.secondaryActionLabels.map((action) => (
+                                <Badge key={action} variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+                                  {action}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -587,6 +741,29 @@ export function PersonQuickSheet({
                     >
                       {isSavingNote ? <Loader2 className="h-3 w-3 animate-spin" /> : "Salvar Nota"}
                     </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.92)] p-4">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Resultado da missão</label>
+                  <p className="text-sm font-medium leading-relaxed text-zinc-600">
+                    Use este fechamento para registrar o que aconteceu sem perder o próximo passo.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Respondeu bem",
+                      "Pediu informação",
+                      "Quer evento",
+                      "Quer voluntariado",
+                      "Quer Missão ÉLuta",
+                      "Não quer contato",
+                      "Sem resposta",
+                      "Revisar depois",
+                    ].map((label) => (
+                      <Badge key={label} variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+                        {label}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
@@ -651,8 +828,9 @@ export function PersonQuickSheet({
                   trackOperationalEvent("instagram_opened", person.id);
                   window.open(person.instagramUrl || `https://instagram.com/${person.username}`, '_blank');
                 }}
+                disabled={isBlocked}
               >
-                <Instagram className="h-4 w-4 mr-2" /> Instagram
+                <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : "Instagram"}
               </Button>
               
               <div className="flex gap-2">

@@ -12,18 +12,22 @@ import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
 import { assessQueueWellness } from "@/lib/data/operator-wellness";
 import { getOperationalCycleAlerts } from "@/lib/data/operational-cycle-alerts";
 import { getTeamFlowAdoptionMetrics } from "@/lib/data/team-flow-adoption";
+import { getStrategicMemoryStats } from "@/lib/data/strategic-memory";
+import { getTerritorialExpansionCandidates } from "@/lib/data/territorial-expansion";
+import { buildCycleAlerts } from "@/lib/rhythm/cycle-alert-engine";
+import { buildNextDecision } from "@/lib/rhythm/next-decision";
+import { buildRhythmSummary } from "@/lib/rhythm/rhythm-summary";
 import { RitmoClient } from "./ritmo-client";
+import { countStrategicMemoryLinksByEntity } from "@/lib/data/strategic-memory";
+import { buildFieldMemoryLoop } from "@/lib/field-memory/field-memory-loop";
+import { getPilotFeedbackLoop } from "@/lib/data/pilot-feedback-loop";
 
 export const dynamic = "force-dynamic";
-
-function getCurrentTimestamp() {
-  return Date.now();
-}
 
 export default async function RitmoPage() {
   await requireInternalPageSession("/ritmo");
 
-  const [pilotData, collective, qualityStats, territories, fieldEvents, cycleAlerts, teamAdoption] = await Promise.all([
+  const [pilotData, collective, qualityStats, territories, fieldEvents, cycleAlerts, teamAdoption, memoryStats, territorialExpansion, feedbackLoop] = await Promise.all([
     getPilotDashboardData(),
     getCollectiveProgressMetrics(),
     getBaseQualityStats(),
@@ -31,9 +35,23 @@ export default async function RitmoPage() {
     listFieldAgendaEvents({ includeMetrics: true }),
     getOperationalCycleAlerts(),
     getTeamFlowAdoptionMetrics(),
+    getStrategicMemoryStats(),
+    getTerritorialExpansionCandidates(),
+    getPilotFeedbackLoop(),
   ]);
 
   const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
+  const resultMemoryLinks = await countStrategicMemoryLinksByEntity(
+    "result",
+    Object.values(eventResults).map((result) => result.id),
+  );
+  const fieldMemoryLoop = buildFieldMemoryLoop({
+    events: fieldEvents,
+    resultsByEventId: eventResults,
+    resultMemoryLinksByResultId: resultMemoryLinks,
+    weeklyClosuresGenerated: teamAdoption.indicators.dailyClosuresGenerated,
+    feedbackLoop,
+  });
 
   const territoryCounts = territories.reduce(
     (acc, territory) => {
@@ -46,14 +64,8 @@ export default async function RitmoPage() {
     { mobilizacao: 0, campo: 0, continuidade: 0 }
   );
 
-  const now = getCurrentTimestamp();
   const plannedActions = fieldEvents.filter((event) => event.status === "planned" || event.status === "draft").length;
   const actionsNeedingConfirmation = fieldEvents.reduce((sum, event) => sum + (event.metrics?.pendingConfirmation || 0), 0);
-  const pastEventsWithoutResult = fieldEvents.filter((event) => {
-    const startsAt = event.startsAt ? new Date(event.startsAt).getTime() : Number.POSITIVE_INFINITY;
-    return Number.isFinite(startsAt) && startsAt <= now && !eventResults[event.id];
-  }).length;
-
   const queueLoads = pilotData.responsibleBreakdown.length > 0
     ? pilotData.responsibleBreakdown.map((item) => item.openTasks)
     : [pilotData.summary.openTasks];
@@ -84,6 +96,24 @@ export default async function RitmoPage() {
     fieldActionsPlannedCount: plannedActions,
     weeklyClosureStarted: false,
   });
+
+  const legacyTerritoryAlert =
+    cycleAlerts.alerts.find((alert) => alert.id === "territorio_travado")?.count ?? 0;
+
+  const rhythmAlerts = buildCycleAlerts({
+    unassignedMissions: collective.operationHealth.tasksWithoutResponsible,
+    pendingReturns: collective.operationHealth.waiting7DaysCount + Math.max(collective.operationHealth.dmsPreparedWithoutConfirmation, 0),
+    openReferrals: pilotData.summary.pendingReferralsCount,
+    urgentCare: collective.ethics.sensitiveNotesReviewed + collective.ethics.dataUnderReview,
+    fieldWithoutClosure: fieldMemoryLoop.stats.fieldWithoutClosureCount,
+    territoryWithoutAction: legacyTerritoryAlert,
+    pendingMemory: memoryStats.draftCount + fieldMemoryLoop.memorySuggestions.filter((item) => item.type !== "REGISTRO_DE_CAMPO").length,
+    highTeamLoad: overloadAlerts,
+    territoriesReady: territorialExpansion.metrics.readyCount,
+  });
+
+  const nextDecision = buildNextDecision(rhythmAlerts);
+  const rhythmSummary = buildRhythmSummary(rhythmAlerts);
 
   return (
     <AppShell>
@@ -121,7 +151,7 @@ export default async function RitmoPage() {
           field: {
             plannedActions,
             actionsNeedingConfirmation,
-            pastEventsWithoutResult,
+            pastEventsWithoutResult: fieldMemoryLoop.stats.fieldWithoutClosureCount,
           },
           wellness: {
             averageQueueLoad,
@@ -130,8 +160,18 @@ export default async function RitmoPage() {
             level: wellness.level,
           },
           teamAdoption,
+          nextDecision,
+          rhythmSummary,
+          memory: {
+            draftCount: memoryStats.draftCount,
+            activeCount: memoryStats.activeCount,
+          },
+          expansion: {
+            readyCount: territorialExpansion.metrics.readyCount,
+            needsPrepCount: territorialExpansion.metrics.needsPrepCount,
+          },
         }}
-        cycleAlerts={cycleAlerts.alerts}
+        cycleAlerts={rhythmAlerts}
       />
     </AppShell>
   );

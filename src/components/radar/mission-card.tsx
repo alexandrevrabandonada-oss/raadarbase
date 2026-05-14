@@ -6,8 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyBar } from "@/components/radar/journey-bar";
+import {
+  getPriorityPersonHoldState,
+  getPriorityPersonHoldText,
+  getPriorityPersonJourney,
+  getPriorityPersonMissionNextStep,
+  getPriorityPersonMissionPhaseLabel,
+  getPriorityPersonMissionReason,
+  getPriorityPersonMissionTypeLabel,
+} from "@/lib/missions/priority-person-mission-adapter";
 
 type MissionCardProps = {
   person: PriorityPerson;
@@ -16,32 +24,6 @@ type MissionCardProps = {
   footer?: ReactNode;
   className?: string;
 };
-
-function getHoldState(person: PriorityPerson): "blocked" | "waiting" | "free" {
-  if (person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact) {
-    return "blocked";
-  }
-  if (person.riskFlags?.recentOutreach) {
-    return "waiting";
-  }
-  if (person.isPendingResponse) {
-    return "waiting";
-  }
-  return "free";
-}
-
-function getHoldText(person: PriorityPerson, state: "blocked" | "waiting" | "free") {
-  if (state === "blocked") {
-    return person.doNotContactReason || "Missão bloqueada por cuidado ético.";
-  }
-  if (person.riskFlags?.recentOutreach) {
-    return "Contato recente. Aguarde a janela ética antes de insistir.";
-  }
-  if (person.isPendingResponse) {
-    return "Conversa aberta. Registrar retorno quando houver resposta.";
-  }
-  return "Sem bloqueio ativo agora.";
-}
 
 function getTemperatureTone(temperature: PriorityPerson["temperature"]) {
   return {
@@ -58,22 +40,13 @@ export function MissionCard({
   footer,
   className,
 }: MissionCardProps) {
-  const journey = mapPersonToJourney(
-    person.status,
-    person.hasPendingTask,
-    person.hasReferral,
-    person.lastInteractionAt,
-  );
-  const phaseLabelMap = {
-    preparar: "Preparar",
-    conversar: "Conversar",
-    registrar: "Registrar",
-    encaminhar: "Encaminhar",
-    concluir: "Concluir",
-  } as const;
-  const phaseLabel = journey.isBlocked ? "Em espera" : phaseLabelMap[journey.currentPhase];
-  const holdState = getHoldState(person);
-  const holdText = getHoldText(person, holdState);
+  const journey = getPriorityPersonJourney(person);
+  const phaseLabel = getPriorityPersonMissionPhaseLabel(person);
+  const holdState = getPriorityPersonHoldState(person);
+  const holdText = getPriorityPersonHoldText(person);
+  const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
+  const missionReason = getPriorityPersonMissionReason(person);
+  const missionNextStep = getPriorityPersonMissionNextStep(person);
   const initials = (person.displayName ?? person.username).slice(0, 2).toUpperCase();
 
   return (
@@ -92,6 +65,11 @@ export function MissionCard({
                 >
                   @{person.username}
                 </p>
+                {missionTypeLabel ? (
+                  <Badge variant="outline" className="rounded-full border-[#d3b98f] bg-[#f7f0e4] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#8f6e2e]">
+                    {missionTypeLabel}
+                  </Badge>
+                ) : null}
                 <Badge variant="outline" className={cn("rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em]", getTemperatureTone(person.temperature))}>
                   {person.temperature === "frio" ? "Observação" : person.temperature}
                 </Badge>
@@ -110,11 +88,11 @@ export function MissionCard({
         <div className="grid gap-3">
           <div className="space-y-2 rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b7759]">Por que</p>
-            <p className="line-clamp-3 text-sm font-medium leading-6 text-zinc-800" title={person.priorityReason}>{person.priorityReason}</p>
+            <p className="line-clamp-3 text-sm font-medium leading-6 text-zinc-800" title={missionReason}>{missionReason}</p>
           </div>
           <div className="space-y-2 rounded-2xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.04)] p-4">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8b7759]">Próxima ação</p>
-            <p className="line-clamp-3 text-sm font-black leading-6 text-zinc-950" title={person.nextAction}>{person.nextAction}</p>
+            <p className="line-clamp-3 text-sm font-black leading-6 text-zinc-950" title={missionNextStep}>{missionNextStep}</p>
           </div>
           <div
             className={cn(
@@ -136,7 +114,7 @@ export function MissionCard({
                     : "text-emerald-700",
               )}
             >
-              {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
+              {holdState === "free" ? "Caminho livre" : holdState === "waiting" ? "Em espera" : "Bloqueio ativo"}
             </p>
             <p
               className={cn(

@@ -20,6 +20,8 @@ import { GamefulHero } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { getFieldJourneySnapshot } from "@/lib/data/field-agenda-journey";
 import { FieldJourneyProgressCompact } from "@/components/radar/field-agenda/field-journey-progress";
+import { countStrategicMemoryLinksByEntity } from "@/lib/data/strategic-memory";
+import { buildFieldMemoryLoop } from "@/lib/field-memory/field-memory-loop";
 
 export const dynamic = "force-dynamic";
 
@@ -39,9 +41,18 @@ export default async function FieldAgendaPage() {
 
   const events = await listFieldAgendaEvents({ includeMetrics: true });
   const eventResults = await listFieldAgendaEventResultsByEventIds(events.map((event) => event.id));
+  const resultMemoryLinks = await countStrategicMemoryLinksByEntity(
+    "result",
+    Object.values(eventResults).map((result) => result.id),
+  );
   const journeys = Object.fromEntries(
     events.map((event) => [event.id, getFieldJourneySnapshot(event, eventResults[event.id] || null)]),
   );
+  const fieldLoop = buildFieldMemoryLoop({
+    events,
+    resultsByEventId: eventResults,
+    resultMemoryLinksByResultId: resultMemoryLinks,
+  });
 
   const activeEvents = events.filter((event) => event.status === "planned" || event.status === "draft");
   const completedEvents = events.filter((event) => event.status === "done");
@@ -58,6 +69,7 @@ export default async function FieldAgendaPage() {
   );
 
   const nextMission = activeEvents[0] ?? null;
+  const loopPriorityMission = fieldLoop.missions[0] ?? null;
 
   return (
     <AppShell>
@@ -98,25 +110,31 @@ export default async function FieldAgendaPage() {
           aside={
             <div className="space-y-4 rounded-[28px] border border-white/10 bg-black/15 p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próxima missão</p>
-              {nextMission ? (
+              {nextMission || loopPriorityMission ? (
                 <>
-                  <h3 className="text-2xl font-black tracking-tight text-white">{nextMission.title}</h3>
+                  <h3 className="text-2xl font-black tracking-tight text-white">
+                    {loopPriorityMission ? loopPriorityMission.title : nextMission!.title}
+                  </h3>
                   <div className="flex flex-wrap items-center gap-2">
+                    {nextMission ? (
+                      <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
+                        {nextMission.neighborhood || "Território em definição"}
+                      </Badge>
+                    ) : null}
                     <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
-                      {nextMission.neighborhood || "Território em definição"}
-                    </Badge>
-                    <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
-                      {journeys[nextMission.id].currentPhaseLabel}
+                      {loopPriorityMission ? "Loop aberto" : journeys[nextMission!.id].currentPhaseLabel}
                     </Badge>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
-                    <p className="mt-2 text-sm font-black text-indigo-200">{journeys[nextMission.id].nextStep}</p>
+                    <p className="mt-2 text-sm font-black text-indigo-200">
+                      {loopPriorityMission ? loopPriorityMission.recommendedAction : journeys[nextMission!.id].nextStep}
+                    </p>
                   </div>
                   <Button
                     nativeButton={false}
                     className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
-                    render={<Link href={`/campo/${nextMission.id}`} />}
+                    render={<Link href={loopPriorityMission?.href ?? `/campo/${nextMission!.id}`} />}
                   >
                     Abrir missão <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -158,18 +176,34 @@ export default async function FieldAgendaPage() {
 
           {activeEvents.length === 0 ? (
             <div className="rounded-[30px] border border-zinc-100 bg-white p-6 shadow-sm">
-              <GamefulEmptyState
-                variant="field"
-                title="Nenhuma missão ativa"
-                description="Sem campo planejado. A campanha ainda não abriu uma ação presencial com convites, confirmações e follow-up."
-                nextActionLabel="criar missão de campo"
-                nextActionHref="/campo/novo"
-                secondaryAction={
-                  <Button nativeButton={false} variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/relatorios/territorios" />}>
-                    Ver mapa
-                  </Button>
-                }
-              />
+              {fieldLoop.missions.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ciclo ainda aberto</p>
+                  <h4 className="text-2xl font-black tracking-tight text-zinc-950">{fieldLoop.missions[0].title}</h4>
+                  <p className="text-sm leading-6 text-zinc-600">{fieldLoop.missions[0].description}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button nativeButton={false} className="bg-[#0f1b24] font-black text-white hover:bg-[#172733]" render={<Link href={fieldLoop.missions[0].href} />}>
+                      Fechar ciclo
+                    </Button>
+                    <Button nativeButton={false} variant="outline" className="border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/memoria" />}>
+                      Abrir memória
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <GamefulEmptyState
+                  variant="field"
+                  title="Nenhuma missão ativa"
+                  description="Sem campo planejado. A campanha ainda não abriu uma ação presencial com convites, confirmações e follow-up."
+                  nextActionLabel="criar missão de campo"
+                  nextActionHref="/campo/novo"
+                  secondaryAction={
+                    <Button nativeButton={false} variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/relatorios/territorios" />}>
+                      Ver mapa
+                    </Button>
+                  }
+                />
+              )}
             </div>
           ) : (
             <div className="grid gap-5 xl:grid-cols-2">
@@ -197,6 +231,41 @@ export default async function FieldAgendaPage() {
               })}
             </div>
           )}
+        </section>
+
+        <section className="space-y-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Loop do campo</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Travas e continuidade</h3>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                label: "Campo sem fechamento",
+                value: fieldLoop.stats.fieldWithoutClosureCount,
+                detail: "Evento passado sem resultado ou sem memória vinculada.",
+              },
+              {
+                label: "Confirmação pendente",
+                value: fieldLoop.stats.pendingConfirmationCount,
+                detail: "Interessados em campo ainda pedindo confirmação manual.",
+              },
+              {
+                label: "Follow-up pendente",
+                value: fieldLoop.stats.pendingFollowUpCount,
+                detail: "Presença registrada sem próximo passo explícito.",
+              },
+            ].map((item) => (
+              <Card key={item.label} className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-sm">
+                <CardContent className="space-y-3 p-5">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">{item.label}</p>
+                  <p className="text-3xl font-black text-zinc-950">{item.value}</p>
+                  <p className="text-sm leading-6 text-zinc-600">{item.detail}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -235,13 +304,64 @@ export default async function FieldAgendaPage() {
                   <p className="mt-2 text-2xl font-black text-zinc-950">{Math.max(totals.invites - totals.confirmed, 0)}</p>
                 </div>
                 <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Missões com follow-up</p>
-                  <p className="mt-2 text-2xl font-black text-zinc-950">{totals.followUp}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Memória pendente</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-950">{fieldLoop.stats.resultsWithoutMemoryCount}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        <section className="space-y-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Memória sugerida</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">O que o campo precisa guardar</h3>
+          </div>
+
+          {fieldLoop.memorySuggestions.length === 0 ? (
+            <Card className="rounded-[30px] border-zinc-100 shadow-sm">
+              <CardContent className="p-6">
+                <GamefulEmptyState
+                  variant="memory"
+                  compact
+                  title="Sem memória pendente do campo"
+                  description="Quando o campo fecha com resultado e memória, o próximo ciclo começa com mais contexto."
+                  nextActionLabel="abrir memória"
+                  nextActionHref="/memoria"
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {fieldLoop.memorySuggestions.slice(0, 4).map((suggestion) => (
+                <Card key={`${suggestion.type}-${suggestion.title}`} className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-sm">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <Badge variant="outline" className="border-[#d8c7ac] bg-white/75 text-[10px] font-black uppercase tracking-[0.16em] text-[#8b7759]">
+                        {suggestion.type.replaceAll("_", " ")}
+                      </Badge>
+                      <span className="text-xs font-semibold text-zinc-500">{suggestion.sourceCount} sinais</span>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-black tracking-tight text-zinc-950">{suggestion.title}</h4>
+                      <p className="mt-2 text-sm leading-6 text-zinc-600">{suggestion.summary}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button nativeButton={false} className="bg-[#0f1b24] font-black text-white hover:bg-[#172733]" render={<Link href={suggestion.href} />}>
+                        Abrir memória
+                      </Button>
+                      {suggestion.sourceHref ? (
+                        <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-black text-[#11202a]" render={<Link href={suggestion.sourceHref} />}>
+                          Ver origem
+                        </Button>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="space-y-5">
           <div>
@@ -271,7 +391,11 @@ export default async function FieldAgendaPage() {
                   neighborhood={event.neighborhood}
                   phaseLabel="Concluída"
                   dateLabel={formatDate(event.startsAt)}
-                  nextStep={`Missão fechada com ${event.metrics?.attended ?? 0} presenças registradas.`}
+                  nextStep={
+                    eventResults[event.id] && !(resultMemoryLinks[eventResults[event.id].id] ?? 0)
+                      ? "Resultado salvo. Memória do campo ainda pendente."
+                      : `Missão fechada com ${event.metrics?.attended ?? 0} presenças registradas.`
+                  }
                   completed
                   progress={<div className="hidden md:block"><FieldJourneyProgressCompact snapshot={journeys[event.id]} /></div>}
                   metrics={[

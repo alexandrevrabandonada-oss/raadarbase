@@ -1,3 +1,5 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { shouldUseMockData } from "@/lib/config";
@@ -61,9 +63,87 @@ export type FieldAgendaEventResult = {
   metadata: Json;
 };
 
+type FieldAgendaMockStore = {
+  events: FieldAgendaEvent[];
+  results: FieldAgendaEventResult[];
+};
+
+declare global {
+  var __radarFieldAgendaMockStore: FieldAgendaMockStore | undefined;
+}
+
+const mockStore =
+  globalThis.__radarFieldAgendaMockStore ??
+  (globalThis.__radarFieldAgendaMockStore = {
+    events: [],
+    results: [],
+  });
+
+const mockFieldAgendaEvents = mockStore.events;
+const mockFieldAgendaEventResults = mockStore.results;
+const mockStoreFile = path.join(process.cwd(), "tmp", "field-agenda-mock-store.json");
+
+function cloneMockEvent(event: FieldAgendaEvent): FieldAgendaEvent {
+  return {
+    ...event,
+    metrics: event.metrics ? { ...event.metrics } : undefined,
+  };
+}
+
+function cloneMockResult(result: FieldAgendaEventResult): FieldAgendaEventResult {
+  return {
+    ...result,
+    topicsDiscussed: [...result.topicsDiscussed],
+    neighborhoodsMentioned: [...result.neighborhoodsMentioned],
+  };
+}
+
+async function readMockStoreFromDisk(): Promise<FieldAgendaMockStore> {
+  try {
+    const raw = await readFile(mockStoreFile, "utf-8");
+    const parsed = JSON.parse(raw) as Partial<FieldAgendaMockStore>;
+    return {
+      events: Array.isArray(parsed.events) ? (parsed.events as FieldAgendaEvent[]) : [],
+      results: Array.isArray(parsed.results) ? (parsed.results as FieldAgendaEventResult[]) : [],
+    };
+  } catch {
+    return { events: [], results: [] };
+  }
+}
+
+function replaceMockStore(next: FieldAgendaMockStore) {
+  mockFieldAgendaEvents.splice(0, mockFieldAgendaEvents.length, ...next.events);
+  mockFieldAgendaEventResults.splice(0, mockFieldAgendaEventResults.length, ...next.results);
+}
+
+async function syncMockStoreFromDisk() {
+  replaceMockStore(await readMockStoreFromDisk());
+}
+
+async function persistMockStore() {
+  await mkdir(path.dirname(mockStoreFile), { recursive: true });
+  await writeFile(
+    mockStoreFile,
+    JSON.stringify({
+      events: mockFieldAgendaEvents,
+      results: mockFieldAgendaEventResults,
+    }),
+    "utf-8",
+  );
+}
+
+function buildMockFieldMetrics(eventId: string): FieldEventMetrics {
+  const existing = mockFieldAgendaEvents.find((item) => item.id === eventId)?.metrics;
+  if (existing) {
+    return { ...existing };
+  }
+  return { totalInvited: 0, confirmed: 0, attended: 0, helped: 0, pendingConfirmation: 0 };
+}
+
 export async function getFieldEventParticipantMetrics(eventId: string): Promise<FieldEventMetrics> {
   if (shouldUseMockData()) {
-    return { totalInvited: 12, confirmed: 5, attended: 0, helped: 0, pendingConfirmation: 7 };
+    await syncMockStoreFromDisk();
+    return buildMockFieldMetrics(eventId);
   }
 
   const supabase = getSupabaseAdminClient();
@@ -92,7 +172,21 @@ export async function listFieldAgendaEvents(filters?: {
   topicSlug?: string;
   includeMetrics?: boolean;
 }): Promise<FieldAgendaEvent[]> {
-  if (shouldUseMockData()) return [];
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    return mockFieldAgendaEvents
+      .filter((event) => (filters?.status ? event.status === filters.status : true))
+      .filter((event) => (filters?.neighborhood ? event.neighborhood === filters.neighborhood : true))
+      .filter((event) => (filters?.topicSlug ? event.topicSlug === filters.topicSlug : true))
+      .sort((left, right) => (left.startsAt ?? "").localeCompare(right.startsAt ?? ""))
+      .map((event) => {
+        const next = cloneMockEvent(event);
+        if (filters?.includeMetrics) {
+          next.metrics = buildMockFieldMetrics(event.id);
+        }
+        return next;
+      });
+  }
 
   const supabase = getSupabaseAdminClient();
   let query = supabase.from('field_agenda_events').select('*');
@@ -138,7 +232,14 @@ export async function listFieldAgendaEvents(filters?: {
 }
 
 export async function getFieldAgendaEvent(id: string): Promise<FieldAgendaEvent | null> {
-  if (shouldUseMockData()) return null;
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    const event = mockFieldAgendaEvents.find((item) => item.id === id);
+    if (!event) return null;
+    const next = cloneMockEvent(event);
+    next.metrics = buildMockFieldMetrics(id);
+    return next;
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -177,7 +278,35 @@ export async function getFieldAgendaEvent(id: string): Promise<FieldAgendaEvent 
 }
 
 export async function createFieldAgendaEvent(input: Partial<FieldAgendaEvent> & { title: string; type: FieldAgendaEventType }, actor?: { id: string; email: string | null }): Promise<FieldAgendaEvent | undefined> {
-  if (shouldUseMockData()) return;
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    const now = new Date().toISOString();
+    const event: FieldAgendaEvent = {
+      id: `field-event-${Date.now()}`,
+      title: input.title,
+      description: input.description ?? null,
+      type: input.type,
+      status: input.status || "draft",
+      neighborhood: input.neighborhood ?? null,
+      topicSlug: input.topicSlug ?? null,
+      sourceReportId: input.sourceReportId ?? null,
+      sourceActionPlanId: input.sourceActionPlanId ?? null,
+      sourceCorrectiveActionId: input.sourceCorrectiveActionId ?? null,
+      startsAt: input.startsAt ?? null,
+      endsAt: input.endsAt ?? null,
+      locationText: input.locationText ?? null,
+      publicUrl: input.publicUrl ?? null,
+      createdBy: actor?.id ?? null,
+      createdByEmail: actor?.email ?? null,
+      createdAt: now,
+      updatedAt: now,
+      metadata: input.metadata || {},
+      metrics: { totalInvited: 0, confirmed: 0, attended: 0, helped: 0, pendingConfirmation: 0 },
+    };
+    mockFieldAgendaEvents.unshift(event);
+    await persistMockStore();
+    return cloneMockEvent(event);
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -239,7 +368,21 @@ export async function createFieldAgendaEvent(input: Partial<FieldAgendaEvent> & 
 }
 
 export async function updateFieldAgendaEvent(id: string, input: Partial<FieldAgendaEvent>, actor?: { id: string; email: string | null }) {
-  if (shouldUseMockData()) return;
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    const index = mockFieldAgendaEvents.findIndex((item) => item.id === id);
+    if (index === -1) throw new Error("Evento de campo não encontrado.");
+    const current = mockFieldAgendaEvents[index];
+    const next: FieldAgendaEvent = {
+      ...current,
+      ...input,
+      updatedAt: new Date().toISOString(),
+      metrics: input.metrics ?? current.metrics,
+    };
+    mockFieldAgendaEvents[index] = next;
+    await persistMockStore();
+    return cloneMockEvent(next);
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -299,7 +442,39 @@ export async function createFieldAgendaEventResult(input: {
   neighborhoodsMentioned?: string[];
   nextSteps?: string;
 }, actor?: { id: string; email: string | null }) {
-  if (shouldUseMockData()) return;
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    const event = mockFieldAgendaEvents.find((item) => item.id === input.eventId);
+    if (!event) throw new Error("Evento de campo não encontrado.");
+    const result: FieldAgendaEventResult = {
+      id: `field-result-${Date.now()}`,
+      eventId: input.eventId,
+      resultSummary: input.resultSummary,
+      estimatedPeopleCount: input.estimatedPeopleCount ?? null,
+      topicsDiscussed: input.topicsDiscussed || (event.topicSlug ? [event.topicSlug] : []),
+      neighborhoodsMentioned: input.neighborhoodsMentioned || (event.neighborhood ? [event.neighborhood] : []),
+      nextSteps: input.nextSteps ?? null,
+      createdBy: actor?.id ?? null,
+      createdByEmail: actor?.email ?? null,
+      createdAt: new Date().toISOString(),
+      metadata: {},
+    };
+    mockFieldAgendaEventResults.unshift(result);
+    const metrics = buildMockFieldMetrics(event.id);
+    const nextMetrics: FieldEventMetrics = {
+      ...metrics,
+      attended: result.estimatedPeopleCount ?? metrics.attended,
+    };
+    const eventIndex = mockFieldAgendaEvents.findIndex((item) => item.id === event.id);
+    if (eventIndex >= 0) {
+      mockFieldAgendaEvents[eventIndex] = {
+        ...mockFieldAgendaEvents[eventIndex],
+        metrics: nextMetrics,
+      };
+    }
+    await persistMockStore();
+    return cloneMockResult(result);
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -333,7 +508,11 @@ export async function createFieldAgendaEventResult(input: {
 }
 
 export async function getFieldAgendaEventResult(eventId: string): Promise<FieldAgendaEventResult | null> {
-    if (shouldUseMockData()) return null;
+    if (shouldUseMockData()) {
+        await syncMockStoreFromDisk();
+        const result = mockFieldAgendaEventResults.find((item) => item.eventId === eventId);
+        return result ? cloneMockResult(result) : null;
+    }
 
     const supabase = getSupabaseAdminClient();
     const { data, error } = await supabase
@@ -361,7 +540,17 @@ export async function getFieldAgendaEventResult(eventId: string): Promise<FieldA
 }
 
 export async function listFieldAgendaEventResultsByEventIds(eventIds: string[]): Promise<Record<string, FieldAgendaEventResult>> {
-  if (shouldUseMockData() || eventIds.length === 0) return {};
+  if (eventIds.length === 0) return {};
+  if (shouldUseMockData()) {
+    await syncMockStoreFromDisk();
+    const results: Record<string, FieldAgendaEventResult> = {};
+    for (const result of mockFieldAgendaEventResults) {
+      if (eventIds.includes(result.eventId)) {
+        results[result.eventId] = cloneMockResult(result);
+      }
+    }
+    return results;
+  }
 
   const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
@@ -398,7 +587,15 @@ export async function suggestFieldAgendaFromSilenceRadar() {
 }
 
 export async function getFieldAgendaStats() {
-    if (shouldUseMockData()) return { totalCount: 0, plannedCount: 0, doneCount: 0, pendingResultsCount: 0 };
+    if (shouldUseMockData()) {
+        await syncMockStoreFromDisk();
+        const totalCount = mockFieldAgendaEvents.length;
+        const plannedCount = mockFieldAgendaEvents.filter((item) => item.status === "planned").length;
+        const doneCount = mockFieldAgendaEvents.filter((item) => item.status === "done").length;
+        const resultEventIds = new Set(mockFieldAgendaEventResults.map((item) => item.eventId));
+        const pendingResultsCount = mockFieldAgendaEvents.filter((item) => item.status === "done" && !resultEventIds.has(item.id)).length;
+        return { totalCount, plannedCount, doneCount, pendingResultsCount };
+    }
 
     const supabase = getSupabaseAdminClient();
     

@@ -7,9 +7,17 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
 import { assumePersonResponsible } from "@/app/actions";
-import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyProgress } from "./journey-progress";
 import { MissionCard } from "./mission-card";
+import {
+  getPriorityPersonHoldState,
+  getPriorityPersonHoldText,
+  getPriorityPersonJourney,
+  getPriorityPersonMissionNextStep,
+  getPriorityPersonMissionPhaseLabel,
+  getPriorityPersonMissionReason,
+  getPriorityPersonMissionTypeLabel,
+} from "@/lib/missions/priority-person-mission-adapter";
 
 interface PersonPriorityCardProps {
   person: PriorityPerson;
@@ -18,47 +26,6 @@ interface PersonPriorityCardProps {
   onActionComplete?: () => void;
   onOpenDetails?: (person: PriorityPerson) => void;
   className?: string;
-}
-
-function getPhaseLabel(person: PriorityPerson) {
-  const journey = mapPersonToJourney(
-    person.status,
-    person.hasPendingTask,
-    person.hasReferral,
-    person.lastInteractionAt,
-  );
-  const labels = {
-    preparar: "Preparar",
-    conversar: "Conversar",
-    registrar: "Registrar",
-    encaminhar: "Encaminhar",
-    concluir: "Concluir",
-  } as const;
-
-  return journey.isBlocked ? "Em espera" : labels[journey.currentPhase];
-}
-
-function getHoldText(person: PriorityPerson) {
-  if (person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact) {
-    return person.doNotContactReason || "Missão bloqueada por cuidado ético.";
-  }
-  if (person.riskFlags?.recentOutreach) {
-    return "Contato recente. Aguarde a janela ética antes de insistir.";
-  }
-  if (person.isPendingResponse) {
-    return "Conversa aberta. Registrar retorno quando houver resposta.";
-  }
-  return "Sem bloqueio ativo agora.";
-}
-
-function getHoldState(person: PriorityPerson): "blocked" | "waiting" | "free" {
-  if (person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact) {
-    return "blocked";
-  }
-  if (person.riskFlags?.recentOutreach || person.isPendingResponse) {
-    return "waiting";
-  }
-  return "free";
 }
 
 export function PersonPriorityCard({
@@ -70,18 +37,14 @@ export function PersonPriorityCard({
   className,
 }: PersonPriorityCardProps) {
   const [isPending, startTransition] = useTransition();
-  const isBlocked = Boolean(
-    person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact,
-  );
-  const phaseLabel = getPhaseLabel(person);
-  const holdText = getHoldText(person);
-  const holdState = getHoldState(person);
-  const journey = mapPersonToJourney(
-    person.status,
-    person.hasPendingTask,
-    person.hasReferral,
-    person.lastInteractionAt,
-  );
+  const isBlocked = getPriorityPersonHoldState(person) === "blocked";
+  const phaseLabel = getPriorityPersonMissionPhaseLabel(person);
+  const holdText = getPriorityPersonHoldText(person);
+  const holdState = getPriorityPersonHoldState(person);
+  const journey = getPriorityPersonJourney(person);
+  const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
+  const missionReason = getPriorityPersonMissionReason(person);
+  const missionNextStep = getPriorityPersonMissionNextStep(person);
 
   function handleAssume() {
     startTransition(async () => {
@@ -108,6 +71,11 @@ export function PersonPriorityCard({
 
           <div className="min-w-0 flex-1 cursor-pointer space-y-3" onClick={() => onOpenDetails?.(person)}>
             <div className="flex flex-wrap items-center gap-2">
+              {missionTypeLabel ? (
+                <Badge className="rounded-full border border-[#d3b98f] bg-[#f7f0e4] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#8f6e2e] hover:bg-[#f7f0e4]">
+                  {missionTypeLabel}
+                </Badge>
+              ) : null}
               <Badge className="rounded-full border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]">
                 Fase: {phaseLabel}
               </Badge>
@@ -128,15 +96,15 @@ export function PersonPriorityCard({
             <div className="grid gap-3 lg:grid-cols-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Motivo</p>
-                <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600" title={person.priorityReason}>{person.priorityReason}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600" title={missionReason}>{missionReason}</p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Próxima ação</p>
-                <p className="mt-1 line-clamp-2 text-xs font-black text-[#11202a]" title={person.nextAction}>{person.nextAction}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-black text-[#11202a]" title={missionNextStep}>{missionNextStep}</p>
               </div>
               <div>
                 <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")}>
-                  {holdState === "free" ? "Caminho livre" : "Espera ou bloqueio"}
+                  {holdState === "free" ? "Caminho livre" : holdState === "waiting" ? "Em espera" : "Bloqueio ativo"}
                 </p>
                 <p className={cn("mt-1 line-clamp-2 text-xs font-medium", holdState === "blocked" ? "text-rose-700" : holdState === "waiting" ? "text-amber-700" : "text-emerald-700")} title={holdText}>
                   {holdText}

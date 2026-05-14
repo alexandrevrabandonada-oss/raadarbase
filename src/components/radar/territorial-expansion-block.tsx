@@ -11,7 +11,7 @@ import {
   ChevronUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -176,12 +176,12 @@ export function TerritorialExpansionBlock({ expansionData }: TerritorialExpansio
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-indigo-600 p-2 text-white">
             <TrendingUp className="h-5 w-5" />
           </div>
-          <div>
-            <h2 className="text-2xl font-black uppercase text-zinc-900 tracking-tight">
+          <div className="min-w-0">
+            <h2 className="text-xl font-black uppercase tracking-tight text-zinc-900 sm:text-2xl">
               Próximos Territórios para Abrir
             </h2>
             <p className="text-sm text-zinc-500 font-medium">
@@ -191,7 +191,7 @@ export function TerritorialExpansionBlock({ expansionData }: TerritorialExpansio
         </div>
 
         {/* Metrics Overview */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card className="border-zinc-100">
             <CardContent className="pt-6 text-center">
               <div className="text-3xl font-black text-zinc-900">{expansionData.metrics.totalCandidates}</div>
@@ -221,10 +221,10 @@ export function TerritorialExpansionBlock({ expansionData }: TerritorialExpansio
 
       {/* Tabbed View */}
       <Tabs defaultValue="ready" className="space-y-6">
-        <TabsList className="bg-transparent h-auto p-0 gap-8 border-b border-zinc-100 pb-2">
+        <TabsList className="h-auto flex-wrap justify-start gap-3 border-b border-zinc-100 bg-transparent p-0 pb-2">
           <TabsTrigger
             value="ready"
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 rounded-none px-0 pb-2 text-zinc-400 font-black uppercase text-xs tracking-widest transition-all"
+            className="rounded-none px-0 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400 transition-all data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Prontos para Abrir
             {expansionData.metrics.readyCount > 0 && (
@@ -233,7 +233,7 @@ export function TerritorialExpansionBlock({ expansionData }: TerritorialExpansio
           </TabsTrigger>
           <TabsTrigger
             value="prep"
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-amber-600 rounded-none px-0 pb-2 text-zinc-400 font-black uppercase text-xs tracking-widest transition-all"
+            className="rounded-none px-0 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400 transition-all data-[state=active]:border-b-2 data-[state=active]:border-amber-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Precisam Preparação
             {expansionData.metrics.needsPrepCount > 0 && (
@@ -242,7 +242,7 @@ export function TerritorialExpansionBlock({ expansionData }: TerritorialExpansio
           </TabsTrigger>
           <TabsTrigger
             value="risk"
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-red-600 rounded-none px-0 pb-2 text-zinc-400 font-black uppercase text-xs tracking-widest transition-all"
+            className="rounded-none px-0 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400 transition-all data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none"
           >
             Em Risco
             {expansionData.metrics.atRiskCount > 0 && (

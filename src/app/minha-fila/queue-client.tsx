@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import {
   PlusCircle,
   CheckCircle2,
@@ -30,6 +31,9 @@ import {
   PauseCircle,
   Route,
   TowerControl,
+  Instagram,
+  Copy,
+  MessageSquare,
 } from "lucide-react";
 import {
   trackOperationalEvent,
@@ -49,15 +53,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { calculateOperatorMission } from "@/lib/data/mission-engine";
 import { OperatorWellnessCard } from "@/components/radar/wellness/operator-wellness-card";
 import { assessQueueWellness } from "@/lib/data/operator-wellness";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { useCompactMode } from "@/hooks/use-compact-mode";
+import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
+import type { RadarMission } from "@/lib/missions/mission-types";
+import { buildRecommendedMissionBlock, type MinhaJornadaWorkMode, type QueueMissionPlan } from "@/lib/missions/queue-mission-adapter";
 
 interface QueueClientProps {
   initialQueue: PriorityPerson[];
   oldPendencies?: PriorityPerson[];
   operatorName: string;
+  missionPlan?: QueueMissionPlan | null;
 }
 
 const RESPONSE_OPTIONS: Array<{
@@ -90,6 +98,18 @@ const REFERRAL_OPTIONS: Array<{
   { id: "nao_abordar", label: "Não abordar", hint: "Fechar missão por consentimento ou segurança." },
 ];
 
+const WORK_MODE_OPTIONS: Array<{
+  id: MinhaJornadaWorkMode;
+  label: string;
+  hint: string;
+}> = [
+  { id: "recommended", label: "Recomendado", hint: "Bloco equilibrado para manter o ritmo." },
+  { id: "returns", label: "Resolver retornos", hint: "Fechar ciclos e confirmar envios." },
+  { id: "listening", label: "Fazer escuta", hint: "Preparar abordagem e abrir vínculo." },
+  { id: "routing", label: "Encaminhar interessados", hint: "Dar destino com consentimento." },
+  { id: "care", label: "Cuidar da base", hint: "Revisar bloqueios, pausas e travas." },
+];
+
 function missionPhaseLabel(person: PriorityPerson) {
   const journey = mapPersonToJourney(
     person.status,
@@ -108,7 +128,48 @@ function missionPhaseLabel(person: PriorityPerson) {
   return journey.isBlocked ? "Janela em espera" : labels[journey.currentPhase];
 }
 
-export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: QueueClientProps) {
+function missionTypeLabel(type: RadarMission["type"]) {
+  const labels: Record<RadarMission["type"], string> = {
+    ESCUTA: "Escuta",
+    VINCULO: "Vínculo",
+    RETORNO: "Retorno",
+    ENCAMINHAMENTO: "Encaminhamento",
+    CUIDADO: "Cuidado",
+    CAMPO: "Campo",
+    MEMORIA: "Memória",
+  };
+
+  return labels[type];
+}
+
+function missionStateLabel(state: RadarMission["state"]) {
+  const labels: Record<RadarMission["state"], string> = {
+    SUGERIDA: "Sugerida",
+    ASSUMIDA: "Assumida",
+    EM_ANDAMENTO: "Em andamento",
+    EM_ESPERA: "Em espera",
+    BLOQUEADA: "Bloqueada",
+    CONCLUIDA: "Concluída",
+    ARQUIVADA: "Arquivada",
+  };
+
+  return labels[state];
+}
+
+function missionFeedback(kind: PersonResponseKind) {
+  switch (kind) {
+    case "nao_quer_contato":
+      return { title: "Pedido de não contato respeitado.", description: "A restrição foi mantida e a base segue protegida." };
+    case "revisar_depois":
+    case "manter_aguardando":
+    case "arquivar_sem_retorno":
+      return { title: "Missão pausada sem perda de histórico.", description: "O contexto ficou salvo para uma retomada segura." };
+    default:
+      return { title: "Resposta registrada. Próximo passo salvo.", description: "A jornada foi atualizada sem perder o contexto." };
+  }
+}
+
+export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
@@ -117,25 +178,49 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const [isNotebookViewport, setIsNotebookViewport] = useState(false);
+  const [workMode, setWorkMode] = useState<MinhaJornadaWorkMode>("recommended");
 
   useEffect(() => {
     trackOperationalEvent("minha_fila_opened");
   }, []);
 
-  const mission = useMemo(
-    () =>
-      calculateOperatorMission({
-        tasksAssumed: queue.length,
-        tasksCompleted: copyStatus === "confirmed" ? 1 : 0,
-        repliesRecorded: 0,
-        referralsMade: 0,
-        stalePending: oldPendencies.length,
-      }),
-    [copyStatus, oldPendencies.length, queue.length],
-  );
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsNotebookViewport(window.innerWidth < 1366);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   const wellness = assessQueueWellness(queue.length);
   const completedCount = Math.min(currentIndex, queue.length);
   const progressPercent = queue.length === 0 ? 0 : Math.round((completedCount / queue.length) * 100);
+  const {
+    hydrated: compactHydrated,
+    manualCompact,
+    isCompact,
+    setCompact,
+  } = useCompactMode({
+    storageKey: "radar_minha_jornada_compacto",
+    autoCompact: isNotebookViewport || queue.length > 5,
+  });
+  const missionFeed = useMemo(() => missionPlan?.missions ?? [], [missionPlan]);
+  const missionBySubjectId = useMemo(
+    () =>
+      new Map(
+        missionFeed
+          .filter((mission) => mission.subjectType === "person" && Boolean(mission.subjectId))
+          .map((mission) => [mission.subjectId!, mission]),
+      ),
+    [missionFeed],
+  );
+  const recommendedMissions = useMemo(
+    () => buildRecommendedMissionBlock(missionFeed, workMode),
+    [missionFeed, workMode],
+  );
 
   const handlePrev = () => {
     if (currentIndex > 0) {
@@ -155,8 +240,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
 
   const handleSkip = () => {
     toast({
-      title: "Missão em espera",
-      description: `@${currentPerson.username} saiu da vez por agora. A trilha segue.`,
+      title: "Missão pausada sem perda de histórico.",
+      description: `@${currentPerson.username} saiu da vez por agora. A trilha segue com o contexto preservado.`,
     });
     handleNext();
   };
@@ -175,7 +260,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       const result = await confirmDMSentAction(currentPerson.id, "minha_fila");
       if (result.ok) {
         setCopyStatus("confirmed");
-        toast({ title: "Etapa confirmada", description: "A missão entrou em acompanhamento." });
+        toast({ title: "Envio manual confirmado.", description: "Próximo passo salvo e missão em acompanhamento." });
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -187,6 +272,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       const result = await recordPersonResponse(currentPerson.id, kind);
       if (result.ok) {
         showCompletion(kind === "nao_quer_contato" ? "dnc_respected" : "response_recorded");
+        const feedback = missionFeedback(kind);
+        toast({ title: feedback.title, description: feedback.description });
         setShowResponseDialog(false);
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
@@ -204,6 +291,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
       const result = await recordPersonReferral(currentPerson.id, type);
       if (result.ok) {
         showCompletion("referral_done");
+        toast({ title: "Encaminhamento registrado.", description: "A missão ganhou um destino claro com histórico preservado." });
         setShowReferralDialog(false);
         handleNext();
       } else {
@@ -246,32 +334,46 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
   }
 
   const currentPerson = queue[currentIndex];
+  const currentMission = missionBySubjectId.get(currentPerson.id) ?? null;
   const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
   const phaseBadge = missionPhaseLabel(currentPerson);
-  const holdTone = currentPerson.riskFlags.doNotContact
+  const holdTone = currentMission?.state === "BLOQUEADA"
     ? "blocked"
-    : currentPerson.riskFlags.recentOutreach || currentPerson.isPendingResponse
+    : currentMission?.state === "EM_ESPERA"
       ? "waiting"
-      : "free";
-  const currentBlocked = holdTone === "blocked";
+      : currentPerson.riskFlags.doNotContact
+        ? "blocked"
+        : currentPerson.riskFlags.recentOutreach || currentPerson.isPendingResponse
+          ? "waiting"
+          : "free";
+  const currentBlocked = holdTone === "blocked" || Boolean(currentMission?.guardrail.blocksContact);
   const currentWaiting = holdTone === "waiting";
-  const currentHoldLabel = currentBlocked
-    ? currentPerson.doNotContactReason || "Restrição ética ativa."
-    : currentWaiting
-      ? currentPerson.riskFlags.recentOutreach
-        ? "Contato recente. Aguarde a janela ética antes de insistir."
-        : "Aguardando retorno da conversa já iniciada."
-      : "Caminho livre. Sem bloqueio ativo agora.";
+  const currentHoldLabel = currentMission?.guardrail.message
+    || (currentBlocked
+      ? currentPerson.doNotContactReason || "Restrição ética ativa."
+      : currentWaiting
+        ? currentPerson.riskFlags.recentOutreach
+          ? "Contato recente. Aguarde a janela ética antes de insistir."
+          : "Aguardando retorno da conversa já iniciada."
+        : "Caminho livre. Sem bloqueio ativo agora.");
+  const currentMissionType = currentMission ? missionTypeLabel(currentMission.type) : phaseBadge;
+  const currentMissionState = currentMission ? missionStateLabel(currentMission.state) : currentWaiting ? "Em espera" : currentBlocked ? "Bloqueada" : "Em andamento";
+  const currentMissionReason = currentMission?.reason || currentPerson.priorityReason;
+  const currentMissionNextStep = currentMission?.nextStep || currentPerson.nextAction;
+  const currentMissionAction = currentMission?.primaryAction.label || "Registrar avanço";
+  const currentMissionSignals = currentMission?.signals ?? [];
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
+    <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-32 lg:pb-20">
       <GamefulHero
         eyebrow="Jornada do operador"
         title="Minha Jornada"
-        description={`Missão de hoje: ${mission.objective}`}
+        description={`Missão de hoje: ${currentMissionReason}`}
         variant="dark"
-        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
-        metricsClassName="md:grid-cols-2 xl:grid-cols-4"
+        compact={isCompact}
+        titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
+        descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[32rem]")}
+        metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         badges={
           <>
             <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
@@ -282,7 +384,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           <>
             <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
             <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
-            <GamefulMetricCard label="Fase" value={phaseBadge} tone="dark" detail="Etapa da missão em foco." compact layout="split" valueClassName="max-w-[12ch]" />
+            <GamefulMetricCard label="Missão" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
             <GamefulMetricCard label="Carga" value={wellness.level === "healthy" ? "Estável" : wellness.level === "warning" ? "Bloco de 5" : "Pausa"} tone="dark" detail={wellness.level === "healthy" ? "Ritmo saudável." : wellness.level === "warning" ? "Feche um bloco curto." : "Pedir apoio ou redistribuir."} compact layout="split" title={wellness.microcopy} valueClassName="max-w-[11ch]" />
           </>
         }
@@ -290,7 +392,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
           <>
             <Button
               className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
-              onClick={() => window.scrollTo({ top: 720, behavior: "smooth" })}
+              onClick={() => window.scrollTo({ top: isCompact ? 520 : 780, behavior: "smooth" })}
             >
               <Compass className="mr-2 h-4 w-4" />
               Continuar Jornada
@@ -304,10 +406,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               <ArrowRight className="mr-2 h-4 w-4" />
               Abrir Mural de Missões
             </Button>
+            {compactHydrated ? (
+              <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || queue.length > 5} onToggle={setCompact} />
+            ) : null}
           </>
         }
-        aside={
-          <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/15 p-5">
+        aside={!isCompact ? (
+          <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/15 p-4 xl:p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Mapa da trilha</p>
@@ -318,10 +423,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               <Sparkles className="h-5 w-5 text-[#f0c15b]" />
             </div>
             <p className="text-sm font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
-              <p className="mt-2 text-sm font-black text-[#f7f1e5]">{currentPerson.nextAction}</p>
-            </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
+                <p className="mt-2 text-sm font-black text-[#f7f1e5]">{currentMissionNextStep}</p>
+              </div>
             <div className="space-y-3">
               {nextFive.map((person, idx) => (
                 <div key={person.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
@@ -336,23 +441,62 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               ))}
             </div>
           </div>
-        }
+        ) : null}
       />
 
-      {wellness.level !== "healthy" && <OperatorWellnessCard wellness={wellness} />}
+      <OperationalCommandBar
+        title="Barra de comando"
+        statusLabel="Missão em foco"
+        statusValue={`${currentMissionType} · ${currentMissionState}`}
+        statusDetail={currentHoldLabel}
+        primaryAction={{
+          label: currentMissionAction,
+          onClick: currentBlocked ? handleSkip : () => setShowResponseDialog(true),
+          icon: MessageSquare,
+        }}
+        secondaryActions={[
+          {
+            label: "Abrir Instagram",
+            onClick: () => window.open(currentPerson.instagramUrl || `https://instagram.com/${currentPerson.username}`, "_blank"),
+            icon: Instagram,
+            disabled: currentBlocked,
+            title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+          },
+          {
+            label: "Preparar Mensagem",
+            onClick: handleCopyDM,
+            icon: Copy,
+            disabled: !currentPerson.suggestedMessage || currentBlocked,
+            title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+          },
+          {
+            label: "Próxima Missão",
+            onClick: handleNext,
+            icon: ChevronRight,
+            disabled: currentIndex === queue.length - 1,
+          },
+        ]}
+        shortcutAction={{
+          label: "Abrir Central de Ritmo",
+          href: "/ritmo",
+          icon: TowerControl,
+        }}
+      />
 
-      <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+      {wellness.level !== "healthy" && !isCompact && <OperatorWellnessCard wellness={wellness} />}
+
+      <div className={cn("grid gap-8", isCompact ? "2xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-[1.3fr_0.7fr]")}>
         <div className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
               <h3 className="text-2xl font-black tracking-tight text-zinc-950">Continuar Jornada</h3>
               <p className="max-w-2xl text-sm font-medium text-zinc-500">
-                A pessoa em foco, a fase atual e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
+                A pessoa em foco, a missão explicável e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="ghost"
                 className="text-xs font-black uppercase tracking-wider text-zinc-500"
@@ -361,7 +505,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               >
                 Anterior
               </Button>
-              <div className="h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
+              <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100 sm:w-32 xl:w-40">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-[#d39b2a] via-[#f0c15b] to-[#11202a]/35 transition-all duration-500"
                   style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
@@ -380,6 +524,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
 
           <QueueCard
             person={currentPerson}
+            mission={currentMission}
+            compact={isCompact}
+            contactDisabled={currentBlocked}
             onCopyDM={handleCopyDM}
             onRegisterResponse={() => setShowResponseDialog(true)}
             onReferral={() => setShowReferralDialog(true)}
@@ -389,9 +536,97 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             onConfirmSent={handleConfirmSent}
             onCancelCopy={() => setCopyStatus("idle")}
           />
+
+          {isCompact ? (
+            <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
+              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
+                Abrir leitura complementar da jornada
+              </summary>
+              <div className="space-y-4 border-t border-[#d8c7ac] px-5 py-4">
+                <div className="space-y-3 rounded-[20px] border border-[#d8c7ac] bg-white/75 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Mapa da trilha</p>
+                      <h4 className="mt-1 text-lg font-black text-[#11202a]">
+                        {currentPerson.displayName || `@${currentPerson.username}`}
+                      </h4>
+                    </div>
+                    <MapPinned className="h-4 w-4 text-[#b47a0e]" />
+                  </div>
+                  <p className="text-sm font-semibold leading-relaxed text-zinc-700">{currentPerson.priorityReason}</p>
+                  <div className="rounded-2xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Próximo passo</p>
+                    <p className="mt-2 text-sm font-black text-[#11202a]">{currentPerson.nextAction}</p>
+                  </div>
+                </div>
+                {wellness.level !== "healthy" ? <OperatorWellnessCard wellness={wellness} /> : null}
+              </div>
+            </details>
+          ) : null}
         </div>
 
         <aside className="space-y-6">
+          {isCompact ? (
+            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
+          ) : null}
+          {recommendedMissions.length > 0 ? (
+            <Card className="radar-outline-card rounded-[28px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
+              <CardContent className="space-y-4 p-5">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Bloco recomendado</p>
+                  <h4 className="text-lg font-black text-[#11202a]">Próximas 5 missões da engine</h4>
+                  <p className="text-sm leading-6 text-zinc-600">
+                    Ajuste o foco do turno sem perder a trilha. O bloco equilibra cuidado, retorno, escuta e encaminhamento.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  {WORK_MODE_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={cn(
+                        "rounded-2xl border px-4 py-3 text-left transition-colors",
+                        workMode === option.id
+                          ? "border-[#b47a0e] bg-[rgba(212,182,120,0.12)]"
+                          : "border-[#d8c7ac] bg-white/80 hover:border-[#c9b28b]",
+                      )}
+                      onClick={() => setWorkMode(option.id)}
+                    >
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-[#11202a]">{option.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-600">{option.hint}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-3">
+                  {recommendedMissions.map((mission) => (
+                    <button
+                      key={mission.id}
+                      type="button"
+                      className="w-full rounded-2xl border border-[#d8c7ac] bg-white/85 p-4 text-left transition-colors hover:border-[#b47a0e]"
+                      onClick={() => {
+                        const targetIndex = mission.subjectId ? queue.findIndex((person) => person.id === mission.subjectId) : -1;
+                        if (targetIndex >= 0) {
+                          setCurrentIndex(targetIndex);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
+                            {missionTypeLabel(mission.type)} · {missionStateLabel(mission.state)}
+                          </p>
+                          <p className="mt-1 text-sm font-black text-[#11202a]">{mission.title}</p>
+                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">{mission.nextStep}</p>
+                        </div>
+                        <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-zinc-400" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
           <Card className="radar-outline-card rounded-[28px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center gap-2">
@@ -480,9 +715,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
         </aside>
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <section className={cn("grid gap-6", isCompact ? "2xl:grid-cols-[1.1fr_0.9fr]" : "xl:grid-cols-[1.1fr_0.9fr]")}>
         <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
-          <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <CardContent className="grid gap-5 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-zinc-950">
                 <Route className="h-5 w-5" />
@@ -490,21 +725,24 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 hover:bg-zinc-50">
-                  {phaseBadge}
+                  {currentMissionType}
                 </Badge>
                 {currentBlocked ? (
                   <Badge className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rose-700 hover:bg-rose-50">
-                    Bloqueio ativo
+                    {currentMissionState}
                   </Badge>
                 ) : currentWaiting ? (
                   <Badge className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 hover:bg-amber-50">
-                    Em espera
+                    {currentMissionState}
                   </Badge>
                 ) : (
                   <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 hover:bg-emerald-50">
-                    Caminho livre
+                    {currentMissionState}
                   </Badge>
                 )}
+                <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-600 hover:bg-white">
+                  {currentMission ? currentMission.phase : phaseBadge}
+                </Badge>
               </div>
               <div>
                 <p className="text-2xl font-black tracking-tight text-zinc-950">
@@ -513,21 +751,40 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
                 <p className="mt-1 text-sm font-semibold text-zinc-500">@{currentPerson.username}</p>
               </div>
               <div className="grid gap-3">
-                <MissionPanel label="Motivo" value={currentPerson.priorityReason} />
-                <MissionPanel label="Fase atual" value={phaseBadge} compact />
-                <MissionPanel label={holdTone === "free" ? "Caminho livre" : "Bloqueio ou espera"} value={currentHoldLabel} tone={holdTone} />
+                <MissionPanel label="Motivo" value={currentMissionReason} />
+                <MissionPanel label="Próximo passo" value={currentMissionNextStep} compact />
+                <MissionPanel label={holdTone === "free" ? "Guardrail" : "Bloqueio ou espera"} value={currentHoldLabel} tone={holdTone} />
+                {currentMissionSignals.length > 0 ? (
+                  <div className="rounded-[20px] border border-zinc-200 bg-zinc-50/70 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Sinais usados</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {currentMissionSignals.slice(0, 4).map((signal) => (
+                        <Badge
+                          key={`${signal.code}-${signal.at ?? signal.label}`}
+                          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-700 hover:bg-white"
+                        >
+                          {signal.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
             <div className="space-y-4 rounded-[24px] border border-zinc-200 bg-zinc-50/80 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Mensagem sugerida</p>
-                  <p className="mt-1 text-sm font-black text-zinc-950">Abertura da missão</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Ação recomendada</p>
+                  <p className="mt-1 text-sm font-black text-zinc-950">{currentMissionAction}</p>
                 </div>
                 <Sparkles className="h-4 w-4 text-indigo-500" />
               </div>
-              <div className="min-h-[180px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
+              <div className="rounded-[22px] border border-zinc-200 bg-white p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Próximo passo salvo</p>
+                <p className="mt-2 text-sm font-medium leading-7 text-zinc-700">{currentMissionNextStep}</p>
+              </div>
+              <div className="min-h-[140px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
                 {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -543,7 +800,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
                   onClick={handleCopyDM}
                   disabled={!currentPerson.suggestedMessage || currentBlocked}
                 >
-                  Preparar mensagem
+                  {currentBlocked ? "Contato indisponível" : "Preparar mensagem"}
                 </Button>
               </div>
             </div>
@@ -559,7 +816,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName }: 
             <p className="text-sm leading-6 text-zinc-600">
               As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
             </p>
-            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} />
+              {!isCompact ? <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
           </CardContent>
         </Card>
       </section>

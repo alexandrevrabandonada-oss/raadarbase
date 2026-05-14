@@ -120,7 +120,8 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
         description="Cada bairro aparece como nó territorial com fase, calor, temas dominantes e missão recomendada. O foco é decidir onde ouvir, mobilizar, ir a campo e sustentar continuidade."
         icon={<Map className="h-5 w-5 text-white" />}
         variant="territory"
-        titleClassName="radar-title-display max-w-[9ch] text-5xl sm:text-6xl"
+        titleClassName="radar-title-display max-w-[9ch] text-4xl lg:text-5xl 2xl:text-6xl"
+        descriptionClassName="max-w-[36rem]"
         metrics={
           <>
             <GamefulMetricCard label="Bairros mapeados" value={summaries.length} tone="dark" />
@@ -215,7 +216,7 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
       </div>
 
       {hasTerritories ? (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
           {filteredSummaries.map((item) => (
             <TerritoryNodeCard key={item.neighborhood} territory={item} onSelect={handleSelectBairro} />
           ))}
@@ -235,14 +236,14 @@ export function TerritoriesClient({ initialSummaries, expansionData }: Territori
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="radar-outline-card rounded-[30px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
           <CardContent className="p-6">
             <div className="mb-5 flex items-center gap-2">
               <Users className="h-4 w-4 text-[#b47a0e]" />
               <h3 className="text-lg font-black text-zinc-950">Leitura rápida das fases</h3>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
               {[
                 { label: "Observação", value: phaseCounts.observacao, color: "bg-zinc-400" },
                 { label: "Escuta", value: phaseCounts.escuta, color: "bg-sky-500" },

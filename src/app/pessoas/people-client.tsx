@@ -32,9 +32,12 @@ import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { PersonOperationalList } from "@/components/radar/person-operational-list";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
+import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import { GuidedOnboarding } from "@/components/radar/onboarding/guided-onboarding";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
+import { useCompactMode } from "@/hooks/use-compact-mode";
+import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 
@@ -70,6 +73,7 @@ export function PeopleClient({
 
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isNotebookViewport, setIsNotebookViewport] = useState(false);
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
@@ -111,10 +115,30 @@ export function PeopleClient({
       .slice(0, 100);
   }, [operators, priorityFilter, priorityPeople]);
 
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsNotebookViewport(window.innerWidth < 1366);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  const {
+    hydrated: compactHydrated,
+    manualCompact,
+    isCompact,
+    setCompact,
+  } = useCompactMode({
+    storageKey: "radar_pessoas_compacto",
+    autoCompact: isNotebookViewport || filteredPriorityPeople.length > 20,
+  });
+
   // Auto-switch to list mode if many results
   useEffect(() => {
     const hasExplicitPreference = localStorage.getItem("radar_pessoas_view_mode");
-    if (!hasExplicitPreference && filteredPriorityPeople.length > 10 && viewMode === "cards") {
+    if (!hasExplicitPreference && filteredPriorityPeople.length > 20 && viewMode === "cards") {
       startTransition(() => {
         setViewMode("list");
       });
@@ -137,6 +161,13 @@ export function PeopleClient({
     startTransition(async () => {
       await assumePersonResponsible(personId);
     });
+  }
+
+  function focusUnassignedMissions() {
+    setPriorityFilter("sem_responsavel");
+    setViewMode("list");
+    localStorage.setItem("radar_pessoas_view_mode", "list");
+    window.scrollTo({ top: 720, behavior: "smooth" });
   }
 
   const stats = useMemo(() => {
@@ -165,25 +196,28 @@ export function PeopleClient({
   };
 
   return (
-    <div className="flex flex-col gap-4 pb-20">
+    <div className="flex flex-col gap-4 pb-32 lg:pb-20">
       <GamefulHero
         eyebrow="Sala de vínculos"
         title="Prioridades da Equipe"
-        description="Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível."
+        description={isCompact ? "Filtre as missões essenciais e puxe a lista operacional para perto." : "Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível."}
         variant="light"
-        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
+        compact={isCompact}
+        titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
+        descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[34rem]")}
         badges={
           <>
             <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
             <GamefulHeroBadge light>{stats.semResponsavel} sem dono</GamefulHeroBadge>
           </>
         }
+        metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         metrics={
           <>
-            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail="Vínculos operacionais no radar." />
-            <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail="Missões com maior calor." />
-            <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail="Conversas pedindo retorno." />
-            <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail="Interesses prontos para destino." />
+            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Vínculos operacionais no radar."} />
+            <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail={isCompact ? undefined : "Missões com maior calor."} />
+            <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail={isCompact ? undefined : "Conversas pedindo retorno."} />
+            <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail={isCompact ? undefined : "Interesses prontos para destino."} />
           </>
         }
         actions={
@@ -204,52 +238,81 @@ export function PeopleClient({
               <PlusCircle className="mr-2 h-4 w-4" />
               Importar base
             </Button>
+            {compactHydrated ? (
+              <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || filteredPriorityPeople.length > 20} onToggle={setCompact} />
+            ) : null}
           </>
         }
       />
 
-      <OperationalStatusBar
-        activeFilter={priorityFilter}
-        onFilter={(id) => setPriorityFilter(id)}
-        metrics={[
-          { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
-          { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
-          { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
-          { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
-          { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
+      <OperationalCommandBar
+        title="Barra de comando"
+        statusLabel="Sem dono"
+        statusValue={`${stats.semResponsavel} missões`}
+        statusDetail="Filtre o que ainda não tem responsável e puxe a lista operacional para perto."
+        primaryAction={{
+          label: "Assumir Missões",
+          onClick: focusUnassignedMissions,
+          icon: UserPlus,
+        }}
+        secondaryActions={[
+          {
+            label: "Filtrar Sem Dono",
+            onClick: () => setPriorityFilter("sem_responsavel"),
+            icon: Filter,
+          },
         ]}
-        actions={null}
+        shortcutAction={{
+          label: "Abrir Minha Jornada",
+          href: "/minha-fila",
+        }}
       />
 
-      <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] p-2 md:flex-row">
-        <div className="relative w-full md:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-          <Input 
-            placeholder="Buscar username..." 
-            className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+      <div className="sticky top-24 z-20 space-y-3">
+        <OperationalStatusBar
+          className="border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] backdrop-blur"
+          activeFilter={priorityFilter}
+          onFilter={(id) => setPriorityFilter(id)}
+          metrics={[
+            { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
+            { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
+            { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
+            { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
+            { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
+          ]}
+          actions={null}
+        />
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
-            <Button 
-              variant={viewMode === "cards" ? "secondary" : "ghost"} 
-              size="icon" 
-              className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
-              onClick={() => toggleViewMode("cards")}
-            >
-              <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
-            </Button>
-            <Button 
-              variant={viewMode === "list" ? "secondary" : "ghost"} 
-              size="icon" 
-              className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
-              onClick={() => toggleViewMode("list")}
-            >
-              <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
-            </Button>
+        <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-2 backdrop-blur md:flex-row">
+          <div className="relative w-full md:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+            <Input 
+              placeholder="Buscar username..." 
+              className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
+              <Button 
+                variant={viewMode === "cards" ? "secondary" : "ghost"} 
+                size="icon" 
+                className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
+                onClick={() => toggleViewMode("cards")}
+              >
+                <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
+              </Button>
+              <Button 
+                variant={viewMode === "list" ? "secondary" : "ghost"} 
+                size="icon" 
+                className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
+                onClick={() => toggleViewMode("list")}
+              >
+                <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -258,7 +321,7 @@ export function PeopleClient({
       <div className="space-y-6">
         {filteredPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
               {filteredPriorityPeople.slice(0, 15).map((person, index) => (
                 <PersonPriorityCard 
                   key={person.id} 
@@ -292,23 +355,50 @@ export function PeopleClient({
         )}
       </div>
 
-      <LightweightOnboarding 
-        screenId="pessoas"
-        title="Prioridades da Equipe"
-        highlights={[
-          { title: "Onde começar", description: "Use a barra de status para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
-          { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
-          { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
-        ]}
-      />
-      <GuidedOnboarding compact />
-
-      <ContextHelpCard 
-        title="Como filtrar prioridades"
-        whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
-        whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
-        whatToDoNow="Use os filtros da barra de status para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
-      />
+      {isCompact ? (
+        <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
+            Abrir leitura complementar da operação
+          </summary>
+          <div className="space-y-5 border-t border-[#d8c7ac] px-5 py-4">
+            <LightweightOnboarding 
+              screenId="pessoas"
+              title="Prioridades da Equipe"
+              highlights={[
+                { title: "Onde começar", description: "Use a barra de status para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
+                { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
+                { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
+              ]}
+            />
+            <GuidedOnboarding compact />
+            <ContextHelpCard 
+              title="Como filtrar prioridades"
+              whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
+              whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
+              whatToDoNow="Use os filtros da barra de status para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
+            />
+          </div>
+        </details>
+      ) : (
+        <>
+          <LightweightOnboarding 
+            screenId="pessoas"
+            title="Prioridades da Equipe"
+            highlights={[
+              { title: "Onde começar", description: "Use a barra de status para filtrar por 'Sem Dono' ou 'Urgentes'.", icon: Filter },
+              { title: "Ação principal", description: "Clique em 'Assumir' para garantir que cada cidadão tenha um responsável.", icon: UserPlus },
+              { title: "Evite este erro", description: "Não altere o status de uma pessoa antes de realizar o contato manual de fato.", icon: ShieldAlert },
+            ]}
+          />
+          <GuidedOnboarding compact />
+          <ContextHelpCard 
+            title="Como filtrar prioridades"
+            whatIsThis="Esta é a lista inteligente de contatos filtrados por interesse e urgência de resposta."
+            whyItMatters="Garante que nenhum cidadão interessado fique sem resposta e que os temas quentes sejam tratados rápido."
+            whatToDoNow="Use os filtros da barra de status para encontrar quem precisa de um dono ou quem já respondeu e aguarda encaminhamento."
+          />
+        </>
+      )}
 
       <PersonQuickSheet 
         person={selectedPerson}

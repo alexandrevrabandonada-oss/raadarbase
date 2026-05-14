@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { MemoryNavActions } from "./memory-nav-actions";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
+import { listFieldAgendaEvents, listFieldAgendaEventResultsByEventIds } from "@/lib/data/field-agenda";
+import { countStrategicMemoryLinksByEntity, getStrategicMemoryStats } from "@/lib/data/strategic-memory";
+import { getTeamFlowAdoptionMetrics } from "@/lib/data/team-flow-adoption";
+import { getPilotFeedbackLoop } from "@/lib/data/pilot-feedback-loop";
+import { buildFieldMemoryLoop } from "@/lib/field-memory/field-memory-loop";
+import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import { MemoryEngineSuggestionCard } from "./memory-engine-suggestion-card";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +31,24 @@ export default async function MemoriaPage({
   const memories = await listStrategicMemories({
     search: q,
     topic_id: tema,
+  });
+  const [events, teamAdoption, feedbackLoop, memoryStats] = await Promise.all([
+    listFieldAgendaEvents({ includeMetrics: true }),
+    getTeamFlowAdoptionMetrics(),
+    getPilotFeedbackLoop(),
+    getStrategicMemoryStats(),
+  ]);
+  const eventResults = await listFieldAgendaEventResultsByEventIds(events.map((event) => event.id));
+  const resultMemoryLinks = await countStrategicMemoryLinksByEntity(
+    "result",
+    Object.values(eventResults).map((result) => result.id),
+  );
+  const fieldMemoryLoop = buildFieldMemoryLoop({
+    events,
+    resultsByEventId: eventResults,
+    resultMemoryLinksByResultId: resultMemoryLinks,
+    weeklyClosuresGenerated: teamAdoption.indicators.dailyClosuresGenerated,
+    feedbackLoop,
   });
 
   return (
@@ -45,6 +70,52 @@ export default async function MemoriaPage({
 
 
       <div className="mt-8">
+        <div className="mb-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <Card className="border-indigo-100 bg-indigo-50/20">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-[0.24em] text-indigo-700">Sugestões da engine</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {fieldMemoryLoop.memorySuggestions.length === 0 ? (
+                <GamefulEmptyState
+                  variant="memory"
+                  compact
+                  title="Sem memória sugerida agora"
+                  description="Nenhum campo recente, fechamento semanal ou feedback recorrente está pedindo síntese nova neste momento."
+                  nextActionLabel="ver memória ativa"
+                  nextActionHref="/memoria"
+                />
+              ) : (
+                <div className="grid gap-3">
+                  {fieldMemoryLoop.memorySuggestions.slice(0, 5).map((suggestion) => (
+                    <MemoryEngineSuggestionCard key={suggestion.id} suggestion={suggestion} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-indigo-100 bg-indigo-50/20">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-[0.24em] text-indigo-700">Loop aberto</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              <div className="rounded-2xl border border-indigo-100 bg-white/80 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-700">Rascunhos ativos</p>
+                <p className="mt-2 text-3xl font-black text-zinc-950">{memoryStats.draftCount}</p>
+              </div>
+              <div className="rounded-2xl border border-indigo-100 bg-white/80 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-700">Campo sem memória</p>
+                <p className="mt-2 text-3xl font-black text-zinc-950">{fieldMemoryLoop.stats.resultsWithoutMemoryCount}</p>
+              </div>
+              <div className="rounded-2xl border border-indigo-100 bg-white/80 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-700">Fechamentos da semana</p>
+                <p className="mt-2 text-3xl font-black text-zinc-950">{teamAdoption.indicators.dailyClosuresGenerated}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="border-indigo-100 bg-indigo-50/20">
 
           <CardContent className="pt-6">

@@ -1,8 +1,9 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { interactions as mockInteractions, messageTemplates as mockTemplates, outreachTasks as mockTasks, people as mockPeople } from "@/lib/mock-data";
-import type { InteractionType, MessageTemplate, OutreachTaskWithPerson, PersonWithContact, PriorityPerson } from "@/lib/types";
+import type { AuditLogEntry, InteractionType, MessageTemplate, OutreachTaskWithPerson, PersonReferral, PersonWithContact, PriorityPerson } from "@/lib/types";
 import { boardColumnCountsAsReferral, boardColumnIsPendingResponse, getOutreachColumnLabel, normalizeOutreachColumn } from "@/lib/outreach-workflow";
+import { attachMissionMetadataToPriorityPeople, sortPriorityPeopleByMission } from "@/lib/missions/priority-person-mission-adapter";
 import { listPeople } from "./people";
 import { handleSupabaseReadError } from "./utils";
 
@@ -91,10 +92,11 @@ function toTemperature(score: number): PriorityPerson["temperature"] {
 
 function renderSuggestedMessage(template: MessageTemplate, person: PersonWithContact, mainTheme: string | null) {
   return template.body
-    .replaceAll("{username}", `@${person.username}`)
+    .replaceAll("{username}", person.username.replace(/^@+/, ""))
     .replaceAll("{tema}", mainTheme ?? "a pauta que você trouxe")
     .replaceAll("{link_grupo}", "[link do grupo]")
-    .replaceAll("{link_formulario}", "[link do formulário]");
+    .replaceAll("{link_formulario}", "[link do formulário]")
+    .replaceAll("@@", "@");
 }
 
 function getSuggestedTemplate(task: OutreachTaskWithPerson | null, person: PersonWithContact, mainTheme: string | null, templates: MessageTemplate[]) {
@@ -375,7 +377,13 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
-    return buildPriorityPeople(mockPeople, mockInteractionsSummary(), mockTasks, mockTemplates, now);
+    const priorityPeople = buildPriorityPeople(mockPeople, mockInteractionsSummary(), mockTasks, mockTemplates, now);
+    return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
+      priorityPeople,
+      interactions: mockInteractionsSummary(),
+      tasks: mockTasks,
+      now,
+    }));
   }
 
   try {
@@ -431,7 +439,72 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
       personId: interaction.person_id,
     }));
 
-    return buildPriorityPeople(people, interactions, tasks, templates, now);
+    const personIds = people.map((person) => person.id);
+    let referrals: PersonReferral[] = [];
+    let auditLogs: AuditLogEntry[] = [];
+
+    if (personIds.length > 0) {
+      const [referralsResult, auditLogsResult] = await Promise.all([
+        supabase
+          .from("ig_person_referrals")
+          .select("*")
+          .in("person_id", personIds)
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("audit_logs")
+          .select("*")
+          .eq("entity_type", "ig_people")
+          .in("entity_id", personIds)
+          .in("action", ["contact.dm_prepared", "contact.dm_sent", "contact.do_not_contact", "contact.response_recorded"])
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (referralsResult.error) throw referralsResult.error;
+      if (auditLogsResult.error) throw auditLogsResult.error;
+
+      referrals = (referralsResult.data ?? []).map((referral) => ({
+        id: referral.id,
+        personId: referral.person_id,
+        targetType: referral.target_type,
+        targetId: referral.target_id,
+        status: referral.status,
+        notes: referral.notes,
+        createdAt: referral.created_at,
+        updatedAt: referral.updated_at,
+        responsibleId: referral.responsible_id ?? null,
+        externalId: referral.external_id ?? null,
+        lastEventAt: referral.last_event_at ?? null,
+        lastEventType: referral.last_event_type ?? null,
+        lastEventSource:
+          referral.last_event_source === "manual" || referral.last_event_source === "webhook"
+            ? referral.last_event_source
+            : null,
+        metadata: referral.metadata,
+      }));
+
+      auditLogs = (auditLogsResult.data ?? []).map((entry) => ({
+        id: entry.id,
+        actorId: entry.actor_id,
+        actorEmail: entry.actor_email,
+        action: entry.action,
+        entityType: entry.entity_type,
+        entityId: entry.entity_id,
+        summary: entry.summary,
+        metadata: entry.metadata,
+        createdAt: entry.created_at,
+      }));
+    }
+
+    const priorityPeople = buildPriorityPeople(people, interactions, tasks, templates, now);
+
+    return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
+      priorityPeople,
+      interactions,
+      tasks,
+      referrals,
+      auditLogs,
+      now,
+    }));
   } catch (error) {
     handleSupabaseReadError("listPriorityPeople", error);
   }

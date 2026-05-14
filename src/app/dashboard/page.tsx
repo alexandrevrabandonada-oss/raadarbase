@@ -18,6 +18,10 @@ import {
 import { calculateOperatorMission } from "@/lib/data/mission-engine";
 import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
 import { assessQueueWellness } from "@/lib/data/operator-wellness";
+import { getStrategicMemoryStats } from "@/lib/data/strategic-memory";
+import { buildDailyNarrative } from "@/lib/narrative/daily-narrative";
+import { buildWeeklyNarrative } from "@/lib/narrative/weekly-narrative";
+import { buildSeasonNarrative } from "@/lib/narrative/season-narrative";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +86,7 @@ async function loadDashboardData() {
     qualityStats,
     territories,
     fieldEvents,
+    memoryStats,
   ] = await Promise.all([
     listPriorityPeople(),
     getPilotDashboardData(),
@@ -91,6 +96,7 @@ async function loadDashboardData() {
     getBaseQualityStats(),
     listTerritorySummaries(),
     listFieldAgendaEvents({ includeMetrics: true }),
+    getStrategicMemoryStats(),
   ]);
 
   const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
@@ -175,7 +181,55 @@ async function loadDashboardData() {
     queueLevel: wellness.level,
   });
 
+  const newSignalsCount = priorityPeople.filter((person) =>
+    person.latestInteractionType === "comentario" ||
+    person.latestInteractionType === "resposta_story",
+  ).length;
+  const recurringLinksCount = priorityPeople.filter((person) => person.totalInteractions >= 3).length;
+  const urgentCareCount = collective.ethics.sensitiveNotesReviewed + collective.ethics.dataUnderReview;
+  const pendingReturnsCount =
+    pilotStats.summary.waiting3DaysCount +
+    pilotStats.summary.dmsPreparedWithoutConfirmation +
+    collective.operationHealth.staleTasksCount;
+  const openReferralsCount = pilotStats.summary.pendingReferralsCount;
+  const pendingMemoryCount = memoryStats.draftCount;
+  const territoriesReadyCount = territories.filter((territory) => territory.priorityPeople > 0 && territory.openTasks === 0).length;
+
+  const narrative = {
+    today: buildDailyNarrative({
+      pendingReturns: pendingReturnsCount,
+      newSignals: newSignalsCount,
+      urgentCare: urgentCareCount,
+      openReferrals: openReferralsCount,
+      fieldWithoutClosure: unresolvedPastEvents.length,
+      pendingMemory: pendingMemoryCount,
+      recurringLinks: recurringLinksCount,
+    }),
+    week: buildWeeklyNarrative({
+      unassignedMissions: collective.operationHealth.tasksWithoutResponsible,
+      pendingReturns: pendingReturnsCount,
+      openReferrals: openReferralsCount,
+      fieldWithoutClosure: unresolvedPastEvents.length,
+      pendingMemory: pendingMemoryCount,
+      territoriesReady: territoriesReadyCount,
+      staleTasks: collective.operationHealth.staleTasksCount,
+      urgentCare: urgentCareCount,
+    }),
+    season: buildSeasonNarrative({
+      activeMissions: priorityPeople.length,
+      recurringLinks: recurringLinksCount,
+      openReferrals: openReferralsCount,
+      fieldWithoutClosure: unresolvedPastEvents.length,
+      pendingMemory: pendingMemoryCount,
+      territoriesInMobilization: territoryCounts.mobilizacao,
+      territoriesInField: territoryCounts.campo,
+      territoriesInContinuity: territoryCounts.continuidade,
+      urgentCare: urgentCareCount,
+    }),
+  };
+
   const dashboardData: DashboardViewData = {
+    narrative,
     missionState,
     weeklyRhythmState,
     overallStatus,

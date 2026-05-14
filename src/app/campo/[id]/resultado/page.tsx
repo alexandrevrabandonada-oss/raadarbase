@@ -9,11 +9,12 @@ import { notFound } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { EventResultForm } from "./event-result-form";
 
-export default async function EventResultPage({ params }: { params: { id: string } }) {
-  await requireInternalPageSession(`/campo/${params.id}/resultado`);
+export default async function EventResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  await requireInternalPageSession(`/campo/${id}/resultado`);
   await requireRole(["admin", "operador", "comunicacao"]);
 
-  const event = await getFieldAgendaEvent(params.id);
+  const event = await getFieldAgendaEvent(id);
   if (!event) notFound();
 
   return (

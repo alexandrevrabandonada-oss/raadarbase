@@ -27,6 +27,7 @@ import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { MissionCard } from "@/components/radar/mission-card";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
+import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 
 import { 
   Tooltip,
@@ -46,6 +47,15 @@ import { normalizeOutreachColumn, nextBoardColumn, outreachBoardColumns, type Bo
 import type { OutreachTask, PersonResponseKind, PriorityPerson } from "@/lib/types";
 import { balanceTasks } from "./team-actions";
 import { cn } from "@/lib/utils";
+import { useCompactMode } from "@/hooks/use-compact-mode";
+import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
+import {
+  getPriorityPersonHoldState,
+  getPriorityPersonHoldText,
+  getPriorityPersonMissionNextStep,
+  getPriorityPersonMissionReason,
+  getPriorityPersonMissionTypeLabel,
+} from "@/lib/missions/priority-person-mission-adapter";
 
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
@@ -157,6 +167,7 @@ export function KanbanClient({
   const [isDistributing, setIsDistributing] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isNotebookViewport, setIsNotebookViewport] = useState(false);
   
   const hasTrackedMount = useRef(false);
 
@@ -172,6 +183,16 @@ export function KanbanClient({
       trackOperationalEvent("filter_applied", undefined, { filter: filterType });
     }
   }, [filterType]);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsNotebookViewport(window.innerWidth < 1366);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
@@ -241,6 +262,15 @@ export function KanbanClient({
       })),
     [filteredTasks],
   );
+  const {
+    hydrated: compactHydrated,
+    manualCompact,
+    isCompact,
+    setCompact,
+  } = useCompactMode({
+    storageKey: "radar_abordagem_compacto",
+    autoCompact: isNotebookViewport || filteredTasks.length > 18,
+  });
 
   async function updateTaskColumn(taskId: string, nextColumnValue: BoardColumnId) {
     const previous = tasks;
@@ -342,12 +372,14 @@ export function KanbanClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-20">
+    <div className="flex flex-col gap-6 pb-32 lg:pb-20">
       <GamefulHero
         eyebrow="Fluxo cooperativo"
         title="Mural de Missões"
-        description="Organize cada vínculo como uma missão em andamento, com leitura clara de dono, fase e próximo passo."
-        titleClassName="radar-title-display max-w-[8ch] text-5xl sm:text-6xl"
+        description={isCompact ? "Organize dono, fase e próximo passo sem perder o fluxo do mural." : "Organize cada vínculo como uma missão em andamento, com leitura clara de dono, fase e próximo passo."}
+        compact={isCompact}
+        titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
+        descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[34rem]")}
         badges={
           <>
             <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
@@ -355,7 +387,7 @@ export function KanbanClient({
             <GamefulHeroBadge light>{stats.stale} paradas</GamefulHeroBadge>
           </>
         }
-        metricsClassName="md:grid-cols-2 xl:grid-cols-4"
+        metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         metrics={
           <>
             <GamefulMetricCard label="Ativas" value={stats.total} icon={<LayoutDashboard className="h-4 w-4" />} compact layout="split" />
@@ -369,9 +401,12 @@ export function KanbanClient({
              <Button size="sm" className="h-11 bg-[#13212b] px-5 font-black uppercase tracking-[0.16em] text-white hover:bg-[#0d1820]" onClick={() => runBalance()}>
                Dividir Trabalho
              </Button>
+             {compactHydrated ? (
+               <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || filteredTasks.length > 18} onToggle={setCompact} />
+             ) : null}
           </div>
         }
-        aside={
+        aside={!isCompact ? (
           <div className="radar-panel-dark space-y-4 rounded-[24px] border border-[#24313b] p-5 text-white">
             <div className="space-y-2">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Regra do mural</p>
@@ -380,17 +415,45 @@ export function KanbanClient({
                 Assuma missão, registre resposta e mova a etapa. Quando travar, resolva contexto antes de insistir.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="grid gap-3 lg:grid-cols-3 2xl:grid-cols-1">
               <GamefulMetricCard label="Travadas" value={stats.stale} icon={<Clock className="h-4 w-4" />} tone="dark" compact layout="split" />
               <GamefulMetricCard label="Espera longa" value={tasks.filter((task) => task.waitingStatus === "review" || task.waitingStatus === "archive").length} icon={<History className="h-4 w-4" />} tone="dark" compact layout="split" />
               <GamefulMetricCard label="Prontas p/ assumir" value={stats.unassigned} icon={<Users className="h-4 w-4" />} tone="dark" compact layout="split" />
             </div>
           </div>
-        }
+        ) : null}
+      />
+
+      <OperationalCommandBar
+        title="Barra de comando"
+        statusLabel="Travas visíveis"
+        statusValue={`${stats.stale} paradas / ${stats.unassigned} sem dono`}
+        statusDetail="Use a barra para puxar o que trava o fluxo antes de descer para o mural completo."
+        primaryAction={{
+          label: "Dividir Trabalho",
+          onClick: runBalance,
+          icon: Users,
+        }}
+        secondaryActions={[
+          {
+            label: "Ver Travadas",
+            onClick: () => setFilterType("stale"),
+            icon: Clock,
+          },
+          {
+            label: "Ver Sem Dono",
+            onClick: () => setFilterType("sem_responsavel"),
+            icon: Filter,
+          },
+        ]}
+        shortcutAction={{
+          label: "Abrir Minha Jornada",
+          href: "/minha-fila",
+        }}
       />
 
       {/* 2. Filtros e Gestão */}
-      <div className="radar-outline-card grid gap-4 rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] p-5 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
+      <div className="sticky top-24 z-20 radar-outline-card grid gap-4 rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-4 backdrop-blur lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
         <div className="flex-1 space-y-2">
           <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">
             <Filter className="h-3 w-3" /> Filtros de missão
@@ -435,8 +498,11 @@ export function KanbanClient({
 
       {/* 5. Painel de Balanceamento */}
       {stats.unassigned > 0 ? (
-        <Card className="radar-outline-card border-[#d5b378] bg-[rgba(212,182,120,0.12)]">
-          <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-6">
+        <details className="radar-outline-card border-[#d5b378] bg-[rgba(212,182,120,0.12)]" open={!isCompact}>
+          <summary className="cursor-pointer list-none px-4 py-4 text-sm font-black text-[#13212b]">
+            Balanceamento de equipe
+          </summary>
+          <CardContent className="flex flex-col items-center justify-between gap-6 border-t border-[#d5b378] p-4 md:flex-row">
             <div className="space-y-1">
               <h3 className="flex items-center gap-2 text-sm font-black text-[#13212b]">
                 <Users className="h-4 w-4" /> Balanceamento de equipe
@@ -444,7 +510,7 @@ export function KanbanClient({
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#7d6f59]">Selecione operadores para distribuir as {stats.unassigned} missões sem dono.</p>
             </div>
             
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap justify-center gap-2">
               {operators.map(op => {
                  const isSelected = selectedOperators.includes(op.id);
                  return (
@@ -456,7 +522,7 @@ export function KanbanClient({
                         isSelected ? prev.filter(id => id !== op.id) : [...prev, op.id]
                       )}
                       className={cn(
-                        "h-8 px-3 text-[10px] font-black uppercase transition-all rounded-lg",
+                        "h-8 rounded-lg px-3 text-[10px] font-black uppercase transition-all",
                         isSelected ? "border-[#13212b] bg-[#13212b] text-white shadow-md" : "border-[#d4c4a8] bg-white text-[#13212b]"
                       )}
                     >
@@ -473,7 +539,7 @@ export function KanbanClient({
                   <div className={cn("inline-block", (isDistributing || selectedOperators.length === 0) && "cursor-not-allowed")}>
                     <Button 
                       onClick={runBalance} 
-                      className={cn("h-10 bg-[#13212b] px-8 font-black text-white shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "opacity-50 pointer-events-none")}
+                      className={cn("h-10 bg-[#13212b] px-8 font-black text-white shadow-lg shadow-black/10", (isDistributing || selectedOperators.length === 0) && "pointer-events-none opacity-50")}
                       tabIndex={(isDistributing || selectedOperators.length === 0) ? -1 : 0}
                     >
                       {isDistributing ? "Distribuindo..." : "Distribuir Agora"}
@@ -486,14 +552,14 @@ export function KanbanClient({
               </Tooltip>
             </TooltipProvider>
           </CardContent>
-        </Card>
+        </details>
       ) : null}
 
       {/* Kanban Board */}
-      <div className="-mx-4 overflow-x-auto px-4 pb-6 scrollbar-thin scrollbar-thumb-[#d4c4a8]">
+      <div className="-mx-2 overflow-x-auto px-2 pb-6 scrollbar-thin scrollbar-thumb-[#d4c4a8] xl:-mx-4 xl:px-4">
         <div className="flex gap-4 min-w-max">
           {groupedColumns.map(({ id, label, description, tasks: columnTasks }) => (
-            <div key={id} className="w-[340px] shrink-0 space-y-4">
+            <div key={id} className={cn("shrink-0 space-y-4", isCompact ? "w-[272px] xl:w-[288px] 2xl:w-[308px]" : "w-[300px] xl:w-[320px] 2xl:w-[340px]")}>
               <div className="flex items-center justify-between px-2">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-widest text-[#6e604c]">
@@ -545,29 +611,62 @@ export function KanbanClient({
         </div>
       </div>
 
-      <EthicalGuardrailBanner
-        tone="zinc"
-        eyebrow="Guardrail do mural"
-        badgeLabel="Operação humana"
-        description="Silêncio também é resposta. Missão boa respeita tempo, consentimento e o ritmo real da conversa."
-      />
+      {isCompact ? (
+        <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
+            Abrir leitura complementar do mural
+          </summary>
+          <div className="space-y-5 border-t border-[#d8c7ac] px-5 py-4">
+            <EthicalGuardrailBanner
+              tone="zinc"
+              eyebrow="Guardrail do mural"
+              badgeLabel="Operação humana"
+              description="Silêncio também é resposta. Missão boa respeita tempo, consentimento e o ritmo real da conversa."
+            />
+            <ContextHelpCard 
+              title="Como operar o mural"
+              whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
+              whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
+              whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
+            />
+            <LightweightOnboarding 
+              screenId="abordagem"
+              title="Mural de Missões"
+              highlights={[
+                { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
+                { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
+                { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
+              ]}
+            />
+          </div>
+        </details>
+      ) : (
+        <>
+          <EthicalGuardrailBanner
+            tone="zinc"
+            eyebrow="Guardrail do mural"
+            badgeLabel="Operação humana"
+            description="Silêncio também é resposta. Missão boa respeita tempo, consentimento e o ritmo real da conversa."
+          />
 
-      <ContextHelpCard 
-        title="Como operar o mural"
-        whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
-        whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
-        whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
-      />
+          <ContextHelpCard 
+            title="Como operar o mural"
+            whatIsThis="Este mural concentra as missões de vínculo abertas e mostra em que etapa cada uma está."
+            whyItMatters="Ele deixa gargalos visíveis, evita que missões se percam e ajuda a coordenação a apoiar o time na hora certa."
+            whatToDoNow="Filtre o fluxo, abra um card para registrar resposta e mova a missão para a próxima coluna quando a etapa mudar."
+          />
 
-      <LightweightOnboarding 
-        screenId="abordagem"
-        title="Mural de Missões"
-        highlights={[
-          { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
-          { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
-          { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
-        ]}
-      />
+          <LightweightOnboarding 
+            screenId="abordagem"
+            title="Mural de Missões"
+            highlights={[
+              { title: "Onde começar", description: "Comece em 'Preparar' para assumir missão, revisar contexto e abrir a abordagem.", icon: Instagram },
+              { title: "Ação principal", description: "Mova o card conforme a conversa avança até registro, encaminhamento e fechamento.", icon: MoveRight },
+              { title: "Evite este erro", description: "Respeite rigorosamente o status 'Não Abordar'. Ética e consentimento são fundamentais.", icon: ShieldAlert },
+            ]}
+          />
+        </>
+      )}
 
       {feedback && (
         <div className={cn(
@@ -633,6 +732,12 @@ function KanbanTaskCard({
 
   const canMoveBack = outreachBoardColumns.indexOf(task.boardColumn) !== 0;
   const canMoveForward = outreachBoardColumns.indexOf(task.boardColumn) !== outreachBoardColumns.length - 1;
+  const holdState = getPriorityPersonHoldState(task.priority);
+  const missionTypeLabel = getPriorityPersonMissionTypeLabel(task.priority);
+  const missionReason = getPriorityPersonMissionReason(task.priority);
+  const missionNextStep = getPriorityPersonMissionNextStep(task.priority);
+  const holdText = getPriorityPersonHoldText(task.priority);
+  const blocksContact = holdState === "blocked";
 
   return (
     <MissionCard
@@ -647,6 +752,11 @@ function KanbanTaskCard({
               <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
                 {boardMicroLabels[task.boardColumn]}
               </Badge>
+              {missionTypeLabel ? (
+                <Badge variant="outline" className="border-[#d3b98f] bg-[#f7f0e4] text-[9px] font-black uppercase tracking-widest text-[#8f6e2e]">
+                  {missionTypeLabel}
+                </Badge>
+              ) : null}
               <Badge
                 variant="outline"
                 className={cn(
@@ -699,18 +809,28 @@ function KanbanTaskCard({
               <span className="text-[10px] font-bold text-[#8a7962]">{task.title}</span>
             </div>
             <p className="text-[10px] font-medium leading-relaxed italic text-[#6e604c]">
-              &quot;{task.priority.nextAction || task.notes || "Aguardando próxima definição..."}&quot;
+              &quot;{missionNextStep || missionReason || task.notes || "Aguardando próxima definição..."}&quot;
             </p>
           </div>
 
+          {blocksContact ? (
+            <EthicalGuardrailBanner
+              tone="rose"
+              eyebrow="Missão bloqueada"
+              badgeLabel="Contato pausado"
+              description={holdText}
+              className="rounded-2xl p-4"
+            />
+          ) : null}
+
           <ActionButtonGroup
             personId={task.personId}
-            instagramUsername={task.person?.username}
+            instagramUsername={blocksContact ? undefined : task.person?.username}
             onAssume={onAssume}
             onCopyDM={onCopyDM}
             onRegisterResponse={onRegisterResponse}
-            canAssume={!task.responsibleId}
-            canCopyDM={!!task.priority.suggestedMessage}
+            canAssume={!task.responsibleId && !blocksContact}
+            canCopyDM={!!task.priority.suggestedMessage && !blocksContact}
             canRegisterResponse
             className="w-full justify-start"
           />

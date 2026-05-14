@@ -102,7 +102,8 @@ describe("people priority", () => {
 
     expect(ranked[0].id).toBe("a");
     expect(ranked[0].priorityReason).toMatch(/relato|Interação|Comentou/i);
-    expect(ranked[0].suggestedMessage).toContain("@ana");
+    expect(ranked[0].suggestedMessage).toContain("ana");
+    expect(ranked[0].suggestedMessage).not.toContain("@@");
   });
 
   it("exclui não abordar da prioridade elegível", () => {

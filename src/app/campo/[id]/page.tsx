@@ -18,6 +18,8 @@ import { assignVolunteerToFieldEventAction, updateVolunteerEventStatusAction } f
 import { EventParticipants } from "@/components/radar/field-agenda/event-participants";
 import { getFieldJourneySnapshot } from "@/lib/data/field-agenda-journey";
 import { FieldJourneyPanel } from "@/components/radar/field-agenda/field-journey-progress";
+import { countStrategicMemoryLinksByEntity } from "@/lib/data/strategic-memory";
+import { buildFieldResultMemoryHref } from "@/lib/field-memory/assisted-memory";
 
 export const dynamic = "force-dynamic";
 
@@ -32,15 +34,16 @@ function formatDate(date: string | null) {
   }).format(new Date(date));
 }
 
-export default async function FieldEventDetailPage({ params }: { params: { id: string } }) {
-  const session = await requireInternalPageSession(`/campo/${params.id}`);
+export default async function FieldEventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await requireInternalPageSession(`/campo/${id}`);
   
   const [event, result, volunteerLinks, volunteers, participants] = await Promise.all([
-    getFieldAgendaEvent(params.id),
-    getFieldAgendaEventResult(params.id),
-    listFieldEventVolunteers(params.id),
+    getFieldAgendaEvent(id),
+    getFieldAgendaEventResult(id),
+    listFieldEventVolunteers(id),
     listVolunteers(),
-    listPersonReferralsForEvent(params.id),
+    listPersonReferralsForEvent(id),
   ]);
 
   if (!event) notFound();
@@ -50,6 +53,9 @@ export default async function FieldEventDetailPage({ params }: { params: { id: s
 
   const metrics = event.metrics || { totalInvited: 0, confirmed: 0, attended: 0, helped: 0, pendingConfirmation: 0 };
   const journey = getFieldJourneySnapshot(event, result);
+  const resultMemoryLinks = result ? await countStrategicMemoryLinksByEntity("result", [result.id]) : {};
+  const hasLinkedMemory = result ? (resultMemoryLinks[result.id] ?? 0) > 0 : false;
+  const createMemoryHref = result ? buildFieldResultMemoryHref(event.id, result.id) : null;
 
   return (
     <AppShell>
@@ -208,6 +214,22 @@ export default async function FieldEventDetailPage({ params }: { params: { id: s
                          <p className="text-sm italic font-medium text-zinc-700">{result.nextSteps}</p>
                       </div>
                     )}
+                    <div className="flex flex-wrap gap-2">
+                      {!hasLinkedMemory && createMemoryHref ? (
+                        <Button
+                          size="sm"
+                          className="bg-indigo-600 font-bold hover:bg-indigo-700"
+                          nativeButton={false}
+                          render={<Link href={createMemoryHref} />}
+                        >
+                          Criar memória deste resultado
+                        </Button>
+                      ) : (
+                        <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                          Memória já vinculada
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-6">
@@ -257,9 +279,9 @@ export default async function FieldEventDetailPage({ params }: { params: { id: s
                         <TableCell>
                           {manageable ? (
                             <form action={updateVolunteerEventStatusAction} className="flex gap-2">
-                              <input type="hidden" name="eventId" value={params.id} />
+                              <input type="hidden" name="eventId" value={id} />
                               <input type="hidden" name="volunteerId" value={volunteer.volunteerId} />
-                              <input type="hidden" name="returnTo" value={`/campo/${params.id}`} />
+                              <input type="hidden" name="returnTo" value={`/campo/${id}`} />
                               <select name="status" defaultValue={volunteer.status} className="flex h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-xs font-bold">
                                 <option value="convidado">Convidado</option>
                                 <option value="confirmado">Confirmado</option>
@@ -278,8 +300,8 @@ export default async function FieldEventDetailPage({ params }: { params: { id: s
 
               {manageable && availableVolunteers.length > 0 ? (
                 <form action={assignVolunteerToFieldEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] pt-4 border-t border-zinc-50">
-                  <input type="hidden" name="eventId" value={params.id} />
-                  <input type="hidden" name="returnTo" value={`/campo/${params.id}`} />
+                  <input type="hidden" name="eventId" value={id} />
+                  <input type="hidden" name="returnTo" value={`/campo/${id}`} />
                   <select name="volunteerId" className="flex h-10 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm font-bold" required>
                     <option value="">Vincular Equipe...</option>
                     {availableVolunteers.map((volunteer) => (
