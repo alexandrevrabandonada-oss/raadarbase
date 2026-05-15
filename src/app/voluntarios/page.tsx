@@ -54,8 +54,9 @@ export default async function VolunteersPage({
         eyebrow="Rede de Apoio"
         title="Base de Voluntários"
         description="Pessoas que consentiram explicitamente em ajudar. Este banco é separado da base do Instagram."
+        compact
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200" render={<Link href="/voluntarios/novo" />}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Adicionar Voluntário
@@ -136,6 +137,45 @@ export default async function VolunteersPage({
                   />
                 </div>
               ) : (
+                <>
+                  <div className="space-y-3 p-4 lg:hidden">
+                    {volunteers.map((volunteer) => (
+                      <Link key={volunteer.id} href={`/voluntarios/${volunteer.id}`} className="block">
+                        <Card className="border border-zinc-200 bg-white shadow-sm">
+                          <CardContent className="space-y-3 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-base font-black text-indigo-950">{volunteer.displayName}</p>
+                                <p className="truncate text-xs text-zinc-500">{volunteer.neighborhood ?? "Sem bairro"}</p>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "shrink-0 font-black text-[9px] uppercase tracking-widest",
+                                  volunteer.status === "ativo"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                    : volunteer.status === "novo"
+                                      ? "bg-orange-50 text-orange-700 border-orange-100"
+                                      : "bg-zinc-100 text-zinc-500 border-zinc-200",
+                                )}
+                              >
+                                {volunteer.status}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                              <span>{volunteer.skills.slice(0, 3).join(", ") || "Sem habilidade"}</span>
+                              <span>{[...volunteer.availability.weekdays, ...volunteer.availability.periods].slice(0, 2).join(", ") || "Sem disponibilidade"}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-xs">
+                              <span className="text-zinc-500">Perfil consentido</span>
+                              <span className="font-black text-indigo-600">Abrir</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block">
                 <Table>
                   <TableHeader className="bg-zinc-50/50">
                     <TableRow>
@@ -178,6 +218,8 @@ export default async function VolunteersPage({
                     ))}
                   </TableBody>
                 </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

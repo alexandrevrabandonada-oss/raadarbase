@@ -77,6 +77,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         eyebrow="Ficha de Vínculo"
         title={person.displayName ? `${person.displayName} (@${person.username})` : `@${person.username}`}
         description="Revise o histórico, mande a DM manual e registre o encaminhamento se houver interesse."
+        compact
       />
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">

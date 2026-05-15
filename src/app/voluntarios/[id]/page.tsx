@@ -45,17 +45,18 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
         eyebrow="Base Consentida"
         title={detail.volunteer.displayName}
         description="Detalhe seguro de voluntário para organização interna, sem microtargeting e sem vínculo automático com Instagram."
+        compact
         actions={
           manageable ? (
-            <div className="flex gap-2">
-              <Button nativeButton={false} variant="outline" className="font-bold border-zinc-200" render={<Link href={`/voluntarios/${params.id}/editar`} />}>
+            <div className="flex flex-wrap gap-2">
+              <Button nativeButton={false} variant="outline" className="w-full sm:w-auto font-bold border-zinc-200" render={<Link href={`/voluntarios/${params.id}/editar`} />}>
                 Editar
               </Button>
               <form action={pauseVolunteerAction.bind(null, params.id)}>
-                <Button type="submit" variant="outline" className="font-bold border-zinc-200">Pausar</Button>
+                <Button type="submit" variant="outline" className="w-full sm:w-auto font-bold border-zinc-200">Pausar</Button>
               </form>
               <form action={archiveVolunteerAction.bind(null, params.id)}>
-                <Button type="submit" variant="outline" className="font-bold border-zinc-200">Arquivar</Button>
+                <Button type="submit" variant="outline" className="w-full sm:w-auto font-bold border-zinc-200">Arquivar</Button>
               </form>
             </div>
           ) : null
@@ -89,6 +90,37 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
             <CardHeader><CardTitle>Squads</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {detail.squads.length === 0 ? <p className="text-sm text-muted-foreground">Sem squads vinculadas.</p> : (
+                <>
+                  <div className="space-y-3 lg:hidden">
+                    {detail.squads.map((membership) => (
+                      <Card key={membership.squadId} className="border border-zinc-200 bg-white shadow-sm">
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <Link href={`/voluntarios/squads/${membership.squadId}`} className="truncate text-sm font-black text-indigo-950">
+                                {membership.squadName}
+                              </Link>
+                              <p className="text-[10px] uppercase tracking-widest text-zinc-500">
+                                {membership.role ?? "Sem função"}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="shrink-0 text-[9px] font-black uppercase tracking-widest">
+                              {membership.membershipStatus}
+                            </Badge>
+                          </div>
+                          {manageable ? (
+                            <form action={removeVolunteerFromSquadAction}>
+                              <input type="hidden" name="squadId" value={membership.squadId} />
+                              <input type="hidden" name="volunteerId" value={detail.volunteer.id} />
+                              <input type="hidden" name="returnTo" value={`/voluntarios/${detail.volunteer.id}`} />
+                              <Button type="submit" variant="outline" className="w-full">Remover</Button>
+                            </form>
+                          ) : null}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block">
                 <Table>
                   <TableHeader><TableRow><TableHead>Squad</TableHead><TableHead>Função</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader>
                   <TableBody>
@@ -111,10 +143,12 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
                     ))}
                   </TableBody>
                 </Table>
+                  </div>
+                </>
               )}
 
               {manageable && availableSquads.length > 0 ? (
-                <form action={addVolunteerToSquadAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <form action={addVolunteerToSquadAction} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                   <input type="hidden" name="volunteerId" value={detail.volunteer.id} />
                   <input type="hidden" name="returnTo" value={`/voluntarios/${detail.volunteer.id}`} />
                   <select name="squadId" className="flex h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm" required>
@@ -132,6 +166,44 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
             <CardHeader><CardTitle>Eventos de campo vinculados</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {detail.fieldEvents.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma ação de campo vinculada.</p> : (
+                <>
+                  <div className="space-y-3 lg:hidden">
+                    {detail.fieldEvents.map((event) => (
+                      <Card key={event.eventId} className="border border-zinc-200 bg-white shadow-sm">
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <Link href={`/campo/${event.eventId}`} className="truncate text-sm font-black text-indigo-950">
+                                {event.title}
+                              </Link>
+                              <p className="text-[10px] uppercase tracking-widest text-zinc-500">
+                                {event.role ?? "Sem função"}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="shrink-0 text-[9px] font-black uppercase tracking-widest">
+                              {event.volunteerStatus}
+                            </Badge>
+                          </div>
+                          {manageable ? (
+                            <form action={updateVolunteerEventStatusAction} className="grid gap-2">
+                              <input type="hidden" name="eventId" value={event.eventId} />
+                              <input type="hidden" name="volunteerId" value={detail.volunteer.id} />
+                              <input type="hidden" name="returnTo" value={`/voluntarios/${detail.volunteer.id}`} />
+                              <select name="status" defaultValue={event.volunteerStatus} className="flex h-9 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm">
+                                <option value="convidado">Convidado</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="presente">Presente</option>
+                                <option value="ausente">Ausente</option>
+                                <option value="removido">Removido</option>
+                              </select>
+                              <Button type="submit" variant="outline">Atualizar</Button>
+                            </form>
+                          ) : null}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  <div className="hidden lg:block">
                 <Table>
                   <TableHeader><TableRow><TableHead>Ação</TableHead><TableHead>Status</TableHead><TableHead>Função</TableHead><TableHead /></TableRow></TableHeader>
                   <TableBody>
@@ -161,10 +233,12 @@ export default async function VolunteerDetailPage({ params }: { params: { id: st
                     ))}
                   </TableBody>
                 </Table>
+                  </div>
+                </>
               )}
 
               {manageable && availableEvents.length > 0 ? (
-                <form action={assignVolunteerToFieldEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <form action={assignVolunteerToFieldEventAction} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                   <input type="hidden" name="volunteerId" value={detail.volunteer.id} />
                   <input type="hidden" name="returnTo" value={`/voluntarios/${detail.volunteer.id}`} />
                   <select name="eventId" className="flex h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm" required>

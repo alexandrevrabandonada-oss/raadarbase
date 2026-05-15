@@ -57,8 +57,9 @@ export default async function MemoriaPage({
         eyebrow="Biblioteca de Saberes"
         title="Memória da Equipe"
         description="Acúmulo de aprendizados para guiar nossas próximas ações no território."
+        compact
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold" render={<Link href="/memoria/nova" />}>
               <Plus className="mr-2 h-4 w-4" />
               Novo aprendizado
@@ -119,7 +120,7 @@ export default async function MemoriaPage({
         <Card className="border-indigo-100 bg-indigo-50/20">
 
           <CardContent className="pt-6">
-            <form className="flex gap-3">
+            <form className="flex flex-col gap-3 sm:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -129,7 +130,7 @@ export default async function MemoriaPage({
                   defaultValue={q}
                 />
               </div>
-              <Button type="submit">Filtrar</Button>
+              <Button type="submit" className="w-full sm:w-auto">Filtrar</Button>
             </form>
           </CardContent>
         </Card>

@@ -453,48 +453,107 @@ export function KanbanClient({
       />
 
       {/* 2. Filtros e Gestão */}
-      <div className="sticky top-24 z-20 radar-outline-card grid gap-4 rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-4 backdrop-blur lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
-        <div className="flex-1 space-y-2">
-          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">
-            <Filter className="h-3 w-3" /> Filtros de missão
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "todos", label: "Tudo" },
-              { id: "meus", label: "Minhas" },
-              { id: "sem_responsavel", label: "Sem dono" },
-              { id: "stale", label: "Travadas" },
-              { id: "encaminhar", label: "Encaminhar" },
-              { id: "waiting_3d", label: "Espera 3+d" },
-              { id: "waiting_7d", label: "Espera 7+d" },
-            ].map(f => (
-              <Button
-                key={f.id}
-                variant={filterType === f.id ? "default" : "outline"}
-                size="sm"
-                className={cn("h-9 rounded-full px-4 font-black uppercase tracking-[0.12em]", filterType === f.id ? "bg-[#13212b] text-white" : "border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]")}
-                onClick={() => setFilterType(f.id as typeof filterType)}
+      {isCompact ? (
+        <details className="sticky top-24 z-20 radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-4 backdrop-blur">
+          <summary className="cursor-pointer list-none text-[11px] font-black uppercase tracking-widest text-[#7d6f59]">
+            Filtros e gestão
+          </summary>
+          <div className="mt-4 space-y-4 border-t border-[#d8c7ac] pt-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "todos", label: "Tudo" },
+                { id: "meus", label: "Minhas" },
+                { id: "sem_responsavel", label: "Sem dono" },
+                { id: "stale", label: "Travadas" },
+                { id: "encaminhar", label: "Encaminhar" },
+                { id: "waiting_3d", label: "Espera 3+d" },
+                { id: "waiting_7d", label: "Espera 7+d" },
+              ].map((f) => (
+                <Button
+                  key={f.id}
+                  variant={filterType === f.id ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-9 rounded-full px-4 font-black uppercase tracking-[0.12em]",
+                    filterType === f.id
+                      ? "bg-[#13212b] text-white"
+                      : "border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]",
+                  )}
+                  onClick={() => setFilterType(f.id as typeof filterType)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+
+            <div className="w-full space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">Por operador</label>
+              <select
+                className="h-10 w-full rounded-full border border-[#d4c4a8] bg-white px-4 text-xs font-bold text-[#13212b]"
+                value={operatorFilter}
+                onChange={(e) => setOperatorFilter(e.target.value)}
               >
-                {f.label}
-              </Button>
-            ))}
+                <option value="todos">Todos os Operadores</option>
+                {operators.map((op) => (
+                  <option key={op.id} value={op.id}>
+                    {op.full_name || op.email.split("@")[0]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </details>
+      ) : (
+        <div className="sticky top-24 z-20 radar-outline-card grid gap-4 rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-4 backdrop-blur lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-end">
+          <div className="flex-1 space-y-2">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">
+              <Filter className="h-3 w-3" /> Filtros de missão
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: "todos", label: "Tudo" },
+                { id: "meus", label: "Minhas" },
+                { id: "sem_responsavel", label: "Sem dono" },
+                { id: "stale", label: "Travadas" },
+                { id: "encaminhar", label: "Encaminhar" },
+                { id: "waiting_3d", label: "Espera 3+d" },
+                { id: "waiting_7d", label: "Espera 7+d" },
+              ].map((f) => (
+                <Button
+                  key={f.id}
+                  variant={filterType === f.id ? "default" : "outline"}
+                  size="sm"
+                  className={cn(
+                    "h-9 rounded-full px-4 font-black uppercase tracking-[0.12em]",
+                    filterType === f.id
+                      ? "bg-[#13212b] text-white"
+                      : "border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]",
+                  )}
+                  onClick={() => setFilterType(f.id as typeof filterType)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full space-y-2 lg:w-64">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">Por operador</label>
+            <select
+              className="h-10 w-full rounded-full border border-[#d4c4a8] bg-white px-4 text-xs font-bold text-[#13212b]"
+              value={operatorFilter}
+              onChange={(e) => setOperatorFilter(e.target.value)}
+            >
+              <option value="todos">Todos os Operadores</option>
+              {operators.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.full_name || op.email.split("@")[0]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-
-        <div className="w-full space-y-2 lg:w-64">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#7d6f59]">Por operador</label>
-          <select
-            className="h-10 w-full rounded-full border border-[#d4c4a8] bg-white px-4 text-xs font-bold text-[#13212b]"
-            value={operatorFilter}
-            onChange={(e) => setOperatorFilter(e.target.value)}
-          >
-            <option value="todos">Todos os Operadores</option>
-            {operators.map(op => (
-              <option key={op.id} value={op.id}>{op.full_name || op.email.split("@")[0]}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      )}
 
       {/* 5. Painel de Balanceamento */}
       {stats.unassigned > 0 ? (

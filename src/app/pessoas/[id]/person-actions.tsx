@@ -158,16 +158,17 @@ export function PersonActions({
         eyebrow={`@${person.username}`}
         title={person.displayName || person.username}
         description={`Ficha operacional completa. Status atual: ${status.replace(/_/g, ' ').toUpperCase()}`}
+        compact
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link 
               href="/pessoas" 
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "font-bold text-zinc-500")}
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-full sm:w-auto font-bold text-zinc-500")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
             </Link>
             {!profile.priority.responsibleName && (
-              <Button size="sm" className="font-black bg-indigo-600 hover:bg-indigo-700" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
+              <Button size="sm" className="w-full sm:w-auto font-black bg-indigo-600 hover:bg-indigo-700" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
                 Assumir Vínculo
               </Button>
             )}
@@ -411,12 +412,12 @@ export function PersonActions({
               <CardTitle className="text-base font-black">Resultado da conversa</CardTitle>
               <CardDescription className="text-xs">Registre o que a pessoa disse.</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2">
+            <CardContent className="grid gap-2 sm:grid-cols-2">
               {PERSON_RESPONSE_OPTIONS.map((option) => (
                 <Button
                   key={option.key}
                   variant="outline"
-                  className="h-auto flex flex-col items-start p-3 text-left border-zinc-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group"
+                  className="h-auto flex flex-col items-start p-3 text-left border-zinc-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group sm:min-h-[84px]"
                   disabled={isPending}
                   onClick={() =>
                     runAction(() => recordPersonResponse(person.id, option.key), {
@@ -442,7 +443,7 @@ export function PersonActions({
              <CardHeader>
                <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Ações Rápidas</CardTitle>
              </CardHeader>
-             <CardContent className="grid gap-2">
+             <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                 <Button
                   className="w-full bg-indigo-600 hover:bg-indigo-700 font-black h-12"
                   disabled={!canApproach}

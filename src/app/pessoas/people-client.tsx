@@ -283,38 +283,77 @@ export function PeopleClient({
           actions={null}
         />
 
-        <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-2 backdrop-blur md:flex-row">
-          <div className="relative w-full md:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-            <Input 
-              placeholder="Buscar username..." 
-              className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
+        {isCompact ? (
+          <details className="radar-outline-card rounded-[20px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] backdrop-blur">
+            <summary className="cursor-pointer list-none px-3 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#7d6f59]">
+              Filtros e busca
+            </summary>
+            <div className="space-y-3 border-t border-[#d8c7ac] p-3">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
+                <Input
+                  placeholder="Buscar username..."
+                  className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
+                  <Button
+                    variant={viewMode === "cards" ? "secondary" : "ghost"}
+                    size="icon"
+                    className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
+                    onClick={() => toggleViewMode("cards")}
+                  >
+                    <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
+                    size="icon"
+                    className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
+                    onClick={() => toggleViewMode("list")}
+                  >
+                    <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </details>
+        ) : (
+          <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-2 backdrop-blur md:flex-row">
+            <div className="relative w-full md:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+              <Input
+                placeholder="Buscar username..."
+                className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
-              <Button 
-                variant={viewMode === "cards" ? "secondary" : "ghost"} 
-                size="icon" 
-                className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
-                onClick={() => toggleViewMode("cards")}
-              >
-                <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
-              </Button>
-              <Button 
-                variant={viewMode === "list" ? "secondary" : "ghost"} 
-                size="icon" 
-                className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
-                onClick={() => toggleViewMode("list")}
-              >
-                <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
-              </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
+                <Button
+                  variant={viewMode === "cards" ? "secondary" : "ghost"}
+                  size="icon"
+                  className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
+                  onClick={() => toggleViewMode("cards")}
+                >
+                  <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="icon"
+                  className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
+                  onClick={() => toggleViewMode("list")}
+                >
+                  <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Conteúdo Principal */}

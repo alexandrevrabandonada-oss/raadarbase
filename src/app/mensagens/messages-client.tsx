@@ -111,6 +111,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
         eyebrow="Biblioteca de Abordagem"
         title="Modelos de Mensagem"
         description="Textos base para iniciar conversas humanizadas e éticas no Instagram."
+        compact
       />
 
       <ContextHelpCard 
@@ -130,7 +131,114 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
       <div className="grid gap-8 xl:grid-cols-[380px_1fr]">
         {/* Sidebar: Roteiro e Guardrails */}
-        <div className="flex flex-col gap-6">
+        <div className="order-2 flex flex-col gap-6 xl:order-1">
+          <details className="border-none bg-white/0 xl:hidden">
+            <summary className="list-none cursor-pointer rounded-2xl border border-indigo-100 bg-indigo-50/40 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-indigo-700">
+              Ferramentas de abordagem
+            </summary>
+            <div className="mt-4 flex flex-col gap-6">
+              <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100 overflow-hidden">
+                <CardHeader className="pb-3 bg-indigo-600">
+                  <div className="flex items-center gap-2 text-white">
+                    <Clock className="h-4 w-4" />
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest">Fluxo do Relacionamento</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <ul className="space-y-4">
+                    {checklistItems.map((item, i) => (
+                      <li key={item.id} className="flex items-start gap-3 text-xs group">
+                        <div className="mt-0.5 h-5 w-5 rounded-full border-2 border-zinc-100 bg-zinc-50 flex items-center justify-center font-black text-[9px] text-zinc-400 group-hover:border-indigo-200 group-hover:text-indigo-600 transition-all">
+                          {i + 1}
+                        </div>
+                        <span className="font-bold text-zinc-600 group-hover:text-zinc-900 transition-colors pt-0.5">
+                          {item.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <OperationalAlert 
+                type="templates_ausentes" 
+                className="border-rose-100 bg-rose-50"
+              >
+                 <p className="text-[10px] font-bold text-rose-900 uppercase tracking-tight mb-1">Atenção: Contato Manual</p>
+                 <p className="text-[11px] text-rose-800 leading-tight">O Instagram bloqueia automações. Sempre copie, cole e revise o texto manualmente no app do Instagram.</p>
+              </OperationalAlert>
+
+              <Card className="border-none shadow-sm bg-rose-50/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-700">Regras de Cuidado</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-xs text-rose-800">
+                    <li className="flex items-center gap-2">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      <span>Não mandar mensagem em massa.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                      <span>Não pedir voto na pré-campanha.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Info className="h-3 w-3 shrink-0" />
+                      <span>Sempre contextualizar a abordagem.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Info className="h-3 w-3 shrink-0" />
+                      <span>Respeitar pedidos de não contato.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Info className="h-3 w-3 shrink-0" />
+                      <span>Não registrar dados sensíveis.</span>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Novo modelo</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Título</label>
+                    <Input id="template-form-name-mobile" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex: Convite Missão ÉLuta" />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Categoria</label>
+                    <Input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Ex: Respondeu story" />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Quando usar</label>
+                    <Input value={whenToUse} onChange={(event) => setWhenToUse(event.target.value)} placeholder="Ex: Para quem interage muito..." />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Tema de fallback</label>
+                    <Input value={theme} onChange={(event) => setTheme(event.target.value)} placeholder="escuta, grupo, etc" />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase text-muted-foreground">Texto</label>
+                    <Textarea 
+                      value={body} 
+                      onChange={(event) => setBody(event.target.value)} 
+                      placeholder="Texto com {username}, {tema}..." 
+                      className="min-h-[120px]"
+                    />
+                  </div>
+                  <Button type="button" onClick={addTemplate} disabled={isPending} className="w-full">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Criar modelo
+                  </Button>
+                  {feedback ? <p className="text-center text-xs text-muted-foreground">{feedback}</p> : null}
+                </CardContent>
+              </Card>
+            </div>
+          </details>
+
+          <div className="hidden flex-col gap-6 xl:flex">
           <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100 overflow-hidden">
             <CardHeader className="pb-3 bg-indigo-600">
               <div className="flex items-center gap-2 text-white">
@@ -230,9 +338,10 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
             </CardContent>
           </Card>
         </div>
+        </div>
 
         {/* Main Content: Templates Library */}
-        <div className="flex flex-col gap-8">
+        <div className="order-1 flex flex-col gap-8 xl:order-2">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
                <h2 className="text-xl font-black text-indigo-950 flex items-center gap-2">
