@@ -1,36 +1,54 @@
-# Walkthrough - Tijolo 072: Agenda de Campo
+# Walkthrough: Identidade Visual "Concreto Zen"
 
-O módulo **Agenda de Campo** foi implementado com sucesso, permitindo o planejamento e registro de resultados de ações coletivas e públicas, totalmente integrado ao Radar de Silêncios e respeitando os guardrails éticos.
+Esta seção descreve as melhorias implementadas para aplicar a identidade visual "Concreto Zen" no Radar de Base, combinando brutalismo industrial, estética popular e organização estruturada.
 
-## O que foi implementado
+---
 
-### 1. Camada de Dados e Segurança
-- **Migrations**: Criadas tabelas `field_agenda_events` e `field_agenda_event_results`.
-- **Segurança (RLS)**: Acesso restrito a usuários internos autenticados. Bloqueio total de escrita anônima.
-- **Tipagem**: Sincronização de tipos do Supabase (`database.types.ts`) e restauração de aliases legados (`TableRow`, etc.).
+## 🎨 O Que Mudou (Concreto Zen)
 
-### 2. Interface Administrativa (Módulo "Campo")
-- **Listagem (/campo)**: Visão geral de eventos planejados e concluídos.
-- **Criação (/campo/novo)**: Formulário com vínculos territoriais e de pauta.
-- **Detalhes (/campo/[id])**: Gestão de status e visualização de conexões.
-- **Resultados (/campo/[id]/resultado)**: Registro de percepções coletivas e próximos passos.
+### 1. Paleta de Cores e Fundo Texturizado
+*   **Arquivo Modificado**: [globals.css](file:///c:/Projetos/Radar%20de%20Base/src/app/globals.css).
+*   **O que muda**: 
+    *   Mapeamento das variáveis base do Tailwind v4 para cores brutas (Preto carvão `#0B0B0B`, Cinza concreto `#1C1C1A`, Cinza cimento `#4A4943`, Branco sujo/off-white `#E7E0D2`, Amarelo queimado `#F2A900`, e Ferrugem `#9B3F1F`).
+    *   Textura áspera de cimento, poeira e fuligem desenhada no fundo (`body`) usando múltiplos gradientes cruzados em CSS de alta performance.
+    *   Criação de classes utilitárias de painéis cimento escuro e claro (`.radar-paper`, `.radar-panel-dark`, `.radar-panel-light`).
+    *   Introdução do elemento gráfico **"Círculo Imperfeito Zen"** (`.zen-circle-element`) com deformação irregular simulando pincel stencil e animação sutil.
 
-### 3. Integração com Radar de Silêncios
-- **Sugestão Direta**: Botões "Ação de Campo" injetados nos painéis de bairros silenciosos e pautas recorrentes.
-- **Auto-preenchimento**: Links inteligentes que preenchem o formulário de planejamento.
+### 2. Botões Brutalistas e Placas Stencil
+*   **Arquivo Modificado**: [button.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/ui/button.tsx).
+*   **O que muda**:
+    *   Botão principal redefinido com fundo amarelo queimado, borda preta sólida espessa e sombra deslocada de bloco rígido.
+    *   Efeito interativo brutalista clássico: os botões deslocam-se fisicamente no hover e click acompanhando a projeção de suas sombras rígidas.
+    *   Fontes redefinidas com caixa alta (`uppercase`), peso preto (`font-black`) e espaçamento de placa industrial (`tracking-wider`).
 
-### 4. Monitoramento e Exportação
-- **Healthcheck**: Inclusão de estatísticas da agenda no endpoint de saúde.
-- **Exportação Segura**: Endpoint de exportação CSV/Markdown sem PII.
+### 3. Cards com Bordas Firmes e Sombra de Cimento
+*   **Arquivo Modificado**: [card.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/ui/card.tsx).
+*   **O que muda**:
+    *   Afastamento de cantos excessivamente arredondados: alterados os cantos para `rounded-[6px]` (cantos brutalistas mais retos).
+    *   Remoção do anel de brilho padrão substituído por borda firme cinza cimento de 2px e sombra rígida.
+    *   Redefinição dos títulos com peso preto em caixa alta e subtítulos industriais discretos para melhor legibilidade.
 
-## Verificação e Qualidade
-- **Testes Unitários**: 100% de aprovação (incluindo novos testes em `field-agenda.test.ts`).
-- **Testes E2E**: 71 testes aprovados (incluindo novos fluxos em `field-agenda.spec.ts`).
-- **Build**: Compilação Turbopack validada.
-- **Guardrails**: Verificado bloqueio de automações e proteção de dados individuais.
+### 4. Badges/Carimbos e Alertas
+*   **Arquivos Modificados**: [badge.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/ui/badge.tsx) e [alert.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/ui/alert.tsx).
+*   **O que muda**:
+    *   Badges transformados em carimbos estilo lambe-lambe táticos com bordas sólidas, caixa alta e cantos vivos.
+    *   Alertas redesenhados como placas industriais de concreto e ferrugem com sombras discretas de alta legibilidade.
 
-## Próximos Passos
-- Monitorar o uso do módulo pelo time de mobilização.
-- Avaliar a necessidade de síntese automática de resultados (Brick 11).
+### 5. Cabeçalho e Menu Lateral (App Shell & Sidebar)
+*   **Arquivos Modificados**: [sidebar.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/sidebar.tsx) e [app-shell.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/app-shell.tsx).
+*   **O que muda**:
+    *   Navegação da barra lateral repaginada com contornos pretos firmes nos grupos de links, divisores cinzas e blocos de link ativo com relevo amarelo queimado e sombras brutas.
+    *   Cabeçalho mobile adaptado com a mesma linguagem visual (cantos vivos, alto contraste e logo carimbado).
 
-![Dashboard da Agenda de Campo](file:///c:/Projetos/Radar%20de%20Base/artifacts/field_agenda_dashboard.png)
+### 6. Logomarca Concreto Zen Oficial
+*   **Arquivo Novo/Modificados**: [logo.png](file:///c:/Projetos/Radar%20de%20Base/public/logo.png), [sidebar.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/sidebar.tsx), [app-shell.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/app-shell.tsx) e [login-form.tsx](file:///c:/Projetos/Radar%20de%20Base/src/app/login/login-form.tsx).
+*   **O que muda**:
+    *   Criação e inserção da logomarca oficial minimalista que funde um bloco de concreto brutalista com um círculo imperfeito de pincelada zen (Ensō).
+    *   Posicionamento no cabeçalho do menu lateral desktop, no cabeçalho mobile do App Shell e centralizado na tela de login/cadastro com sombras rígidas e contraste industrial.
+
+---
+
+## 🧪 Validação Operacional
+
+*   **Verificação de Linting**: `npm run lint` concluído com sucesso (0 erros).
+*   **Build de Produção**: `npm run build` compilou com sucesso em menos de 45 segundos, gerando todas as rotas e assets estáticos perfeitamente integrados com o Turbopack no Next.js 16.
