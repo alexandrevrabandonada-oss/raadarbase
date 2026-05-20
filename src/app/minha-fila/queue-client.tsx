@@ -331,51 +331,51 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
         {/* Parchment-style card container */}
-        <div className="radar-outline-card relative overflow-hidden rounded-[32px] border-[#d39b2a]/35 bg-[linear-gradient(180deg,_rgba(255,250,242,0.98),_rgba(255,241,223,0.95))] p-8 shadow-xl">
+        <div className="relative overflow-hidden rounded-[4px] border-2 border-burnt-yellow bg-charcoal p-8 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)]">
           {/* Animated decorative sparks */}
-          <div className="absolute top-6 left-6 text-[#f0c15b]/45 animate-pulse">
+          <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
             <Sparkles className="h-6 w-6" />
           </div>
-          <div className="absolute bottom-6 right-6 text-[#f0c15b]/45 animate-pulse">
+          <div className="absolute bottom-6 right-6 text-burnt-yellow/45 animate-pulse">
             <Sparkles className="h-6 w-6" />
           </div>
 
           <div className="flex flex-col items-center">
             {/* Glowing outer circle */}
-            <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#11202a] text-[#f0c15b] shadow-lg shadow-amber-500/20 ring-4 ring-[#d39b2a]/30 animate-pulse">
-              <Trophy className="h-10 w-10 text-[#f0c15b] animate-bounce" />
+            <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-charcoal border-2 border-burnt-yellow text-burnt-yellow shadow-lg shadow-burnt-yellow/20 animate-pulse">
+              <Trophy className="h-10 w-10 text-burnt-yellow" />
             </div>
 
-            <span className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-700">Trilha Concluída</span>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-[#11202a]">
+            <span className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Trilha Concluída</span>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
               Quest Cumprida!
             </h2>
-            <p className="mt-3 max-w-md text-sm font-semibold leading-relaxed text-zinc-700">
+            <p className="mt-3 max-w-md text-sm font-semibold leading-relaxed text-zinc-300">
               Sua fila de missões operacionais de hoje está completamente limpa. Cada contato e acolhimento feito mantém nossa chama de base aquecida e articulada!
             </p>
 
             {/* Streak & Metrics Panel */}
-            <div className="mt-6 w-full rounded-2xl border border-[#d8c7ac] bg-white/70 p-4">
+            <div className="mt-6 w-full rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
               <div className="flex flex-col items-center justify-around gap-4 sm:flex-row">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600">
-                    <Flame className="h-5 w-5 fill-amber-500/10 text-amber-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-burnt-yellow/10 border border-burnt-yellow/20 text-burnt-yellow">
+                    <Flame className="h-5 w-5 fill-burnt-yellow/10 text-burnt-yellow" />
                   </div>
                   <div className="text-left">
                     <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Combo Ativo</p>
-                    <p className="text-sm font-black text-zinc-800">x{streak} Conclusões</p>
+                    <p className="text-sm font-black text-white">x{streak} Conclusões</p>
                   </div>
                 </div>
 
-                <div className="h-px w-full bg-zinc-200 sm:h-8 sm:w-px" />
+                <div className="h-px w-full bg-cement/30 sm:h-8 sm:w-px" />
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                   </div>
                   <div className="text-left">
                     <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Estado da Trilha</p>
-                    <p className="text-sm font-black text-emerald-700">100% Limpa e Segura</p>
+                    <p className="text-sm font-black text-emerald-400">100% Limpa e Segura</p>
                   </div>
                 </div>
               </div>
@@ -384,7 +384,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             {/* CTAs */}
             <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
               <Button
-                className="h-12 rounded-2xl bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
+                className="h-12 rounded-[2px] bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal border-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
                 nativeButton={false}
                 render={<Link href="/abordagem?filter=sem_responsavel" />}
               >
@@ -392,7 +392,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               </Button>
               <Button
                 variant="outline"
-                className="h-12 rounded-2xl border-[#d8c7ac] bg-white text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-zinc-50"
+                className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.5)] transition-all"
                 nativeButton={false}
                 render={<Link href="/dashboard" />}
               >

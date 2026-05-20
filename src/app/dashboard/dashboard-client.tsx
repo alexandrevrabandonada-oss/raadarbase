@@ -142,14 +142,14 @@ function HeroJourneyWelcomeWidget({
   streak: number;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[32px] border border-[#d39b2a]/30 bg-gradient-to-r from-[#0f1b24] via-[#162732] to-[#0f1b24] p-6 text-white shadow-xl shadow-zinc-950/20">
+    <div className="relative overflow-hidden rounded-[4px] border-2 border-burnt-yellow bg-charcoal p-6 text-white shadow-[4px_4px_0px_0px_rgba(242,169,0,0.35)]">
       {/* Background glowing effects */}
-      <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-amber-500/10 blur-2xl" />
-      <div className="absolute -left-16 -bottom-16 h-36 w-36 rounded-full bg-indigo-500/10 blur-2xl" />
+      <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-burnt-yellow/10 blur-2xl" />
+      <div className="absolute -left-16 -bottom-16 h-36 w-36 rounded-full bg-rust/10 blur-2xl" />
 
       <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">
         <div className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[2px] bg-burnt-yellow/10 border-2 border-burnt-yellow/30 text-burnt-yellow">
             <Flame className={cn("h-8 w-8 fill-amber-500/10 text-amber-500", streak > 0 ? "animate-bounce text-amber-400" : "animate-pulse")} />
           </div>
           <div className="space-y-1">
@@ -181,7 +181,7 @@ function HeroJourneyWelcomeWidget({
         <div className="flex w-full shrink-0 flex-col gap-3 sm:flex-row md:w-auto">
           {myQueueCount > 0 ? (
             <Button
-              className="h-14 rounded-2xl bg-[#d39b2a] px-8 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b] hover:scale-[1.02] transition-transform duration-300"
+              className="h-14 rounded-[2px] bg-burnt-yellow px-8 text-xs font-black uppercase tracking-wider text-charcoal border-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] transition-all"
               nativeButton={false}
               render={<Link href="/minha-fila" />}
             >
@@ -189,7 +189,7 @@ function HeroJourneyWelcomeWidget({
             </Button>
           ) : (
             <Button
-              className="h-14 rounded-2xl border border-white/10 bg-white/5 px-8 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10 hover:scale-[1.02] transition-transform duration-300"
+              className="h-14 rounded-[2px] border-2 border-cement bg-charcoal/80 px-8 text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 active:translate-x-[1px] active:translate-y-[1px] transition-all"
               nativeButton={false}
               render={<Link href="/abordagem?filter=sem_responsavel" />}
             >

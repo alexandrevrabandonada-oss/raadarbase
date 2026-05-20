@@ -248,7 +248,7 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
               <CardTitle className="text-base">Equipe de Apoio (Voluntários)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground italic bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+              <p className="text-xs text-charcoal/70 italic bg-charcoal/5 p-3 rounded-[4px] border-2 border-dashed border-cement">
                 Esta seção é para organização da equipe interna. Pessoas interessadas vindas do Instagram devem ser gerenciadas na seção &quot;Interessados&quot;.
               </p>
 
@@ -282,7 +282,7 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
                               <input type="hidden" name="eventId" value={id} />
                               <input type="hidden" name="volunteerId" value={volunteer.volunteerId} />
                               <input type="hidden" name="returnTo" value={`/campo/${id}`} />
-                              <select name="status" defaultValue={volunteer.status} className="flex h-8 rounded-lg border border-input bg-transparent px-2.5 py-1 text-xs font-bold">
+                              <select name="status" defaultValue={volunteer.status} className="flex h-8 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-1 text-xs font-bold">
                                 <option value="convidado">Convidado</option>
                                 <option value="confirmado">Confirmado</option>
                                 <option value="presente">Presente</option>
@@ -302,7 +302,7 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
                 <form action={assignVolunteerToFieldEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] pt-4 border-t border-zinc-50">
                   <input type="hidden" name="eventId" value={id} />
                   <input type="hidden" name="returnTo" value={`/campo/${id}`} />
-                  <select name="volunteerId" className="flex h-10 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm font-bold" required>
+                  <select name="volunteerId" className="flex h-10 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-1 text-sm font-bold" required>
                     <option value="">Vincular Equipe...</option>
                     {availableVolunteers.map((volunteer) => (
                       <option key={volunteer.id} value={volunteer.id}>{volunteer.displayName}</option>

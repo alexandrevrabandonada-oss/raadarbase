@@ -30,11 +30,11 @@ interface OperationalCommandBarProps {
 function ActionButton({ action, compact = false }: { action: CommandAction; compact?: boolean }) {
   const Icon = action.icon;
   const className = cn(
-    "font-black uppercase tracking-[0.16em]",
+    "font-black uppercase tracking-[0.16em] rounded-[2px] border-2 transition-all",
     compact ? "h-10 px-4 text-[10px]" : "h-11 px-5 text-[11px]",
-    action.tone === "primary" && "bg-[#13212b] text-white hover:bg-[#0d1820]",
-    action.tone === "secondary" && "border-[#d4c4a8] bg-white text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]",
-    action.tone === "ghost" && "text-[#6f6250] hover:bg-[rgba(17,32,42,0.05)]",
+    action.tone === "primary" && "bg-burnt-yellow text-charcoal border-charcoal hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] dark:border-off-white dark:shadow-[2px_2px_0px_0px_rgba(231,224,210,0.5)]",
+    action.tone === "secondary" && "border-cement bg-charcoal text-off-white hover:bg-cement/10",
+    action.tone === "ghost" && "border-transparent text-zinc-400 hover:text-off-white hover:bg-cement/10",
   );
 
   if (action.href) {
@@ -86,26 +86,26 @@ export function OperationalCommandBar({
       )}
     >
       <div className="mx-auto max-w-7xl">
-        <div className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-3 shadow-[0_18px_48px_rgba(15,23,42,0.14)] backdrop-blur-md xl:p-4">
+        <div className="radar-outline-card rounded-[4px] border-2 border-burnt-yellow bg-charcoal/95 p-3 shadow-[4px_4px_0px_0px_rgba(242,169,0,0.3)] backdrop-blur-md xl:p-4">
           <div className="space-y-3 xl:hidden">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7d6f59]">{title}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">{title}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a7962]">{statusLabel}</p>
-                  <p className="text-xs font-black text-[#13212b]">{statusValue}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-cement">{statusLabel}</p>
+                  <p className="text-xs font-black text-off-white">{statusValue}</p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#d8c7ac] bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#13212b]">
-                <ShieldCheck className="h-3 w-3 text-emerald-600" />
+              <span className="inline-flex items-center gap-1 rounded-[2px] border-2 border-cement bg-charcoal/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-off-white">
+                <ShieldCheck className="h-3 w-3 text-burnt-yellow animate-pulse" />
                 Manual
               </span>
             </div>
-            {statusDetail ? <p className="text-xs leading-5 text-[#6f6250]">{statusDetail}</p> : null}
+            {statusDetail ? <p className="text-xs leading-5 text-zinc-300">{statusDetail}</p> : null}
             <ActionButton action={{ ...primaryAction, tone: "primary" }} compact />
             {(secondaryActions.length > 0 || shortcutAction) ? (
-              <details className="rounded-2xl border border-[#d8c7ac] bg-white/70 px-3 py-2">
-                <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-[#7d6f59]">
+              <details className="rounded-[2px] border-2 border-cement bg-charcoal/60 px-3 py-2">
+                <summary className="cursor-pointer list-none text-[10px] font-black uppercase tracking-[0.2em] text-burnt-yellow">
                   Ver mais ações
                 </summary>
                 <div className="mt-3 grid gap-2">
@@ -131,20 +131,20 @@ export function OperationalCommandBar({
             ) : null}
           </div>
 
-          <div className="hidden grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="hidden xl:grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7d6f59]">{title}</p>
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#d8c7ac] bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#13212b]">
-                  <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">{title}</p>
+                <span className="inline-flex items-center gap-1 rounded-[2px] border-2 border-cement bg-charcoal/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-off-white">
+                  <ShieldCheck className="h-3 w-3 text-burnt-yellow animate-pulse" />
                   Manual
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a7962]">{statusLabel}</p>
-                <p className="text-sm font-black text-[#13212b]">{statusValue}</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-cement">{statusLabel}</p>
+                <p className="text-sm font-black text-off-white">{statusValue}</p>
               </div>
-              {statusDetail ? <p className="text-xs leading-5 text-[#6f6250]">{statusDetail}</p> : null}
+              {statusDetail ? <p className="text-xs leading-5 text-zinc-300">{statusDetail}</p> : null}
             </div>
 
             <div className="flex flex-col gap-2 xl:items-end">

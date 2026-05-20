@@ -75,12 +75,12 @@ export function EventParticipants({ eventId, initialParticipants, manageable }: 
 
   const getStatusBadge = (status: PersonReferralStatus) => {
     switch (status) {
-      case "confirmou": return <Badge className="bg-emerald-600">Confirmado</Badge>;
-      case "compareceu": return <Badge className="bg-blue-600">Presente</Badge>;
-      case "ajudou": return <Badge className="bg-indigo-600">Ajudou</Badge>;
+      case "confirmou": return <Badge className="bg-moss border-charcoal text-off-white">Confirmado</Badge>;
+      case "compareceu": return <Badge className="bg-slate-blue border-charcoal text-off-white">Presente</Badge>;
+      case "ajudou": return <Badge className="bg-burnt-yellow border-charcoal text-charcoal shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]">Ajudou</Badge>;
       case "recusou": return <Badge variant="destructive">Recusou</Badge>;
-      case "convidado": return <Badge variant="outline" className="border-amber-200 text-amber-700 bg-amber-50">Convidado</Badge>;
-      case "interessado": return <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50">Interessado</Badge>;
+      case "convidado": return <Badge variant="outline" className="border-cement text-cement bg-transparent">Convidado</Badge>;
+      case "interessado": return <Badge className="border-charcoal bg-charcoal text-burnt-yellow">Interessado</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
@@ -96,14 +96,14 @@ export function EventParticipants({ eventId, initialParticipants, manageable }: 
       </div>
 
       {participants.length === 0 ? (
-        <div className="p-8 text-center border-2 border-dashed border-zinc-100 rounded-xl bg-zinc-50/30">
-          <p className="text-sm text-zinc-400 italic">Nenhum interessado registrado para esta ação ainda.</p>
-          <p className="text-[10px] text-zinc-400 mt-2 uppercase font-bold tracking-widest">Encaminhe pessoas via Ficha Rápida no Kanban</p>
+        <div className="p-8 text-center border-2 border-dashed border-cement rounded-[4px] bg-charcoal/5">
+          <p className="text-sm text-zinc-600 italic font-bold">Nenhum interessado registrado para esta ação ainda.</p>
+          <p className="text-[10px] text-zinc-500 mt-2 uppercase font-black tracking-widest">Encaminhe pessoas via Ficha Rápida no Kanban</p>
         </div>
       ) : (
-        <div className="border border-zinc-100 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="border-2 border-charcoal rounded-[4px] overflow-hidden bg-off-white shadow-[4px_4px_0px_0px_rgba(28,28,26,1)]">
           <Table>
-            <TableHeader className="bg-zinc-50/50">
+            <TableHeader className="bg-charcoal/10 border-b-2 border-charcoal">
               <TableRow>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest">Participante</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Status</TableHead>

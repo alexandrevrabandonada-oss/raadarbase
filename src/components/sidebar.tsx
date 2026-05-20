@@ -270,7 +270,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "radar-panel-dark flex flex-col overflow-y-auto border-r-2 border-cement px-4 py-4 text-white scrollbar-thin scrollbar-thumb-cement xl:sticky xl:top-0 xl:h-screen xl:w-72",
+        "radar-panel-dark flex flex-col overflow-y-auto border-r-2 border-cement px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] text-white scrollbar-thin scrollbar-thumb-cement xl:sticky xl:top-0 xl:h-screen xl:w-72",
         className,
       )}
     >

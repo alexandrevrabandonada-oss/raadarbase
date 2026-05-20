@@ -27,8 +27,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <Sheet>
           <SheetTrigger
             render={
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
+              <Button variant="outline" size="icon" className="size-10 rounded-[2px] border-2 border-charcoal bg-white/5 text-charcoal hover:bg-cement/10 hover:text-charcoal active:translate-x-[1px] active:translate-y-[1px] transition-all">
+                <Menu className="h-5 w-5" />
               </Button>
             }
           />
