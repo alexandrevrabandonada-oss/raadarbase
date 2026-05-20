@@ -107,11 +107,20 @@ export function LoginForm({ nextPath, reason }: { nextPath: string; reason: stri
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <div className="flex gap-2">
-          <Button type="button" variant={mode === "login" ? "default" : "outline"} onClick={() => setMode("login")}>Entrar</Button>
-          <Button type="button" variant={mode === "signup" ? "default" : "outline"} onClick={() => setMode("signup")}>Cadastrar</Button>
+        <div className="flex flex-col items-center justify-center gap-3 mb-6">
+          <div className="flex size-20 items-center justify-center rounded-[4px] border-2 border-burnt-yellow bg-charcoal overflow-hidden shadow-[4px_4px_0px_0px_rgba(242,169,0,0.5)]">
+            <img src="/logo.png" className="size-full object-cover" alt="Radar de Base logo" />
+          </div>
+          <div className="text-center">
+            <span className="block text-lg font-black tracking-tight text-charcoal dark:text-off-white">RADAR DE BASE</span>
+            <span className="block text-[10px] font-black uppercase tracking-[0.22em] text-burnt-yellow">CONCRETO ZEN</span>
+          </div>
         </div>
-        <CardTitle>{mode === "login" ? "Entrar no Radar de Base" : "Cadastrar acesso interno"}</CardTitle>
+        <div className="flex gap-2">
+          <Button type="button" variant={mode === "login" ? "default" : "outline"} className="flex-1" onClick={() => setMode("login")}>Entrar</Button>
+          <Button type="button" variant={mode === "signup" ? "default" : "outline"} className="flex-1" onClick={() => setMode("signup")}>Cadastrar</Button>
+        </div>
+        <CardTitle className="mt-4">{mode === "login" ? "Entrar no Radar de Base" : "Cadastrar acesso interno"}</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={mode === "login" ? handleLogin : handleSignup}>
