@@ -22,6 +22,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   History,
+  Flame,
   Compass,
   Sparkles,
   ChevronRight,
@@ -34,6 +35,8 @@ import {
   Instagram,
   Copy,
   MessageSquare,
+  Trophy,
+  Award,
 } from "lucide-react";
 import {
   trackOperationalEvent,
@@ -178,6 +181,27 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const [streak, setStreak] = useState(() => {
+    if (typeof window !== "undefined") {
+      const today = new Date().toISOString().split("T")[0];
+      const key = `radar_streak_${today}`;
+      const saved = localStorage.getItem(key);
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+
+  const incrementStreak = () => {
+    setStreak((prev) => {
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        const today = new Date().toISOString().split("T")[0];
+        const key = `radar_streak_${today}`;
+        localStorage.setItem(key, next.toString());
+      }
+      return next;
+    });
+  };
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
   const [workMode, setWorkMode] = useState<MinhaJornadaWorkMode>("recommended");
 
@@ -261,6 +285,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       if (result.ok) {
         setCopyStatus("confirmed");
         toast({ title: "Envio manual confirmado.", description: "Próximo passo salvo e missão em acompanhamento." });
+        incrementStreak();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -275,6 +300,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         const feedback = missionFeedback(kind);
         toast({ title: feedback.title, description: feedback.description });
         setShowResponseDialog(false);
+        incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
         if (currentIndex >= newQueue.length && newQueue.length > 0) {
@@ -293,6 +319,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         showCompletion("referral_done");
         toast({ title: "Encaminhamento registrado.", description: "A missão ganhou um destino claro com histórico preservado." });
         setShowReferralDialog(false);
+        incrementStreak();
         handleNext();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
@@ -302,33 +329,78 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   if (queue.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <GamefulEmptyState
-          variant="journey"
-          title="Nenhuma missão na sua trilha"
-          description="Nenhuma missão ativa entrou na sua jornada agora. A fila está limpa e o próximo passo é preparar a base antes de abrir nova frente."
-          nextActionLabel="assumir missões abertas"
-          nextActionHref="/abordagem?filter=sem_responsavel"
-          primaryAction={
-            <Button
-              className="h-11 rounded-xl bg-indigo-600 font-black uppercase text-xs tracking-wider hover:bg-indigo-700"
-              nativeButton={false}
-              render={<Link href="/abordagem?filter=sem_responsavel" />}
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Assumir missões abertas
-            </Button>
-          }
-          secondaryAction={
-            <Button
-              variant="outline"
-              className="h-11 rounded-xl border-zinc-200 bg-white font-black uppercase text-xs tracking-wider"
-              nativeButton={false}
-              render={<Link href="/dashboard" />}
-            >
-              <LayoutDashboard className="mr-2 h-4 w-4" /> Voltar à base
-            </Button>
-          }
-        />
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        {/* Parchment-style card container */}
+        <div className="radar-outline-card relative overflow-hidden rounded-[32px] border-[#d39b2a]/35 bg-[linear-gradient(180deg,_rgba(255,250,242,0.98),_rgba(255,241,223,0.95))] p-8 shadow-xl">
+          {/* Animated decorative sparks */}
+          <div className="absolute top-6 left-6 text-[#f0c15b]/45 animate-pulse">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <div className="absolute bottom-6 right-6 text-[#f0c15b]/45 animate-pulse">
+            <Sparkles className="h-6 w-6" />
+          </div>
+
+          <div className="flex flex-col items-center">
+            {/* Glowing outer circle */}
+            <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#11202a] text-[#f0c15b] shadow-lg shadow-amber-500/20 ring-4 ring-[#d39b2a]/30 animate-pulse">
+              <Trophy className="h-10 w-10 text-[#f0c15b] animate-bounce" />
+            </div>
+
+            <span className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-700">Trilha Concluída</span>
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-[#11202a]">
+              Quest Cumprida!
+            </h2>
+            <p className="mt-3 max-w-md text-sm font-semibold leading-relaxed text-zinc-700">
+              Sua fila de missões operacionais de hoje está completamente limpa. Cada contato e acolhimento feito mantém nossa chama de base aquecida e articulada!
+            </p>
+
+            {/* Streak & Metrics Panel */}
+            <div className="mt-6 w-full rounded-2xl border border-[#d8c7ac] bg-white/70 p-4">
+              <div className="flex flex-col items-center justify-around gap-4 sm:flex-row">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600">
+                    <Flame className="h-5 w-5 fill-amber-500/10 text-amber-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Combo Ativo</p>
+                    <p className="text-sm font-black text-zinc-800">x{streak} Conclusões</p>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-zinc-200 sm:h-8 sm:w-px" />
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Estado da Trilha</p>
+                    <p className="text-sm font-black text-emerald-700">100% Limpa e Segura</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button
+                className="h-12 rounded-2xl bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
+                nativeButton={false}
+                render={<Link href="/abordagem?filter=sem_responsavel" />}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Assumir missões abertas
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 rounded-2xl border-[#d8c7ac] bg-white text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-zinc-50"
+                nativeButton={false}
+                render={<Link href="/dashboard" />}
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" /> Retornar à base
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -497,6 +569,12 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {streak > 0 && (
+                <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-600 rounded-full px-3 py-1 text-xs font-black border border-amber-500/20 animate-pulse">
+                  <Flame className="h-4 w-4 fill-amber-500 text-amber-500 animate-bounce" />
+                  <span>Combo x{streak}</span>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 className="text-xs font-black uppercase tracking-wider text-zinc-500"

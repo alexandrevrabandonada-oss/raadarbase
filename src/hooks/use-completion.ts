@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useToast } from "./use-toast";
 
 export type CompletionType = 
@@ -40,16 +41,30 @@ const COMPLETION_MESSAGES: Record<CompletionType, { title: string; description: 
   }
 };
 
+export interface CompletionContextType {
+  showCompletion: (type: CompletionType) => void;
+  activeCompletion: CompletionType | null;
+  closeCompletion: () => void;
+}
+
+export const CompletionContext = React.createContext<CompletionContextType | undefined>(undefined);
+
 export function useCompletion() {
   const { toast } = useToast();
+  const context = React.useContext(CompletionContext);
 
   const showCompletion = (type: CompletionType) => {
-    const message = COMPLETION_MESSAGES[type];
-    toast({
-      title: message.title,
-      description: message.description,
-      variant: "default"
-    });
+    if (context) {
+      context.showCompletion(type);
+    } else {
+      // Fallback para toast caso esteja fora do Provider
+      const message = COMPLETION_MESSAGES[type];
+      toast({
+        title: message.title,
+        description: message.description,
+        variant: "default"
+      });
+    }
   };
 
   return { showCompletion };

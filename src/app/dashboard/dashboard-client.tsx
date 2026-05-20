@@ -12,13 +12,15 @@ import { GamefulPortalCard } from "@/components/radar/gameful-portal-card";
 import { MissionCard as RadarMissionCard } from "@/components/radar/mission-card";
 import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { AlertBeacon } from "@/components/radar/alert-beacon";
+import { AchievementsSection } from "@/components/radar/achievements-section";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { PriorityPerson } from "@/lib/types";
+import type { PriorityPerson, AuditLogEntry } from "@/lib/types";
+import type { InternalSession } from "@/lib/supabase/auth";
 import type { PilotDashboardData } from "@/lib/data/pilot-stats";
 import type { MissionState } from "@/lib/data/mission-engine";
 import type { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
@@ -44,6 +46,8 @@ import {
   Target,
   TowerControl,
   Users,
+  Flame,
+  ChevronRight,
 } from "lucide-react";
 
 type DashboardMissionEvent = {
@@ -117,18 +121,99 @@ export type DashboardViewData = {
     webhookQuarantineCount: number;
     missingTemplatesCount: number;
   };
+  recentLogs: AuditLogEntry[];
 };
 
 type DashboardClientProps = {
+  session: InternalSession;
   priorityPeople: PriorityPerson[];
   pilotStats: PilotDashboardData;
   cycleAlerts: OperationalCycleAlert[];
   data: DashboardViewData;
 };
 
-export function DashboardClient({ priorityPeople, cycleAlerts, data }: DashboardClientProps) {
+function HeroJourneyWelcomeWidget({
+  session,
+  myQueueCount,
+  streak,
+}: {
+  session: InternalSession;
+  myQueueCount: number;
+  streak: number;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-[32px] border border-[#d39b2a]/30 bg-gradient-to-r from-[#0f1b24] via-[#162732] to-[#0f1b24] p-6 text-white shadow-xl shadow-zinc-950/20">
+      {/* Background glowing effects */}
+      <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-amber-500/10 blur-2xl" />
+      <div className="absolute -left-16 -bottom-16 h-36 w-36 rounded-full bg-indigo-500/10 blur-2xl" />
+
+      <div className="relative flex flex-col items-center justify-between gap-6 md:flex-row">
+        <div className="flex flex-col items-center gap-4 text-center md:flex-row md:text-left">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+            <Flame className={cn("h-8 w-8 fill-amber-500/10 text-amber-500", streak > 0 ? "animate-bounce text-amber-400" : "animate-pulse")} />
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center justify-center gap-2 md:justify-start">
+              <span className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Caminho do Herói</span>
+              {streak > 0 && (
+                <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black uppercase text-[#0f1b24] animate-pulse">
+                  Combo x{streak}!
+                </span>
+              )}
+            </div>
+            <h3 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+              Olá, {session.internalUser.full_name || "Operador"}!
+            </h3>
+            <p className="max-w-[48ch] text-xs font-semibold leading-relaxed text-zinc-300">
+              {myQueueCount > 0 ? (
+                <span>
+                  Sua trilha tem <strong className="text-amber-300 font-black">{myQueueCount} missões</strong> ativas esperando por você hoje. Cada retorno fechado fortalece nossa base cooperativa!
+                </span>
+              ) : (
+                <span>
+                  Você não tem pendências na sua jornada pessoal. Visite o <strong>Mural de Abordagem</strong> para assumir novos vínculos!
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex w-full shrink-0 flex-col gap-3 sm:flex-row md:w-auto">
+          {myQueueCount > 0 ? (
+            <Button
+              className="h-14 rounded-2xl bg-[#d39b2a] px-8 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b] hover:scale-[1.02] transition-transform duration-300"
+              nativeButton={false}
+              render={<Link href="/minha-fila" />}
+            >
+              <Compass className="mr-2 h-4 w-4" /> Jogar Minha Jornada <ChevronRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              className="h-14 rounded-2xl border border-white/10 bg-white/5 px-8 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10 hover:scale-[1.02] transition-transform duration-300"
+              nativeButton={false}
+              render={<Link href="/abordagem?filter=sem_responsavel" />}
+            >
+              <Compass className="mr-2 h-4 w-4" /> Ver Missões Abertas <ChevronRight className="ml-1.5 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: DashboardClientProps) {
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [streak] = useState(() => {
+    if (typeof window !== "undefined") {
+      const today = new Date().toISOString().split("T")[0];
+      const key = `radar_streak_${today}`;
+      const saved = localStorage.getItem(key);
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
 
   useEffect(() => {
     trackOperationalEvent("dashboard_viewed");
@@ -151,9 +236,17 @@ export function DashboardClient({ priorityPeople, cycleAlerts, data }: Dashboard
     setIsSheetOpen(false);
   };
 
+  const myQueue = priorityPeople.filter((p) => p.responsibleId === session.id);
+
   return (
     <div className="space-y-8 pb-32 lg:pb-16">
       <HeroSection data={data} />
+
+      <HeroJourneyWelcomeWidget
+        session={session}
+        myQueueCount={myQueue.length}
+        streak={streak}
+      />
 
       <OperationalCommandBar
         title="Barra de comando"
@@ -191,6 +284,10 @@ export function DashboardClient({ priorityPeople, cycleAlerts, data }: Dashboard
       <SystemAlertsSection data={data} />
 
       <OperationPortalsSection data={data} />
+
+      <AchievementsSection data={data} />
+
+      <QuestLogSection logs={data.recentLogs} />
 
       <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <QuickMapSection data={data} />
@@ -874,5 +971,122 @@ function FieldColumn({
         </div>
       )}
     </div>
+  );
+}
+
+function getQuestLogActionStyle(action: string) {
+  if (action.startsWith("contact.")) {
+    return {
+      icon: MessageSquare,
+      colorClass: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+    };
+  }
+  if (action.startsWith("action_execution.") || action.startsWith("field_agenda.")) {
+    return {
+      icon: Flag,
+      colorClass: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    };
+  }
+  if (action.startsWith("message.")) {
+    return {
+      icon: Sparkles,
+      colorClass: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    };
+  }
+  if (action.startsWith("volunteer") || action.startsWith("internal_user.")) {
+    return {
+      icon: Users,
+      colorClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    };
+  }
+  if (action.startsWith("strategic_memory.")) {
+    return {
+      icon: BookOpenCheck,
+      colorClass: "bg-[#d4b678]/10 text-[#f0c15b] border-[#d4b678]/20",
+    };
+  }
+  return {
+    icon: Activity,
+    colorClass: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  };
+}
+
+function QuestLogSection({ logs }: { logs: AuditLogEntry[] }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  function formatRelativeTime(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 1) return "Agora mesmo";
+    if (diffMins < 60) return `Há ${diffMins} min`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `Há ${diffHours}h`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "Ontem";
+    return `Há ${diffDays} dias`;
+  }
+
+  return (
+    <section className="space-y-4">
+      <SectionHeader
+        icon={Activity}
+        title="Diário de Bordo Narrativo"
+        description="Crônicas e atividades operacionais recentes realizadas pela guilda de base."
+      />
+
+      <Card className="border-none shadow-xl bg-gradient-to-br from-[#121c24] to-[#0a1015] border border-[#23323e] overflow-hidden">
+        <CardContent className="p-6">
+          {logs.length === 0 ? (
+            <div className="text-center py-8 text-zinc-500 font-semibold text-sm">
+              Diário de Bordo vazio. Comece a interagir com a base para gerar crônicas!
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+              {logs.slice(0, 10).map((log) => {
+                const style = getQuestLogActionStyle(log.action);
+                const IconComponent = style.icon;
+                return (
+                  <div key={log.id} className="flex items-start gap-4 p-3 rounded-2xl bg-black/25 border border-[#23323e]/40 hover:border-[#23323e] transition-all group">
+                    <div className={cn("mt-0.5 p-2 rounded-xl border flex items-center justify-center shrink-0", style.colorClass)}>
+                      <IconComponent className="h-4.5 w-4.5 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-[#d4b678] truncate">
+                          {log.actorEmail || "Sistema Automático"}
+                        </p>
+                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                          {mounted
+                            ? formatRelativeTime(log.createdAt)
+                            : new Intl.DateTimeFormat("pt-BR", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }).format(new Date(log.createdAt))}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm font-semibold text-zinc-100 leading-relaxed">
+                        {log.summary}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   );
 }

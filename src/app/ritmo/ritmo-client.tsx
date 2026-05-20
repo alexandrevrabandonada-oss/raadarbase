@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,20 +19,29 @@ import type { TeamFlowAdoptionMetrics } from "@/lib/data/team-flow-adoption";
 import type { CycleAlertEngineItem } from "@/lib/rhythm/cycle-alert-engine";
 import type { RhythmNextDecision } from "@/lib/rhythm/next-decision";
 import type { RhythmSummary } from "@/lib/rhythm/rhythm-summary";
+import { CampfireAudio } from "@/lib/audio/campfire";
 import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Award,
   Clock,
   Coffee,
+  Compass,
+  Flame,
   GitBranch,
   Heart,
   Landmark,
   MapPin,
+  MessageSquare,
   ScrollText,
   ShieldAlert,
+  ShieldCheck,
+  Sparkles,
   TowerControl,
   Users,
+  Volume2,
+  VolumeX,
   Zap,
 } from "lucide-react";
 
@@ -85,6 +95,13 @@ type RitmoViewData = {
     readyCount: number;
     needsPrepCount: number;
   };
+  operatorHighlights: Array<{
+    operatorName: string;
+    openTasks: number;
+    completedTasks: number;
+    responsesRecorded: number;
+    pendingReferrals: number;
+  }>;
 };
 
 const alertIconMap = {
@@ -106,6 +123,47 @@ function alertTone(severity: CycleAlertEngineItem["severity"]): "healthy" | "war
 }
 
 export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleAlerts: CycleAlertEngineItem[] }) {
+  const [isCampfireActive, setIsCampfireActive] = useState(false);
+  const [isCampfireMuted, setIsCampfireMuted] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("radar_audio_muted") === "true";
+    }
+    return false;
+  });
+  const campfireAudioRef = useRef<CampfireAudio | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (campfireAudioRef.current) {
+        campfireAudioRef.current.stop();
+      }
+    };
+  }, []);
+
+  const handleCampfireToggle = () => {
+    if (isCampfireActive) {
+      if (campfireAudioRef.current) {
+        campfireAudioRef.current.stop();
+      }
+      setIsCampfireActive(false);
+    } else {
+      if (!campfireAudioRef.current) {
+        campfireAudioRef.current = new CampfireAudio();
+      }
+      campfireAudioRef.current.start();
+      setIsCampfireActive(true);
+    }
+  };
+
+  const handleCampfireMuteToggle = () => {
+    const nextMute = !isCampfireMuted;
+    setIsCampfireMuted(nextMute);
+    localStorage.setItem("radar_audio_muted", String(nextMute));
+    if (campfireAudioRef.current) {
+      campfireAudioRef.current.setMuted(nextMute);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12">
       <GamefulHero
@@ -205,6 +263,8 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
         <WeeklyRhythmCard state={data.weeklyRhythmState} />
         <DailyMission state={data.missionState} />
       </section>
+
+      <WeeklyLegendsPanel highlights={data.operatorHighlights} />
 
       <section className="space-y-4">
         <div className="space-y-1">
@@ -361,6 +421,68 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
                 Nível atual: {data.wellness.level}
               </Badge>
             </div>
+
+            <div className="pt-2">
+              {!isCampfireActive ? (
+                <Button
+                  nativeButton={false}
+                  onClick={handleCampfireToggle}
+                  className="w-full h-10 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 rounded-xl border border-amber-500/20"
+                >
+                  <Flame className="h-4 w-4 text-amber-200 animate-pulse" />
+                  Iniciar Fogueira de Pausa
+                </Button>
+              ) : (
+                <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-4 space-y-4 shadow-sm relative overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95">
+                  <div className="absolute top-0 right-0 p-2 z-10 flex gap-2">
+                    <button
+                      onClick={handleCampfireMuteToggle}
+                      className="p-1.5 rounded-lg bg-white/80 hover:bg-white border border-amber-200 text-amber-700 transition-colors shadow-inner"
+                      title={isCampfireMuted ? "Ativar som" : "Desativar som"}
+                    >
+                      {isCampfireMuted ? (
+                        <VolumeX className="h-4 w-4" />
+                      ) : (
+                        <Volume2 className="h-4 w-4 animate-bounce" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col items-center justify-center py-6 space-y-3 relative">
+                    {/* Campfire Animation */}
+                    <div className="relative w-16 h-16 flex items-end justify-center">
+                      <div className="absolute w-2 h-8 bg-amber-800 rounded-full rotate-45 origin-bottom translate-x-1" />
+                      <div className="absolute w-2 h-8 bg-amber-900 rounded-full -rotate-45 origin-bottom -translate-x-1" />
+                      <Flame className="h-12 w-12 text-amber-500 animate-bounce relative z-10 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                      <Flame className="h-8 w-8 text-red-500 absolute bottom-1 animate-pulse z-20 opacity-80" />
+                      <Flame className="h-6 w-6 text-yellow-400 absolute bottom-0 animate-ping z-30 opacity-70" />
+                      
+                      {/* Sparks particles */}
+                      <div className="absolute w-1.5 h-1.5 bg-yellow-300 rounded-full animate-ping top-0 left-2 opacity-75" />
+                      <div className="absolute w-1 h-1 bg-amber-400 rounded-full animate-ping -top-2 right-4 opacity-90" />
+                    </div>
+                    
+                    <div className="text-center space-y-1">
+                      <p className="text-xs font-black uppercase tracking-widest text-amber-800 flex items-center justify-center gap-1">
+                        <Sparkles className="h-3 w-3 text-amber-500 animate-spin" />
+                        Descompressão da Guilda
+                      </p>
+                      <p className="text-[11px] text-amber-700 leading-relaxed font-semibold">
+                        Respire fundo. A fogueira está acesa e o som do fogo queima as tensões do ciclo. Faça uma pausa de 2 minutos.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    nativeButton={false}
+                    onClick={handleCampfireToggle}
+                    className="w-full h-9 bg-zinc-800 hover:bg-zinc-900 text-white font-black text-xs uppercase tracking-wider rounded-xl"
+                  >
+                    Concluir Descanso
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </section>
@@ -388,6 +510,134 @@ export function RitmoClient({ data, cycleAlerts }: { data: RitmoViewData; cycleA
         }}
       />
     </div>
+  );
+}
+
+function WeeklyLegendsPanel({ highlights }: { highlights: RitmoViewData["operatorHighlights"] }) {
+  // Filtrar operadores com ações no ciclo atual
+  const activeHighlights = highlights.filter(
+    (h) => h.responsesRecorded > 0 || h.completedTasks > 0 || h.pendingReferrals > 0
+  );
+
+  if (activeHighlights.length === 0) {
+    return (
+      <Card className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
+        <CardContent className="p-8 text-center space-y-3">
+          <div className="mx-auto w-12 h-12 rounded-full bg-[#f0c15b]/10 border border-[#f0c15b]/20 flex items-center justify-center text-[#b47a0e]">
+            <Award className="h-6 w-6" />
+          </div>
+          <div>
+            <h4 className="text-base font-black text-zinc-950 uppercase tracking-wider">Quadro de Honra da Guilda</h4>
+            <p className="mt-1 text-sm text-zinc-600 max-w-md mx-auto">
+              A guilda está se preparando para as missões desta semana. Avance na jornada de escuta para coroar os destaques do clã!
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Ordenar para descobrir líderes de cada categoria
+  const arauto = [...activeHighlights].sort((a, b) => b.responsesRecorded - a.responsesRecorded)[0];
+  const guardiao = [...activeHighlights].sort((a, b) => b.completedTasks - a.completedTasks)[0];
+  const condutor = [...activeHighlights].sort((a, b) => b.pendingReferrals - a.pendingReferrals)[0];
+
+  return (
+    <section className="space-y-4">
+      <div className="space-y-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Consagração de Esforços</p>
+        <h3 className="text-2xl font-black tracking-tight text-zinc-950">Quadro de Honra Cooperativo</h3>
+        <p className="text-sm leading-6 text-zinc-600">
+          Reconhecimento dos operadores que lideraram o avanço do clã nas missões desta semana.
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Arauto do Clã */}
+        {arauto && arauto.responsesRecorded > 0 ? (
+          <Card className="radar-outline-card border-[#d8c7ac] bg-gradient-to-br from-[#fffdfa] to-[#fcf8ef] py-0 shadow-[0_12px_36px_rgba(15,23,42,0.04)] relative overflow-hidden group hover:border-[#f0c15b] transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#f0c15b]/10 to-transparent rounded-bl-full pointer-events-none" />
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-sky-500/10 border border-sky-500/25 text-sky-600 flex items-center justify-center">
+                  <MessageSquare className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b7759]">🗣️ Arauto do Clã</p>
+                  <h4 className="mt-0.5 text-lg font-black text-[#11202a]">{arauto.operatorName}</h4>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-zinc-600 leading-relaxed">
+                  Liderou a escuta coletando e registrando <strong className="text-sky-700">{arauto.responsesRecorded}</strong> retornos de cidadãos no ciclo.
+                </p>
+                <div className="pt-2 flex items-center gap-2">
+                  <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-[10px] font-black uppercase tracking-wider text-sky-700">
+                    Sintonizador de Vozes
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Guardião da Fila */}
+        {guardiao && guardiao.completedTasks > 0 ? (
+          <Card className="radar-outline-card border-[#d8c7ac] bg-gradient-to-br from-[#fffdfa] to-[#fcf8ef] py-0 shadow-[0_12px_36px_rgba(15,23,42,0.04)] relative overflow-hidden group hover:border-[#f0c15b] transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#f0c15b]/10 to-transparent rounded-bl-full pointer-events-none" />
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 flex items-center justify-center">
+                  <ShieldCheck className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b7759]">🛡️ Guardião da Fila</p>
+                  <h4 className="mt-0.5 text-lg font-black text-[#11202a]">{guardiao.operatorName}</h4>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-zinc-600 leading-relaxed">
+                  Desobstruiu o avanço da base concluindo <strong className="text-emerald-700">{guardiao.completedTasks}</strong> missões de abordagem no ciclo.
+                </p>
+                <div className="pt-2 flex items-center gap-2">
+                  <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase tracking-wider text-emerald-700">
+                    Protetor de Jornada
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/* Condutor de Vínculos */}
+        {condutor && (condutor.pendingReferrals > 0 || condutor.responsesRecorded > 0) ? (
+          <Card className="radar-outline-card border-[#d8c7ac] bg-gradient-to-br from-[#fffdfa] to-[#fcf8ef] py-0 shadow-[0_12px_36px_rgba(15,23,42,0.04)] relative overflow-hidden group hover:border-[#f0c15b] transition-all duration-300">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#f0c15b]/10 to-transparent rounded-bl-full pointer-events-none" />
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-600 flex items-center justify-center">
+                  <Compass className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b7759]">🧭 Condutor de Vínculos</p>
+                  <h4 className="mt-0.5 text-lg font-black text-[#11202a]">{condutor.operatorName}</h4>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-zinc-600 leading-relaxed">
+                  Encaminhou e vinculou novos cidadãos a <strong className="text-amber-700">{condutor.pendingReferrals}</strong> rotas táticas de campo ou WhatsApp.
+                </p>
+                <div className="pt-2 flex items-center gap-2">
+                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-[10px] font-black uppercase tracking-wider text-amber-700">
+                    Pontes e Alianças
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

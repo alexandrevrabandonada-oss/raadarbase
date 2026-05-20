@@ -1,7 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Lock, AlertCircle, ChevronRight } from "lucide-react";
+import {
+  CheckCircle2,
+  Lock,
+  AlertCircle,
+  ChevronRight,
+  Compass,
+  MessageSquare,
+  Scroll,
+  MapPinned,
+  Trophy
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JourneyPhase, JOURNEY_PHASES_ORDER } from "@/lib/data/journey-mapper";
 
@@ -22,6 +32,14 @@ const PHASE_LABELS: Record<JourneyPhase, string> = {
   concluir: "Concluir",
 };
 
+const PHASE_ICONS: Record<JourneyPhase, React.ElementType> = {
+  preparar: Compass,
+  conversar: MessageSquare,
+  registrar: Scroll,
+  encaminhar: MapPinned,
+  concluir: Trophy,
+};
+
 export function JourneyBar({
   currentPhase,
   completedPhases,
@@ -37,23 +55,30 @@ export function JourneyBar({
           {JOURNEY_PHASES_ORDER.map((phase) => {
             const isCompleted = completedPhases.includes(phase);
             const isCurrent = currentPhase === phase;
+            const Icon = PHASE_ICONS[phase];
 
             return (
               <div key={phase} className="flex min-w-0 flex-1 items-center gap-2">
                 <div
                   className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-black transition-all duration-300",
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[10px] font-black transition-all duration-300",
                     isBlocked && isCurrent ? "border-rose-300 bg-rose-500 text-white" :
-                    isCompleted ? "border-emerald-200 bg-emerald-500 text-white" :
-                    isCurrent ? "border-zinc-950 bg-zinc-950 text-white shadow-[0_0_0_3px_rgba(24,24,27,0.08)]" :
+                    isCompleted ? "border-emerald-200 bg-emerald-500 text-white shadow-sm" :
+                    isCurrent ? "border-amber-500 bg-[#0f1b24] text-[#f0c15b] shadow-md animate-pulse" :
                     "border-zinc-200 bg-white text-zinc-400"
                   )}
                   title={PHASE_LABELS[phase]}
                 >
-                  {isBlocked && isCurrent ? <Lock className="h-3 w-3" /> : isCompleted ? <CheckCircle2 className="h-3 w-3" /> : JOURNEY_PHASES_ORDER.indexOf(phase) + 1}
+                  {isBlocked && isCurrent ? (
+                    <Lock className="h-4 w-4" />
+                  ) : isCompleted ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
                 </div>
                 {phase !== JOURNEY_PHASES_ORDER[JOURNEY_PHASES_ORDER.length - 1] ? (
-                  <div className={cn("h-1 flex-1 rounded-full", isCompleted ? "bg-emerald-400" : isCurrent ? "bg-zinc-950/35" : "bg-zinc-200")} />
+                  <div className={cn("h-1 flex-1 rounded-full", isCompleted ? "bg-emerald-400" : isCurrent ? "bg-amber-400" : "bg-zinc-200")} />
                 ) : null}
               </div>
             );
@@ -61,10 +86,10 @@ export function JourneyBar({
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
           <span className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">
-            {isBlocked ? "Em espera" : PHASE_LABELS[currentPhase]}
+            {isBlocked ? "Quest Bloqueada" : PHASE_LABELS[currentPhase]}
           </span>
           <span className="shrink-0 text-[11px] font-bold text-zinc-500">
-            {completedPhases.length + (isBlocked ? 0 : 1)}/5
+            {completedPhases.length + (isBlocked ? 0 : 1)}/5 Quests
           </span>
         </div>
         {isBlocked && blockedReason ? (
@@ -75,35 +100,53 @@ export function JourneyBar({
   }
 
   return (
-    <div className="w-full space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-        {JOURNEY_PHASES_ORDER.map((phase, idx) => {
-          const isCompleted = completedPhases.includes(phase);
-          const isCurrent = currentPhase === phase;
+    <div className="w-full space-y-5">
+      {/* Visual Trail Container */}
+      <div className="relative px-6 py-2">
+        {/* The Connection Line Path behind the nodes */}
+        <div className="absolute top-[40px] left-[12%] right-[12%] hidden h-[2px] border-t-2 border-dashed border-zinc-300 sm:block" />
 
-          return (
-            <div key={phase} className="min-w-0 space-y-2">
-              <div
-                className={cn(
-                  "flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-3 transition-all duration-300 sm:flex-col sm:justify-center sm:text-center",
-                  isBlocked && isCurrent ? "border-rose-200 bg-rose-50 text-rose-600" :
-                  isCompleted ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
-                  isCurrent ? "border-zinc-950 bg-zinc-950 text-white shadow-lg shadow-zinc-200" :
-                  "border-zinc-200 bg-white text-zinc-400"
-                )}
-              >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current/20 bg-current/5">
-                  {isBlocked && isCurrent ? <Lock className="h-3.5 w-3.5" /> :
-                   isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> :
-                   <span className="text-[10px] font-black">{idx + 1}</span>}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-5 relative z-10">
+          {JOURNEY_PHASES_ORDER.map((phase, idx) => {
+            const isCompleted = completedPhases.includes(phase);
+            const isCurrent = currentPhase === phase;
+            const Icon = PHASE_ICONS[phase];
+
+            return (
+              <div key={phase} className="flex flex-col items-center justify-center">
+                <div
+                  className={cn(
+                    "flex h-20 w-20 items-center justify-center rounded-full border-2 transition-all duration-300 shadow-md",
+                    isBlocked && isCurrent ? "border-rose-400 bg-rose-50 text-rose-600 animate-pulse" :
+                    isCompleted ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 shadow-emerald-100" :
+                    isCurrent ? "border-amber-500 bg-[#0f1b24] text-[#f0c15b] shadow-lg shadow-amber-500/20 scale-105 animate-pulse" :
+                    "border-zinc-200 bg-white text-zinc-400"
+                  )}
+                  title={PHASE_LABELS[phase]}
+                >
+                  <div className="flex flex-col items-center justify-center gap-0.5">
+                    {isBlocked && isCurrent ? (
+                      <Lock className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
+                    <span className="text-[9px] font-black uppercase tracking-tighter mt-1">
+                      {PHASE_LABELS[phase]}
+                    </span>
+                  </div>
                 </div>
-                <span className={cn("block text-[10px] font-black uppercase leading-4 tracking-[0.08em]", isCurrent ? "text-current" : "text-current/85")}>
-                  {PHASE_LABELS[phase]}
-                </span>
+                <div className="mt-2.5 text-center">
+                  <span className={cn(
+                    "text-[10px] font-black uppercase tracking-wider",
+                    isCurrent ? "text-amber-600 font-bold" : isCompleted ? "text-emerald-600" : "text-zinc-400"
+                  )}>
+                    {isCompleted ? "Concluído" : isCurrent ? (isBlocked ? "Bloqueado" : "Quest Ativa") : "Bloqueado"}
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <div className={cn("flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all duration-300", isBlocked ? "border-rose-100 bg-rose-50" : "border-zinc-200 bg-zinc-50")}>
@@ -113,7 +156,7 @@ export function JourneyBar({
           </div>
           <div>
             <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none">
-              {isBlocked ? "Ação Bloqueada" : "Próximo Passo"}
+              {isBlocked ? "Ação Bloqueada" : "Próxima Ação Requerida"}
             </p>
             <p className={cn("text-sm font-black leading-5 tracking-tight", isBlocked ? "text-rose-700" : "text-zinc-950")}>
               {isBlocked ? blockedReason : nextStepLabel}

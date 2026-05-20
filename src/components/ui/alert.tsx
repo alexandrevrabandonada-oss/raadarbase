@@ -4,13 +4,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
+  "group/alert relative grid w-full gap-1 rounded-[2px] border-2 px-3 py-2.5 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4.5",
   {
     variants: {
       variant: {
-        default: "bg-card text-card-foreground",
+        default: "bg-concrete-dark text-off-white border-burnt-yellow shadow-[3px_3px_0px_0px_rgba(242,169,0,0.4)] dark:bg-charcoal dark:shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)]",
         destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+          "bg-rust text-off-white border-charcoal shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] *:data-[slot=alert-description]:text-off-white/90 *:[svg]:text-current dark:border-off-white dark:shadow-[3px_3px_0px_0px_rgba(231,224,210,0.3)]",
       },
     },
     defaultVariants: {

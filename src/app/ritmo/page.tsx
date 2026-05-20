@@ -170,6 +170,7 @@ export default async function RitmoPage() {
             readyCount: territorialExpansion.metrics.readyCount,
             needsPrepCount: territorialExpansion.metrics.needsPrepCount,
           },
+          operatorHighlights: pilotData.responsibleBreakdown,
         }}
         cycleAlerts={rhythmAlerts}
       />

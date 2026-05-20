@@ -11,14 +11,14 @@ export default async function AppShell({ children }: { children: React.ReactNode
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Mobile Header */}
-      <header className="radar-paper sticky top-0 z-40 flex h-16 items-center justify-between border-b border-zinc-300/70 px-4 xl:hidden">
+      <header className="radar-paper sticky top-0 z-40 flex h-16 items-center justify-between border-b-2 border-cement px-4 xl:hidden">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-black text-white font-black text-sm shadow-md">
+          <div className="flex size-9 items-center justify-center rounded-[2px] border-2 border-charcoal bg-burnt-yellow text-charcoal font-black text-sm shadow-[1.5px_1.5px_0px_0px_rgba(11,11,11,1)]">
             RB
           </div>
           <div>
-            <span className="block text-sm font-black tracking-tight">Radar de Base</span>
-            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="block text-sm font-black tracking-tight text-charcoal">Radar de Base</span>
+            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-burnt-yellow">
               Mapa de Mundos
             </span>
           </div>

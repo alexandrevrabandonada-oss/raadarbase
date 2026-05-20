@@ -22,6 +22,7 @@ import { getStrategicMemoryStats } from "@/lib/data/strategic-memory";
 import { buildDailyNarrative } from "@/lib/narrative/daily-narrative";
 import { buildWeeklyNarrative } from "@/lib/narrative/weekly-narrative";
 import { buildSeasonNarrative } from "@/lib/narrative/season-narrative";
+import { listAuditLogs } from "@/lib/data/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ async function loadDashboardData() {
     territories,
     fieldEvents,
     memoryStats,
+    recentLogs,
   ] = await Promise.all([
     listPriorityPeople(),
     getPilotDashboardData(),
@@ -97,6 +99,7 @@ async function loadDashboardData() {
     listTerritorySummaries(),
     listFieldAgendaEvents({ includeMetrics: true }),
     getStrategicMemoryStats(),
+    listAuditLogs(),
   ]);
 
   const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
@@ -291,6 +294,7 @@ async function loadDashboardData() {
       webhookQuarantineCount: operationalAlerts.webhookQuarantineCount,
       missingTemplatesCount: operationalAlerts.missingTemplates.length,
     },
+    recentLogs: recentLogs ?? [],
   };
 
   return {
@@ -302,7 +306,7 @@ async function loadDashboardData() {
 }
 
 export default async function DashboardPage() {
-  await requireInternalPageSession("/dashboard");
+  const session = await requireInternalPageSession("/dashboard");
 
   let loaded:
     | Awaited<ReturnType<typeof loadDashboardData>>
@@ -329,6 +333,7 @@ export default async function DashboardPage() {
   return (
     <AppShell>
       <DashboardClient
+        session={session}
         priorityPeople={loaded.priorityPeople}
         pilotStats={loaded.pilotStats}
         cycleAlerts={loaded.cycleAlerts}

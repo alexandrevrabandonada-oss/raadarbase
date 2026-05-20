@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { CompletionProvider } from "@/components/radar/completion-provider";
 
 export default function RootLayout({
   children,
@@ -31,7 +32,9 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <TooltipProvider>
-          {children}
+          <CompletionProvider>
+            {children}
+          </CompletionProvider>
         </TooltipProvider>
       </body>
     </html>
