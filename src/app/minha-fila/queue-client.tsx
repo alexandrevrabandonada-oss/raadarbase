@@ -181,6 +181,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const [focusMode, setFocusMode] = useState(false);
   const [streak, setStreak] = useState(() => {
     if (typeof window !== "undefined") {
       const today = new Date().toISOString().split("T")[0];
@@ -330,9 +331,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   if (queue.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        {/* Parchment-style card container */}
-        <div className="relative overflow-hidden rounded-[4px] border-2 border-burnt-yellow bg-charcoal p-8 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)]">
-          {/* Animated decorative sparks */}
+        <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-8 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)]">
           <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
             <Sparkles className="h-6 w-6" />
           </div>
@@ -341,7 +340,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           </div>
 
           <div className="flex flex-col items-center">
-            {/* Glowing outer circle */}
             <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-charcoal border-2 border-burnt-yellow text-burnt-yellow shadow-lg shadow-burnt-yellow/20 animate-pulse">
               <Trophy className="h-10 w-10 text-burnt-yellow" />
             </div>
@@ -354,7 +352,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               Sua fila de missões operacionais de hoje está completamente limpa. Cada contato e acolhimento feito mantém nossa chama de base aquecida e articulada!
             </p>
 
-            {/* Streak & Metrics Panel */}
             <div className="mt-6 w-full rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
               <div className="flex flex-col items-center justify-around gap-4 sm:flex-row">
                 <div className="flex items-center gap-3">
@@ -381,10 +378,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               </div>
             </div>
 
-            {/* CTAs */}
             <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
               <Button
-                className="h-12 rounded-[2px] bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal border-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
+                className="h-12 rounded-[2px] bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
                 nativeButton={false}
                 render={<Link href="/abordagem?filter=sem_responsavel" />}
               >
@@ -437,494 +433,583 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-32 lg:pb-20">
-      <GamefulHero
-        eyebrow="Jornada do operador"
-        title="Minha Jornada"
-        description={`Missão de hoje: ${currentMissionReason}`}
-        variant="dark"
-        compact={isCompact}
-        titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
-        descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[32rem]")}
-        metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
-        badges={
-          <>
-            <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
-            <GamefulHeroBadge className="border-[#f0c15b]/25 bg-[#f0c15b]/10 text-[#f7d88c]">Operador: {operatorName}</GamefulHeroBadge>
-          </>
-        }
-        metrics={
-          <>
-            <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
-            <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
-            <GamefulMetricCard label="Missão" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
-            <GamefulMetricCard label="Carga" value={wellness.level === "healthy" ? "Estável" : wellness.level === "warning" ? "Bloco de 5" : "Pausa"} tone="dark" detail={wellness.level === "healthy" ? "Ritmo saudável." : wellness.level === "warning" ? "Feche um bloco curto." : "Pedir apoio ou redistribuir."} compact layout="split" title={wellness.microcopy} valueClassName="max-w-[11ch]" />
-          </>
-        }
-        actions={
-          <>
-            <Button
-              className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
-              onClick={() => window.scrollTo({ top: isCompact ? 520 : 780, behavior: "smooth" })}
-            >
-              <Compass className="mr-2 h-4 w-4" />
-              Continuar Jornada
-            </Button>
-            <Button
-              variant="outline"
-              className="h-12 border-white/15 bg-white/5 px-6 text-xs font-black uppercase tracking-wider text-white hover:bg-white/10"
-              nativeButton={false}
-              render={<Link href="/abordagem" />}
-            >
-              <ArrowRight className="mr-2 h-4 w-4" />
-              Abrir Mural de Missões
-            </Button>
-            {compactHydrated ? (
-              <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || queue.length > 5} onToggle={setCompact} />
-            ) : null}
-          </>
-        }
-        aside={!isCompact ? (
-          <div className="space-y-4 rounded-[24px] border border-white/10 bg-black/15 p-4 xl:p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Mapa da trilha</p>
-                <h3 className="mt-2 text-xl font-black text-white">
-                  {currentPerson.displayName || `@${currentPerson.username}`}
-                </h3>
+      {focusMode ? (
+        /* ==================== IMMERSIVE MODE: HUD PILOTO AUTOMÁTICO ==================== */
+        <div className="fixed inset-0 z-50 bg-[#0B0B0B] text-off-white p-4 md:p-8 flex flex-col justify-center overflow-y-auto no-scrollbar">
+          <div className="mx-auto max-w-3xl w-full space-y-6">
+            <div className="flex items-center justify-between border-b-2 border-cement/20 pb-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow animate-pulse flex items-center gap-2">
+                  <Flame className="h-4 w-4 fill-burnt-yellow animate-bounce" /> Piloto Automático • Modo Foco
+                </span>
+                <h1 className="text-lg font-black uppercase tracking-wider text-white">
+                  Missão {currentIndex + 1} de {queue.length}
+                </h1>
               </div>
-              <Sparkles className="h-5 w-5 text-[#f0c15b]" />
-            </div>
-            <p className="text-sm font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
-                <p className="mt-2 text-sm font-black text-[#f7f1e5]">{currentMissionNextStep}</p>
-              </div>
-            <div className="space-y-3">
-              {nextFive.map((person, idx) => (
-                <div key={person.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-white">
-                      {idx + 2}. {person.displayName || `@${person.username}`}
-                    </p>
-                    <p className="truncate text-xs font-medium text-zinc-400">{person.nextAction}</p>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      />
-
-      <OperationalCommandBar
-        title="Barra de comando"
-        statusLabel="Missão em foco"
-        statusValue={`${currentMissionType} · ${currentMissionState}`}
-        statusDetail={currentHoldLabel}
-        primaryAction={{
-          label: currentMissionAction,
-          onClick: currentBlocked ? handleSkip : () => setShowResponseDialog(true),
-          icon: MessageSquare,
-        }}
-        secondaryActions={[
-          {
-            label: "Abrir Instagram",
-            onClick: () => window.open(currentPerson.instagramUrl || `https://instagram.com/${currentPerson.username}`, "_blank"),
-            icon: Instagram,
-            disabled: currentBlocked,
-            title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
-          },
-          {
-            label: "Preparar Mensagem",
-            onClick: handleCopyDM,
-            icon: Copy,
-            disabled: !currentPerson.suggestedMessage || currentBlocked,
-            title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
-          },
-          {
-            label: "Próxima Missão",
-            onClick: handleNext,
-            icon: ChevronRight,
-            disabled: currentIndex === queue.length - 1,
-          },
-        ]}
-        shortcutAction={{
-          label: "Abrir Central de Ritmo",
-          href: "/ritmo",
-          icon: TowerControl,
-        }}
-      />
-
-      {wellness.level !== "healthy" && !isCompact && <OperatorWellnessCard wellness={wellness} />}
-
-      <div className={cn("grid gap-8", isCompact ? "2xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-[1.3fr_0.7fr]")}>
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Próxima missão</p>
-              <h3 className="text-2xl font-black tracking-tight text-zinc-950">Continuar Jornada</h3>
-              <p className="max-w-2xl text-sm font-medium text-zinc-500">
-                A pessoa em foco, a missão explicável e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
-              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 border-2 border-white/20 text-white bg-transparent hover:bg-white/10 rounded-[2px] text-[10px] font-black uppercase"
+                onClick={() => setFocusMode(false)}
+              >
+                Sair do foco
+              </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              {streak > 0 && (
-                <div className="flex items-center gap-1.5 bg-amber-500/10 text-amber-600 rounded-full px-3 py-1 text-xs font-black border border-amber-500/20 animate-pulse">
-                  <Flame className="h-4 w-4 fill-amber-500 text-amber-500 animate-bounce" />
-                  <span>Combo x{streak}</span>
-                </div>
-              )}
+            <div className="w-full h-2.5 border border-black bg-charcoal rounded-none overflow-hidden">
+              <div
+                className="h-full bg-burnt-yellow transition-all duration-300"
+                style={{ width: `${((currentIndex + 1) / queue.length) * 100}%` }}
+              />
+            </div>
+
+            <QueueCard
+              person={currentPerson}
+              mission={currentMission}
+              compact={true}
+              contactDisabled={currentBlocked}
+              onCopyDM={handleCopyDM}
+              onRegisterResponse={() => setShowResponseDialog(true)}
+              onReferral={() => setShowReferralDialog(true)}
+              onSkip={handleSkip}
+              onNext={handleNext}
+              copyStatus={copyStatus}
+              onConfirmSent={handleConfirmSent}
+              onCancelCopy={() => setCopyStatus("idle")}
+            />
+
+            <div className="flex items-center justify-between pt-2">
               <Button
                 variant="ghost"
-                className="text-xs font-black uppercase tracking-wider text-zinc-500"
+                className="text-xs font-black uppercase text-zinc-400 hover:text-white"
                 onClick={handlePrev}
                 disabled={currentIndex === 0}
               >
                 Anterior
               </Button>
-              <div className="h-2 w-24 overflow-hidden rounded-full bg-zinc-100 sm:w-32 xl:w-40">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#d39b2a] via-[#f0c15b] to-[#11202a]/35 transition-all duration-500"
-                  style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
-                />
+              <div className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                Streak Ativo: <span className="text-burnt-yellow">x{streak} 🔥</span>
               </div>
               <Button
                 variant="ghost"
-                className="text-xs font-black uppercase tracking-wider text-zinc-500"
+                className="text-xs font-black uppercase text-zinc-400 hover:text-white"
                 onClick={handleNext}
                 disabled={currentIndex === queue.length - 1}
               >
-                Próxima
+                Avançar
               </Button>
             </div>
-          </div>
 
-          <QueueCard
-            person={currentPerson}
-            mission={currentMission}
-            compact={isCompact}
-            contactDisabled={currentBlocked}
-            onCopyDM={handleCopyDM}
-            onRegisterResponse={() => setShowResponseDialog(true)}
-            onReferral={() => setShowReferralDialog(true)}
-            onSkip={handleSkip}
-            onNext={handleNext}
-            copyStatus={copyStatus}
-            onConfirmSent={handleConfirmSent}
-            onCancelCopy={() => setCopyStatus("idle")}
-          />
-
-          {isCompact ? (
-            <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
-              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
-                Abrir leitura complementar da jornada
-              </summary>
-              <div className="space-y-4 border-t border-[#d8c7ac] px-5 py-4">
-                <div className="space-y-3 rounded-[20px] border border-[#d8c7ac] bg-white/75 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Mapa da trilha</p>
-                      <h4 className="mt-1 text-lg font-black text-[#11202a]">
-                        {currentPerson.displayName || `@${currentPerson.username}`}
-                      </h4>
-                    </div>
-                    <MapPinned className="h-4 w-4 text-[#b47a0e]" />
-                  </div>
-                  <p className="text-sm font-semibold leading-relaxed text-zinc-700">{currentPerson.priorityReason}</p>
-                  <div className="rounded-2xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Próximo passo</p>
-                    <p className="mt-2 text-sm font-black text-[#11202a]">{currentPerson.nextAction}</p>
-                  </div>
-                </div>
-                {wellness.level !== "healthy" ? <OperatorWellnessCard wellness={wellness} /> : null}
-              </div>
-            </details>
-          ) : null}
-        </div>
-
-        <aside className="space-y-6">
-          {isCompact ? (
-            <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
-          ) : null}
-          {recommendedMissions.length > 0 ? (
-            <Card className="radar-outline-card rounded-[28px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
-              <CardContent className="space-y-4 p-5">
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Bloco recomendado</p>
-                  <h4 className="text-lg font-black text-[#11202a]">Próximas 5 missões da engine</h4>
-                  <p className="text-sm leading-6 text-zinc-600">
-                    Ajuste o foco do turno sem perder a trilha. O bloco equilibra cuidado, retorno, escuta e encaminhamento.
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  {WORK_MODE_OPTIONS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={cn(
-                        "rounded-2xl border px-4 py-3 text-left transition-colors",
-                        workMode === option.id
-                          ? "border-[#b47a0e] bg-[rgba(212,182,120,0.12)]"
-                          : "border-[#d8c7ac] bg-white/80 hover:border-[#c9b28b]",
-                      )}
-                      onClick={() => setWorkMode(option.id)}
-                    >
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-[#11202a]">{option.label}</p>
-                      <p className="mt-1 text-xs leading-5 text-zinc-600">{option.hint}</p>
-                    </button>
-                  ))}
-                </div>
-                <div className="space-y-3">
-                  {recommendedMissions.map((mission) => (
-                    <button
-                      key={mission.id}
-                      type="button"
-                      className="w-full rounded-2xl border border-[#d8c7ac] bg-white/85 p-4 text-left transition-colors hover:border-[#b47a0e]"
-                      onClick={() => {
-                        const targetIndex = mission.subjectId ? queue.findIndex((person) => person.id === mission.subjectId) : -1;
-                        if (targetIndex >= 0) {
-                          setCurrentIndex(targetIndex);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
-                            {missionTypeLabel(mission.type)} · {missionStateLabel(mission.state)}
-                          </p>
-                          <p className="mt-1 text-sm font-black text-[#11202a]">{mission.title}</p>
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-600">{mission.nextStep}</p>
-                        </div>
-                        <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-zinc-400" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-          <Card className="radar-outline-card rounded-[28px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
-            <CardContent className="space-y-4 p-5">
-              <div className="flex items-center gap-2">
-                <TowerControl className="h-4 w-4 text-[#8b7759]" />
-                <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">
-                  Cuidado e ritmo
-                </h4>
-              </div>
-              <div className="grid gap-3">
-                <WellbeingLine
-                  icon={Coffee}
-                  title={wellness.level === "healthy" ? "Carga saudável" : "Trabalhe em blocos curtos"}
-                  description={wellness.recommendation}
-                />
-                {queue.length > 5 ? (
-                  <WellbeingLine
-                    icon={PauseCircle}
-                    title="Bloco sugerido de 5 missões"
-                    description="Feche um grupo curto, revise o estado da base e só então abra o próximo bloco."
-                  />
-                ) : null}
-                {wellness.shouldSuggestBreak ? (
-                  <WellbeingLine
-                    icon={HeartHandshake}
-                    title="Pausa recomendada"
-                    description="Ao concluir este bloco, faça uma pausa antes de abrir mais conversas."
-                  />
-                ) : null}
-                {wellness.level !== "healthy" ? (
-                  <Button
-                    variant="outline"
-                    className="h-11 border-[#d8c7ac] bg-white/80 text-xs font-black uppercase tracking-wider"
-                    nativeButton={false}
-                    render={<Link href="/abordagem?filter=sem_responsavel" />}
-                  >
-                    Redistribuir com coordenação
-                  </Button>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-
-          <EthicalGuardrailBanner
-            description="Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto."
-            badgeLabel="Operação humana"
-          />
-
-          {oldPendencies.length > 0 && (
-            <Card className="radar-outline-card rounded-[28px] border-[#d39b2a]/35 bg-[linear-gradient(180deg,_rgba(255,250,242,0.98),_rgba(255,241,223,0.95))] shadow-sm">
-              <CardContent className="space-y-4 p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-700">Pendências antigas</p>
-                    <h4 className="mt-1 text-lg font-black text-amber-950">
-                      {oldPendencies.length} missões pedem revisão
-                    </h4>
-                  </div>
-                  <Badge variant="outline" className="border-amber-200 bg-white text-amber-700">
-                    3+ dias
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {oldPendencies.slice(0, 4).map((person) => (
-                    <button
-                      key={person.id}
-                      className="w-full rounded-2xl border border-[#d8c7ac] bg-white/85 p-4 text-left transition-colors hover:border-[#d39b2a]/45"
-                      onClick={() => {
-                        setQueue((prev) => [person, ...prev.filter((p) => p.id !== person.id)]);
-                        setCurrentIndex(0);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    >
-                      <p className="text-sm font-black text-zinc-900">
-                        {person.displayName || `@${person.username}`}
-                      </p>
-                      <p className="mt-1 text-xs font-medium text-zinc-500">
-                        Revisar espera prolongada e decidir se a trilha segue ou fecha.
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </aside>
-      </div>
-
-      <section className={cn("grid gap-6", isCompact ? "2xl:grid-cols-[1.1fr_0.9fr]" : "xl:grid-cols-[1.1fr_0.9fr]")}>
-        <Card className="overflow-hidden border-zinc-200 bg-white py-0 shadow-[0_18px_44px_rgba(15,23,42,0.06)]">
-          <CardContent className="grid gap-5 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-zinc-950">
-                <Route className="h-5 w-5" />
-                <h3 className="text-2xl font-black tracking-tight">Leitura da missão</h3>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-700 hover:bg-zinc-50">
-                  {currentMissionType}
-                </Badge>
-                {currentBlocked ? (
-                  <Badge className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rose-700 hover:bg-rose-50">
-                    {currentMissionState}
-                  </Badge>
-                ) : currentWaiting ? (
-                  <Badge className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-amber-700 hover:bg-amber-50">
-                    {currentMissionState}
-                  </Badge>
-                ) : (
-                  <Badge className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700 hover:bg-emerald-50">
-                    {currentMissionState}
-                  </Badge>
-                )}
-                <Badge className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-zinc-600 hover:bg-white">
-                  {currentMission ? currentMission.phase : phaseBadge}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-2xl font-black tracking-tight text-zinc-950">
-                  {currentPerson.displayName || `@${currentPerson.username}`}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-zinc-500">@{currentPerson.username}</p>
-              </div>
-              <div className="grid gap-3">
-                <MissionPanel label="Motivo" value={currentMissionReason} />
-                <MissionPanel label="Próximo passo" value={currentMissionNextStep} compact />
-                <MissionPanel label={holdTone === "free" ? "Guardrail" : "Bloqueio ou espera"} value={currentHoldLabel} tone={holdTone} />
-                {currentMissionSignals.length > 0 ? (
-                  <div className="rounded-[20px] border border-zinc-200 bg-zinc-50/70 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Sinais usados</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {currentMissionSignals.slice(0, 4).map((signal) => (
-                        <Badge
-                          key={`${signal.code}-${signal.at ?? signal.label}`}
-                          className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-700 hover:bg-white"
-                        >
-                          {signal.label}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+            <div className="text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic pt-4">
+              &quot;Calma para organizar, não para aceitar.&quot;
             </div>
-
-            <div className="space-y-4 rounded-[24px] border border-zinc-200 bg-zinc-50/80 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Ação recomendada</p>
-                  <p className="mt-1 text-sm font-black text-zinc-950">{currentMissionAction}</p>
-                </div>
-                <Sparkles className="h-4 w-4 text-indigo-500" />
-              </div>
-              <div className="rounded-[22px] border border-zinc-200 bg-white p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-500">Próximo passo salvo</p>
-                <p className="mt-2 text-sm font-medium leading-7 text-zinc-700">{currentMissionNextStep}</p>
-              </div>
-              <div className="min-h-[140px] rounded-[22px] border border-zinc-200 bg-white p-4 text-sm font-medium leading-7 text-zinc-700">
-                {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+          </div>
+        </div>
+      ) : (
+        /* ==================== STANDARD VIEW ==================== */
+        <>
+          <GamefulHero
+            eyebrow="Jornada do operador"
+            title="Minha Jornada"
+            description={`Missão de hoje: ${currentMissionReason}`}
+            variant="dark"
+            compact={isCompact}
+            titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
+            descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[32rem]")}
+            metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
+            badges={
+              <>
+                <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
+                <GamefulHeroBadge className="border-[#f0c15b]/25 bg-[#f0c15b]/10 text-[#f7d88c]">Operador: {operatorName}</GamefulHeroBadge>
+              </>
+            }
+            metrics={
+              <>
+                <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
+                <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
+                <GamefulMetricCard label="Missão" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
+                <GamefulMetricCard label="Carga" value={wellness.level === "healthy" ? "Estável" : wellness.level === "warning" ? "Bloco de 5" : "Pausa"} tone="dark" detail={wellness.level === "healthy" ? "Ritmo saudável." : wellness.level === "warning" ? "Feche um bloco curto." : "Pedir apoio ou redistribuir."} compact layout="split" title={wellness.microcopy} valueClassName="max-w-[11ch]" />
+              </>
+            }
+            actions={
+              <>
                 <Button
-                  className="h-11 bg-zinc-950 text-xs font-black uppercase tracking-wider hover:bg-zinc-800"
-                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="h-12 bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] px-6 text-xs font-black uppercase tracking-wider hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all animate-pulse"
+                  onClick={() => {
+                    setFocusMode(true);
+                    trackOperationalEvent("focus_mode_activated");
+                  }}
                 >
-                  Continuar Jornada
+                  <Flame className="mr-2 h-4 w-4 fill-charcoal text-charcoal" />
+                  Iniciar Piloto Automático
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-11 border-zinc-200 bg-white text-xs font-black uppercase tracking-wider"
-                  onClick={handleCopyDM}
-                  disabled={!currentPerson.suggestedMessage || currentBlocked}
+                  className="h-12 border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
+                  onClick={() => window.scrollTo({ top: isCompact ? 520 : 780, behavior: "smooth" })}
                 >
-                  {currentBlocked ? "Contato indisponível" : "Preparar mensagem"}
+                  <Compass className="mr-2 h-4 w-4" />
+                  Continuar Trilha
                 </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
+                  nativeButton={false}
+                  render={<Link href="/abordagem" />}
+                >
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Quadro de Missões
+                </Button>
+                {compactHydrated ? (
+                  <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || queue.length > 5} onToggle={setCompact} />
+                ) : null}
+              </>
+            }
+            aside={!isCompact ? (
+              <div className="space-y-4 rounded-[2px] border-2 border-white bg-charcoal/45 p-4 xl:p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Mapa da trilha</p>
+                    <h3 className="mt-2 text-xl font-black text-white">
+                      {currentPerson.displayName || `@${currentPerson.username}`}
+                    </h3>
+                  </div>
+                  <Sparkles className="h-5 w-5 text-burnt-yellow" />
+                </div>
+                <p className="text-xs font-semibold leading-relaxed text-zinc-300">{currentPerson.priorityReason}</p>
+                <div className="rounded-[2px] border-2 border-white/20 bg-black/45 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Próximo passo</p>
+                  <p className="mt-2 text-sm font-black text-white">{currentMissionNextStep}</p>
+                </div>
+                <div className="space-y-3">
+                  {nextFive.map((person, idx) => (
+                    <div key={person.id} className="flex items-center justify-between gap-3 rounded-[2px] border border-white/10 bg-black/20 p-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-white">
+                          {idx + 2}. {person.displayName || `@${person.username}`}
+                        </p>
+                        <p className="truncate text-xs font-medium text-zinc-400">{person.nextAction}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            ) : null}
+          />
 
-        <Card className="overflow-hidden border-zinc-200 bg-[linear-gradient(180deg,rgba(255,255,255,1),rgba(248,250,252,1))] py-0 shadow-[0_18px_44px_rgba(15,23,42,0.05)]">
-          <CardContent className="space-y-5 p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-zinc-950">
-              <MapPinned className="h-5 w-5" />
-              <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
-            </div>
-            <p className="text-sm leading-6 text-zinc-600">
-              As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
-            </p>
-              {!isCompact ? <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
-          </CardContent>
-        </Card>
-      </section>
+          <OperationalCommandBar
+            title="Barra de comando"
+            statusLabel="Missão em foco"
+            statusValue={`${currentMissionType} · ${currentMissionState}`}
+            statusDetail={currentHoldLabel}
+            primaryAction={{
+              label: currentMissionAction,
+              onClick: currentBlocked ? handleSkip : () => setShowResponseDialog(true),
+              icon: MessageSquare,
+            }}
+            secondaryActions={[
+              {
+                label: "Abrir Instagram",
+                onClick: () => window.open(currentPerson.instagramUrl || `https://instagram.com/${currentPerson.username}`, "_blank"),
+                icon: Instagram,
+                disabled: currentBlocked,
+                title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+              },
+              {
+                label: "Preparar Mensagem",
+                onClick: handleCopyDM,
+                icon: Copy,
+                disabled: !currentPerson.suggestedMessage || currentBlocked,
+                title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+              },
+              {
+                label: "Próxima Missão",
+                onClick: handleNext,
+                icon: ChevronRight,
+                disabled: currentIndex === queue.length - 1,
+              },
+            ]}
+            shortcutAction={{
+              label: "Abrir Central de Ritmo",
+              href: "/ritmo",
+              icon: TowerControl,
+            }}
+          />
 
+          {wellness.level !== "healthy" && !isCompact && <OperatorWellnessCard wellness={wellness} />}
+
+          <div className={cn("grid gap-8", isCompact ? "2xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-[1.3fr_0.7fr]")}>
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próxima missão</p>
+                  <h3 className="text-2xl font-black tracking-tight text-charcoal">Continuar Jornada</h3>
+                  <p className="max-w-2xl text-xs font-semibold text-cement">
+                    A pessoa em foco, a missão explicável e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {streak > 0 && (
+                    <div className="flex items-center gap-1.5 bg-burnt-yellow/10 text-charcoal rounded-full px-3 py-1 text-xs font-black border border-burnt-yellow animate-pulse">
+                      <Flame className="h-4 w-4 fill-burnt-yellow text-charcoal animate-bounce" />
+                      <span>Combo x{streak}</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    className="text-xs font-black uppercase tracking-wider text-cement hover:text-charcoal"
+                    onClick={handlePrev}
+                    disabled={currentIndex === 0}
+                  >
+                    Anterior
+                  </Button>
+                  <div className="h-3 w-24 overflow-hidden rounded-none border border-black bg-white sm:w-32 xl:w-40">
+                    <div
+                      className="h-full bg-burnt-yellow transition-all duration-500"
+                      style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="text-xs font-black uppercase tracking-wider text-cement hover:text-charcoal"
+                    onClick={handleNext}
+                    disabled={currentIndex === queue.length - 1}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+
+              <QueueCard
+                person={currentPerson}
+                mission={currentMission}
+                compact={isCompact}
+                contactDisabled={currentBlocked}
+                onCopyDM={handleCopyDM}
+                onRegisterResponse={() => setShowResponseDialog(true)}
+                onReferral={() => setShowReferralDialog(true)}
+                onSkip={handleSkip}
+                onNext={handleNext}
+                copyStatus={copyStatus}
+                onConfirmSent={handleConfirmSent}
+                onCancelCopy={() => setCopyStatus("idle")}
+              />
+
+              {isCompact ? (
+                <details className="radar-outline-card rounded-[2px] border-2 border-black bg-white">
+                  <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-charcoal">
+                    Abrir leitura complementar da jornada
+                  </summary>
+                  <div className="space-y-4 border-t-2 border-black px-5 py-4">
+                    <div className="space-y-3 rounded-[2px] border-2 border-black bg-white/75 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Mapa da trilha</p>
+                          <h4 className="mt-1 text-lg font-black text-charcoal">
+                            {currentPerson.displayName || `@${currentPerson.username}`}
+                          </h4>
+                        </div>
+                        <MapPinned className="h-4 w-4 text-cement" />
+                      </div>
+                      <p className="text-xs font-semibold leading-relaxed text-charcoal">{currentPerson.priorityReason}</p>
+                      <div className="rounded-[2px] border-2 border-black bg-charcoal/5 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próximo passo</p>
+                        <p className="mt-1 text-xs font-black text-charcoal">{currentPerson.nextAction}</p>
+                      </div>
+                    </div>
+                    {wellness.level !== "healthy" ? <OperatorWellnessCard wellness={wellness} /> : null}
+                  </div>
+                </details>
+              ) : null}
+            </div>
+
+            <aside className="space-y-6">
+              {isCompact ? (
+                <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
+              ) : null}
+              {recommendedMissions.length > 0 ? (
+                <Card className="bloco-concreto relative overflow-hidden py-0">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Bloco recomendado</p>
+                      <h4 className="text-lg font-black text-charcoal">Próximas 5 missões da engine</h4>
+                      <p className="text-xs leading-relaxed text-cement">
+                        Ajuste o foco do turno sem perder a trilha. O bloco equilibra cuidado, retorno, escuta e encaminhamento.
+                      </p>
+                    </div>
+                    <div className="grid gap-2">
+                      {WORK_MODE_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={cn(
+                            "rounded-[2px] border-2 px-4 py-3 text-left transition-all",
+                            workMode === option.id
+                              ? "border-black bg-burnt-yellow shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                              : "border-black bg-white hover:bg-burnt-yellow/10",
+                          )}
+                          onClick={() => setWorkMode(option.id)}
+                        >
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-charcoal">{option.label}</p>
+                          <p className="mt-1 text-[10px] leading-relaxed text-cement">{option.hint}</p>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="space-y-3">
+                      {recommendedMissions.map((mission) => (
+                        <button
+                          key={mission.id}
+                          type="button"
+                          className="w-full rounded-[2px] border-2 border-black bg-white p-4 text-left transition-all hover:bg-burnt-yellow shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                          onClick={() => {
+                            const targetIndex = mission.subjectId ? queue.findIndex((person) => person.id === mission.subjectId) : -1;
+                            if (targetIndex >= 0) {
+                              setCurrentIndex(targetIndex);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                                {missionTypeLabel(mission.type)} · {missionStateLabel(mission.state)}
+                              </p>
+                              <p className="mt-1 text-sm font-black text-charcoal">{mission.title}</p>
+                              <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-cement">{mission.nextStep}</p>
+                            </div>
+                            <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-charcoal" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+              <Card className="bloco-concreto relative overflow-hidden py-0">
+                <CardContent className="space-y-4 p-5">
+                  <div className="flex items-center gap-2 text-charcoal">
+                    <TowerControl className="h-4 w-4 text-cement" />
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                      Cuidado e ritmo
+                    </h4>
+                  </div>
+                  <div className="grid gap-3">
+                    <WellbeingLine
+                      icon={Coffee}
+                      title={wellness.level === "healthy" ? "Carga saudável" : "Trabalhe em blocos curtos"}
+                      description={wellness.recommendation}
+                    />
+                    {queue.length > 5 ? (
+                      <WellbeingLine
+                        icon={PauseCircle}
+                        title="Bloco sugerido de 5 missões"
+                        description="Feche um grupo curto, revise o estado da base e só então abra o próximo bloco."
+                      />
+                    ) : null}
+                    {wellness.shouldSuggestBreak ? (
+                      <WellbeingLine
+                        icon={HeartHandshake}
+                        title="Pausa recomendada"
+                        description="Ao concluir este bloco, faça uma pausa antes de abrir mais conversas."
+                      />
+                    ) : null}
+                    {wellness.level !== "healthy" ? (
+                      <Button
+                        variant="outline"
+                        className="h-11 border-2 border-black bg-white rounded-[2px] text-xs font-black uppercase tracking-wider hover:bg-burnt-yellow"
+                        nativeButton={false}
+                        render={<Link href="/abordagem?filter=sem_responsavel" />}
+                      >
+                        Redistribuir com coordenação
+                      </Button>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <EthicalGuardrailBanner
+                description="Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto."
+                badgeLabel="Operação humana"
+              />
+
+              {oldPendencies.length > 0 && (
+                <Card className="bloco-concreto relative overflow-hidden py-0 border-burnt-yellow">
+                  <CardContent className="space-y-4 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Pendências antigas</p>
+                        <h4 className="mt-1 text-lg font-black text-charcoal">
+                          {oldPendencies.length} missões pedem revisão
+                        </h4>
+                      </div>
+                      <Badge variant="outline" className="border-2 border-black bg-white text-charcoal rounded-[2px]">
+                        3+ dias
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-3">
+                      {oldPendencies.slice(0, 4).map((person) => (
+                        <button
+                          key={person.id}
+                          className="w-full rounded-[2px] border-2 border-black bg-white p-4 text-left transition-all hover:bg-burnt-yellow shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                          onClick={() => {
+                            setQueue((prev) => [person, ...prev.filter((p) => p.id !== person.id)]);
+                            setCurrentIndex(0);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                        >
+                          <p className="text-sm font-black text-charcoal">
+                            {person.displayName || `@${person.username}`}
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-cement">
+                            Revisar espera prolongada e decidir se a trilha segue ou fecha.
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </aside>
+          </div>
+
+          <section className={cn("grid gap-6", isCompact ? "2xl:grid-cols-[1.1fr_0.9fr]" : "xl:grid-cols-[1.1fr_0.9fr]")}>
+            <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+              <CardContent className="grid gap-5 p-5 sm:p-6 2xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-charcoal">
+                    <Route className="h-5 w-5" />
+                    <h3 className="text-2xl font-black tracking-tight">Leitura da missão</h3>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-charcoal">
+                      {currentMissionType}
+                    </Badge>
+                    {currentBlocked ? (
+                      <Badge className="rounded-[2px] border-2 border-rust bg-rust/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-rust">
+                        {currentMissionState}
+                      </Badge>
+                    ) : currentWaiting ? (
+                      <Badge className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-dark-yellow">
+                        {currentMissionState}
+                      </Badge>
+                    ) : (
+                      <Badge className="rounded-[2px] border-2 border-moss bg-moss/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-moss">
+                        {currentMissionState}
+                      </Badge>
+                    )}
+                    <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-charcoal">
+                      {currentMission ? currentMission.phase : phaseBadge}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black tracking-tight text-charcoal">
+                      {currentPerson.displayName || `@${currentPerson.username}`}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-cement">@{currentPerson.username}</p>
+                  </div>
+                  <div className="grid gap-3">
+                    <MissionPanel label="Motivo" value={currentMissionReason} />
+                    <MissionPanel label="Próximo passo" value={currentMissionNextStep} compact />
+                    <MissionPanel label={holdTone === "free" ? "Guardrail" : "Bloqueio ou espera"} value={currentHoldLabel} tone={holdTone} />
+                    {currentMissionSignals.length > 0 ? (
+                      <div className="rounded-[2px] border-2 border-black bg-white/70 p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Sinais usados</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {currentMissionSignals.slice(0, 4).map((signal) => (
+                            <Badge
+                              key={`${signal.code}-${signal.at ?? signal.label}`}
+                              className="rounded-[2px] border border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white"
+                            >
+                              {signal.label}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-[2px] border-2 border-black bg-charcoal/5 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Ação recomendada</p>
+                      <p className="mt-1 text-sm font-black text-charcoal">{currentMissionAction}</p>
+                    </div>
+                    <Sparkles className="h-4 w-4 text-burnt-yellow" />
+                  </div>
+                  <div className="rounded-[2px] border border-black bg-white p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próximo passo salvo</p>
+                    <p className="mt-2 text-sm font-medium leading-relaxed text-charcoal">{currentMissionNextStep}</p>
+                  </div>
+                  <div className="min-h-[140px] rounded-[2px] border border-black bg-white p-4 text-sm font-medium leading-relaxed text-charcoal">
+                    {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      className="h-11 bg-charcoal text-off-white text-xs font-black uppercase tracking-wider hover:bg-concrete-dark rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                    >
+                      Continuar Jornada
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-11 border-2 border-black bg-white text-charcoal text-xs font-black uppercase tracking-wider hover:bg-burnt-yellow rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                      onClick={handleCopyDM}
+                      disabled={!currentPerson.suggestedMessage || currentBlocked}
+                    >
+                      {currentBlocked ? "Contato indisponível" : "Preparar mensagem"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+              <CardContent className="space-y-5 p-5 sm:p-6">
+                <div className="flex items-center gap-2 text-charcoal">
+                  <MapPinned className="h-5 w-5" />
+                  <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
+                </div>
+                <p className="text-xs leading-relaxed text-cement font-semibold">
+                  As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
+                </p>
+                {!isCompact ? <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
+              </CardContent>
+            </Card>
+          </section>
+        </>
+      )}
+
+      {/* ==================== SHARED DIALOGS ==================== */}
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
-        <DialogContent className="overflow-hidden border-none p-0 shadow-2xl sm:max-w-[540px]">
-          <div className="bg-zinc-950 p-6 text-white">
-            <DialogTitle className="text-xl font-black">Registrar avanço da missão</DialogTitle>
-            <DialogDescription className="font-medium text-zinc-400">
+        <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[540px]">
+          <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
+            <DialogTitle className="text-xl font-black uppercase">Registrar avanço da missão</DialogTitle>
+            <DialogDescription className="font-bold text-zinc-400">
               O que aconteceu na conversa com @{currentPerson.username}?
             </DialogDescription>
           </div>
-          <div className="grid gap-2 p-6">
+          <div className="grid gap-3 p-6 max-h-[70vh] overflow-y-auto">
             {RESPONSE_OPTIONS.map((option) => (
               <button
                 key={option.id}
                 disabled={isPending}
                 className={cn(
-                  "w-full rounded-2xl border border-zinc-100 p-4 text-left transition-all hover:border-indigo-200 hover:bg-indigo-50/50",
+                  "w-full rounded-[2px] border-2 border-black p-4 text-left transition-all hover:bg-burnt-yellow hover:text-charcoal bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]",
                   isPending && "cursor-not-allowed opacity-50",
                 )}
                 onClick={() => handleResponse(option.id)}
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-xl bg-zinc-100 p-2 text-zinc-500">
+                  <div className="mt-0.5 rounded-[2px] border border-black bg-charcoal/5 p-2 text-charcoal">
                     <option.icon className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-zinc-900">{option.label}</p>
-                    <p className="mt-1 text-xs font-medium text-zinc-500">{option.hint}</p>
+                    <p className="text-sm font-black uppercase tracking-wider">{option.label}</p>
+                    <p className="mt-1 text-xs font-semibold text-cement leading-normal">{option.hint}</p>
                   </div>
                 </div>
               </button>
@@ -934,26 +1019,26 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       </Dialog>
 
       <Dialog open={showReferralDialog} onOpenChange={setShowReferralDialog}>
-        <DialogContent className="overflow-hidden border-none p-0 shadow-2xl sm:max-w-[560px]">
-          <div className="bg-zinc-950 p-6 text-white">
-            <DialogTitle className="text-xl font-black">Definir próximo destino</DialogTitle>
-            <DialogDescription className="font-medium text-zinc-400">
+        <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[560px]">
+          <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
+            <DialogTitle className="text-xl font-black uppercase">Definir próximo destino</DialogTitle>
+            <DialogDescription className="font-bold text-zinc-400">
               Escolha qual missão ou encaminhamento continua o ciclo de @{currentPerson.username}.
             </DialogDescription>
           </div>
-          <div className="grid gap-2 p-6">
+          <div className="grid gap-3 p-6 max-h-[70vh] overflow-y-auto">
             {REFERRAL_OPTIONS.map((option) => (
               <button
                 key={option.id}
                 disabled={isPending}
                 className={cn(
-                  "w-full rounded-2xl border border-zinc-100 p-4 text-left transition-all hover:border-indigo-200 hover:bg-indigo-50/50",
+                  "w-full rounded-[2px] border-2 border-black p-4 text-left transition-all hover:bg-burnt-yellow hover:text-charcoal bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]",
                   isPending && "cursor-not-allowed opacity-50",
                 )}
                 onClick={() => handleReferral(option.id)}
               >
-                <p className="text-sm font-black text-zinc-900">{option.label}</p>
-                <p className="mt-1 text-xs font-medium text-zinc-500">{option.hint}</p>
+                <p className="text-sm font-black uppercase tracking-wider">{option.label}</p>
+                <p className="mt-1 text-xs font-semibold text-cement leading-normal">{option.hint}</p>
               </button>
             ))}
           </div>
@@ -981,29 +1066,23 @@ function MissionPanel({
   return (
     <div
       className={cn(
-        "rounded-[20px] border p-4",
+        "rounded-[2px] border-2 p-4",
         isBlocked
-          ? "border-rose-200 bg-rose-50/70"
+          ? "border-rust bg-rust/5 text-rust"
           : isWaiting
-            ? "border-amber-200 bg-amber-50/70"
+            ? "border-burnt-yellow bg-burnt-yellow/10 text-dark-yellow"
             : isFree
-              ? "border-emerald-200 bg-emerald-50/60"
-              : "border-zinc-200 bg-zinc-50/70",
+              ? "border-moss bg-moss/5 text-moss"
+              : "border-black bg-white text-charcoal",
       )}
     >
-      <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", isBlocked ? "text-rose-700" : isWaiting ? "text-amber-700" : isFree ? "text-emerald-700" : "text-zinc-500")}>{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.24em] mb-1.5 leading-none">{label}</p>
       <p
         className={cn(
-          "mt-2 leading-6",
+          "leading-relaxed font-semibold",
           compact
-            ? "text-sm font-black text-zinc-950"
-            : isBlocked
-              ? "text-sm font-semibold text-rose-900"
-              : isWaiting
-                ? "text-sm font-semibold text-amber-900"
-                : isFree
-                  ? "text-sm font-semibold text-emerald-900"
-                  : "text-sm font-semibold text-zinc-700",
+            ? "text-xs font-black text-charcoal"
+            : "text-xs",
         )}
       >
         {value}
@@ -1022,14 +1101,14 @@ function WellbeingLine({
   description: string;
 }) {
   return (
-    <div className="rounded-[20px] border border-zinc-200 bg-zinc-50/70 p-4">
+    <div className="rounded-[2px] border-2 border-black bg-white p-4">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700">
+        <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-[2px] border-2 border-black bg-charcoal/5 text-charcoal">
           <Icon className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-sm font-black text-zinc-950">{title}</p>
-          <p className="mt-1 text-sm leading-6 text-zinc-600">{description}</p>
+          <p className="text-xs font-black uppercase tracking-wider text-charcoal">{title}</p>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-cement">{description}</p>
         </div>
       </div>
     </div>

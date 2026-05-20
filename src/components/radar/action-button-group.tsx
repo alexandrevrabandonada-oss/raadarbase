@@ -38,15 +38,17 @@ export function ActionButtonGroup({
   canReferral,
   className
 }: ActionButtonGroupProps) {
+  const brutalIconBtnClass = "h-8 w-8 text-charcoal border-2 border-black rounded-[2px] bg-white hover:bg-burnt-yellow hover:text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all p-0 flex items-center justify-center";
+
   return (
-    <div className={cn("flex items-center gap-1.5 flex-wrap", className)}>
+    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
       
       {/* 1. Assumir */}
       {canAssume && onAssume && (
         <Button 
           size="sm" 
           variant="outline" 
-          className="h-8 text-[10px] font-black uppercase text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+          className="h-8 text-[10px] font-black uppercase text-charcoal border-2 border-black rounded-[2px] bg-white hover:bg-burnt-yellow hover:text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all"
           onClick={onAssume}
           disabled={isAssuming}
         >
@@ -60,7 +62,12 @@ export function ActionButtonGroup({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger render={<div />}>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-pink-600 p-0" onClick={() => window.open(`https://instagram.com/${instagramUsername}`, '_blank')}>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className={brutallIconBtnClass(instagramUsername)} 
+                onClick={() => window.open(`https://instagram.com/${instagramUsername}`, '_blank')}
+              >
                 <Instagram className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -74,7 +81,12 @@ export function ActionButtonGroup({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger render={<div />}>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-indigo-600 p-0" onClick={onCopyDM}>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className={brutalIconBtnClass} 
+                onClick={onCopyDM}
+              >
                 <Copy className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -88,7 +100,12 @@ export function ActionButtonGroup({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger render={<div />}>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-emerald-600 p-0" onClick={onRegisterResponse}>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className={brutalIconBtnClass} 
+                onClick={onRegisterResponse}
+              >
                 <MessageSquare className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -102,7 +119,12 @@ export function ActionButtonGroup({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger render={<div />}>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-amber-600 p-0" onClick={onReferral}>
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className={brutalIconBtnClass} 
+                onClick={onReferral}
+              >
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -115,7 +137,7 @@ export function ActionButtonGroup({
       {personId && (
         <Button
           size="sm"
-          className="ml-1 h-8 px-3 text-xs font-bold"
+          className="ml-1 h-8 px-3 text-[10px] font-black uppercase border-2 border-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
           nativeButton={false}
           render={<Link href={`/pessoas/${personId}`} className="flex items-center justify-center" />}
         >
@@ -124,4 +146,9 @@ export function ActionButtonGroup({
       )}
     </div>
   );
+}
+
+// Helper to support call syntax on static string
+function brutallIconBtnClass(ig: string) {
+  return "h-8 w-8 text-charcoal border-2 border-black rounded-[2px] bg-white hover:bg-burnt-yellow hover:text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all p-0 flex items-center justify-center";
 }

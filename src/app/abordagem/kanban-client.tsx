@@ -615,8 +615,8 @@ export function KanbanClient({
       ) : null}
 
       {/* Kanban Board */}
-      <div className="-mx-2 px-2 pb-6 xl:-mx-4 xl:overflow-x-auto xl:px-4 xl:scrollbar-thin xl:scrollbar-thumb-[#d4c4a8]">
-        <div className="grid gap-4 md:grid-cols-2 xl:flex xl:min-w-max">
+      <div className="-mx-2 px-2 pb-6 xl:-mx-4 xl:overflow-x-auto xl:px-4 xl:scrollbar-thin xl:scrollbar-thumb-cement">
+        <div className="bg-concrete-dark border-4 border-black p-6 rounded-[2px] shadow-[inset_0_4px_24px_rgba(0,0,0,0.65)] grid gap-6 md:grid-cols-2 xl:flex xl:min-w-max">
           {groupedColumns.map(({ id, label, description, tasks: columnTasks }) => (
             <div
               key={id}
@@ -625,53 +625,61 @@ export function KanbanClient({
                 isCompact
                   ? "xl:w-[288px] 2xl:w-[308px] xl:shrink-0"
                   : "xl:w-[320px] 2xl:w-[340px] xl:shrink-0",
+                "xl:border-r-2 xl:border-black xl:pr-6 last:border-r-0 last:pr-0"
               )}
             >
-              <div className="flex items-center justify-between px-2">
+              <div className="flex items-center justify-between px-1">
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#6e604c]">
-                    {label} <span className="ml-1 text-[#9b8c74]">({columnTasks.length})</span>
+                  <h3 className="text-xs font-black uppercase tracking-widest text-off-white">
+                    {label} <span className="ml-1 text-burnt-yellow">({columnTasks.length})</span>
                   </h3>
-                  <p className="mt-1 text-[10px] font-medium text-[#8a7962]">{description}</p>
+                  <p className="mt-1 text-[10px] font-bold text-zinc-400">{description}</p>
                 </div>
                 {columnTasks.some(t => t.isStale) && (
-                        <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger render={<div />}>
-                           <ShieldAlert className="h-3 w-3 text-rose-500" />
-                        </TooltipTrigger>
-                        <TooltipContent>Há tarefas paradas nesta coluna.</TooltipContent>
-                      </Tooltip>
-                   </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger render={<div />}>
+                         <ShieldAlert className="h-4.5 w-4.5 text-rust animate-pulse" />
+                      </TooltipTrigger>
+                      <TooltipContent>Há tarefas paradas nesta coluna.</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </div>
 
               <div className={cn(
-                "space-y-3 rounded-[22px] border p-2 transition-colors xl:min-h-[420px]",
+                "space-y-4 rounded-[2px] border-2 border-black p-3 transition-colors xl:min-h-[480px]",
                 id === "concluir"
-                  ? "border-[#e7d7c7] bg-[rgba(236,224,209,0.72)]"
-                  : "border-[#e2d3bb] bg-[rgba(255,250,242,0.82)]"
+                  ? "bg-charcoal/20 border-dashed border-cement"
+                  : "bg-charcoal/40 border-solid border-black"
               )}>
-                {columnTasks.map((task) => (
-                  <KanbanTaskCard
-                    key={task.id}
-                    task={task}
-                    savingTaskId={savingTaskId}
-                    responseValue={responseValues[task.id] ?? "revisar_depois"}
-                    onOpenDetails={handleOpenDetails}
-                    onAssume={() => runAssumeTask(task.id)}
-                    onCopyDM={() => copyMessage(task)}
-                    onRegisterResponse={() => document.getElementById(`response-select-${task.id}`)?.focus()}
-                    onMoveBack={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
-                    onMoveForward={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
-                    onQuickResponse={(value) => {
-                      setResponseValues((prev) => ({ ...prev, [task.id]: value }));
-                      setTimeout(() => runResponse(task), 100);
-                    }}
-                    onResponseChange={(value) => setResponseValues((prev) => ({ ...prev, [task.id]: value }))}
-                    onConfirmResponse={() => runResponse(task)}
-                  />
-                ))}
+                {columnTasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-48 border border-dashed border-cement/40 rounded-[2px] text-zinc-500 text-[10px] font-bold uppercase tracking-wider">
+                    Sem missões
+                  </div>
+                ) : (
+                  columnTasks.map((task, index) => (
+                    <KanbanTaskCard
+                      key={task.id}
+                      task={task}
+                      index={index}
+                      savingTaskId={savingTaskId}
+                      responseValue={responseValues[task.id] ?? "revisar_depois"}
+                      onOpenDetails={handleOpenDetails}
+                      onAssume={() => runAssumeTask(task.id)}
+                      onCopyDM={() => copyMessage(task)}
+                      onRegisterResponse={() => document.getElementById(`response-select-${task.id}`)?.focus()}
+                      onMoveBack={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, -1))}
+                      onMoveForward={() => updateTaskColumn(task.id, nextBoardColumn(task.boardColumn, 1))}
+                      onQuickResponse={(value) => {
+                        setResponseValues((prev) => ({ ...prev, [task.id]: value }));
+                        setTimeout(() => runResponse(task), 100);
+                      }}
+                      onResponseChange={(value) => setResponseValues((prev) => ({ ...prev, [task.id]: value }))}
+                      onConfirmResponse={() => runResponse(task)}
+                    />
+                  ))
+                )}
               </div>
             </div>
           ))}
@@ -679,11 +687,11 @@ export function KanbanClient({
       </div>
 
       {isCompact ? (
-        <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
-          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
+        <details className="radar-outline-card rounded-[2px] border-2 border-black bg-white">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-charcoal">
             Abrir leitura complementar do mural
           </summary>
-          <div className="space-y-5 border-t border-[#d8c7ac] px-5 py-4">
+          <div className="space-y-5 border-t-2 border-black px-5 py-4">
             <EthicalGuardrailBanner
               tone="zinc"
               eyebrow="Guardrail do mural"
@@ -756,6 +764,7 @@ export function KanbanClient({
 
 function KanbanTaskCard({
   task,
+  index,
   savingTaskId,
   responseValue,
   onOpenDetails,
@@ -769,6 +778,7 @@ function KanbanTaskCard({
   onConfirmResponse,
 }: {
   task: BoardTask;
+  index: number;
   savingTaskId: string | null;
   responseValue: PersonResponseKind;
   onOpenDetails: (person: PriorityPerson) => void;
@@ -781,16 +791,21 @@ function KanbanTaskCard({
   onResponseChange: (value: PersonResponseKind) => void;
   onConfirmResponse: () => void;
 }) {
+  const stencilStr = String(index + 1).padStart(2, "0");
+
   if (!task.priority) {
     return (
-      <Card className="ring-1 ring-zinc-100">
-        <CardContent className="space-y-3 p-4">
-          <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+      <Card className="bloco-concreto relative overflow-hidden">
+        <div className="absolute right-4 top-1 select-none pointer-events-none font-mono text-[5rem] font-black text-charcoal/[0.05] leading-none tracking-tighter">
+          {stencilStr}
+        </div>
+        <CardContent className="space-y-3 p-4 relative z-10">
+          <Badge variant="outline" className="rounded-[2px] border-black bg-white text-[9px] font-black uppercase tracking-widest text-charcoal">
             {boardMicroLabels[task.boardColumn]}
           </Badge>
           <div>
-            <p className="text-sm font-black text-zinc-950">@{task.person?.username || "usuario"}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">{task.title}</p>
+            <p className="text-sm font-black text-charcoal">@{task.person?.username || "usuario"}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-cement">{task.title}</p>
           </div>
         </CardContent>
       </Card>
@@ -811,24 +826,25 @@ function KanbanTaskCard({
       person={task.priority}
       primaryActionLabel="Abrir missão"
       onPrimaryAction={onOpenDetails}
-      className={cn(task.isStale ? "border-rose-200 bg-rose-50/50 ring-1 ring-rose-100" : "border-[#dccdaf] bg-[rgba(255,252,247,0.96)] ring-1 ring-[#ece1d0]")}
+      stencilNumber={stencilStr}
+      className={cn(task.isStale ? "bloco-concreto-stale" : "bloco-concreto")}
       footer={
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="border-[#dccdaf] bg-white text-[9px] font-black uppercase tracking-widest text-[#8a7962]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge variant="outline" className="rounded-[2px] border-black bg-white text-[9px] font-black uppercase tracking-widest text-charcoal">
                 {boardMicroLabels[task.boardColumn]}
               </Badge>
               {missionTypeLabel ? (
-                <Badge variant="outline" className="border-[#d3b98f] bg-[#f7f0e4] text-[9px] font-black uppercase tracking-widest text-[#8f6e2e]">
+                <Badge variant="outline" className="rounded-[2px] border-black bg-white px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-charcoal">
                   {missionTypeLabel}
                 </Badge>
               ) : null}
               <Badge
                 variant="outline"
                 className={cn(
-                  "text-[9px] font-black uppercase tracking-widest",
-                  task.responsibleId ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#d5b378] bg-[rgba(212,182,120,0.14)] text-[#8f6e2e]",
+                  "rounded-[2px] text-[9px] font-black uppercase tracking-widest",
+                  task.responsibleId ? "border-moss bg-moss/10 text-moss" : "border-burnt-yellow bg-burnt-yellow/10 text-dark-yellow",
                 )}
               >
                 {task.priority.responsibleName || "Órfã"}
@@ -837,14 +853,14 @@ function KanbanTaskCard({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "text-[8px] font-black uppercase",
+                    "rounded-[2px] text-[8px] font-black uppercase",
                     task.waitingStatus === "normal"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      ? "bg-moss/10 text-moss border-moss/20"
                       : task.waitingStatus === "followup"
-                        ? "bg-blue-50 text-blue-700 border-blue-100"
+                        ? "bg-slate-blue/10 text-slate-blue border-slate-blue/20"
                         : task.waitingStatus === "review"
-                          ? "bg-amber-50 text-amber-700 border-amber-100"
-                          : "bg-rose-50 text-rose-700 border-rose-100",
+                          ? "bg-burnt-yellow/10 text-dark-yellow border-burnt-yellow/20"
+                          : "bg-rust/10 text-rust border-rust/20",
                   )}
                 >
                   {task.waitingStatus === "normal"
@@ -866,16 +882,16 @@ function KanbanTaskCard({
               eyebrow="Missão parada"
               badgeLabel="Resolver trava"
               description="Esta missão ficou tempo demais sem movimento. Revisar contexto, responsável e próximo passo antes de insistir."
-              className="rounded-2xl p-4"
+              className="rounded-[2px] border-2 border-rust p-3"
             />
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border border-[#dccdaf] bg-[rgba(255,252,247,0.9)] p-4">
+          <div className="space-y-1.5 rounded-[2px] border-2 border-black bg-white/70 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black uppercase tracking-tighter text-[#8a7962]">Auditoria curta</span>
-              <span className="text-[10px] font-bold text-[#8a7962]">{task.title}</span>
+              <span className="text-[9px] font-black uppercase tracking-tighter text-cement">Auditoria curta</span>
+              <span className="text-[10px] font-bold text-charcoal">{task.title}</span>
             </div>
-            <p className="text-[10px] font-medium leading-relaxed italic text-[#6e604c]">
+            <p className="text-[10px] font-medium leading-relaxed italic text-cement">
               &quot;{missionNextStep || missionReason || task.notes || "Aguardando próxima definição..."}&quot;
             </p>
           </div>
@@ -886,7 +902,7 @@ function KanbanTaskCard({
               eyebrow="Missão bloqueada"
               badgeLabel="Contato pausado"
               description={holdText}
-              className="rounded-2xl p-4"
+              className="rounded-[2px] border-2 border-rust p-3"
             />
           ) : null}
 
@@ -899,23 +915,23 @@ function KanbanTaskCard({
             canAssume={!task.responsibleId && !blocksContact}
             canCopyDM={!!task.priority.suggestedMessage && !blocksContact}
             canRegisterResponse
-            className="w-full justify-start"
+            className="w-full justify-start mt-2"
           />
 
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-7 text-[9px] font-black uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
+              className="h-8 rounded-[2px] text-[9px] font-black uppercase text-charcoal border-2 border-black bg-white hover:bg-burnt-yellow transition-all"
               onClick={onMoveBack}
               disabled={savingTaskId === task.id || !canMoveBack}
             >
               <MoveLeft className="mr-1 h-3 w-3" /> Recuar
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-7 text-[9px] font-black uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
+              className="h-8 rounded-[2px] text-[9px] font-black uppercase text-charcoal border-2 border-black bg-white hover:bg-burnt-yellow transition-all"
               onClick={onMoveForward}
               disabled={savingTaskId === task.id || !canMoveForward}
             >
@@ -924,8 +940,8 @@ function KanbanTaskCard({
           </div>
 
           {task.boardColumn === "esperando_resposta" ? (
-            <div className="space-y-1.5 border-t border-[#e9decd] pt-3">
-              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-[#8a7962]">Ações rápidas</p>
+            <div className="space-y-1.5 border-t-2 border-black pt-3 mt-2">
+              <p className="mb-1 text-[8px] font-black uppercase tracking-widest text-cement">Ações rápidas</p>
               <div className="flex flex-wrap gap-1">
                 {[
                   { id: "manter_aguardando", label: "Manter" },
@@ -937,7 +953,7 @@ function KanbanTaskCard({
                     key={action.id}
                     variant="outline"
                     size="sm"
-                    className="h-6 rounded-md border-[#dccdaf] bg-white px-2 text-[8px] font-bold uppercase text-[#13212b] hover:bg-[rgba(212,182,120,0.08)]"
+                    className="h-7 rounded-[2px] border-2 border-black bg-white px-2.5 text-[8px] font-bold uppercase text-charcoal hover:bg-burnt-yellow transition-all"
                     onClick={() => onQuickResponse(action.id as PersonResponseKind)}
                     disabled={savingTaskId === task.id}
                   >
@@ -948,10 +964,10 @@ function KanbanTaskCard({
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-2xl border border-[#dccdaf] bg-[rgba(255,252,247,0.9)] p-3">
+          <div className="space-y-2 rounded-[2px] border-2 border-black bg-white/70 p-3 mt-2">
             <select
               id={`response-select-${task.id}`}
-              className="h-8 w-full rounded-lg border border-[#dccdaf] bg-white px-2 text-[10px] font-bold text-[#13212b] focus:ring-2 focus:ring-[#d5b378]"
+              className="h-8 w-full rounded-[2px] border-2 border-black bg-white px-2 text-[10px] font-bold text-charcoal focus:ring-2 focus:ring-burnt-yellow"
               value={responseValue}
               onChange={(e) => onResponseChange(e.target.value as PersonResponseKind)}
             >
@@ -963,7 +979,7 @@ function KanbanTaskCard({
             </select>
             <Button
               size="sm"
-              className="h-8 w-full bg-zinc-800 text-[10px] font-black uppercase hover:bg-black"
+              className="h-8 w-full bg-charcoal text-off-white text-[10px] font-black uppercase hover:bg-concrete-dark rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
               onClick={onConfirmResponse}
               disabled={savingTaskId === task.id}
             >
