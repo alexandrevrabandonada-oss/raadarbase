@@ -79,10 +79,10 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
       </div>
 
       {journey.shouldShowClosureAlert && (
-        <Alert className="mb-6 border-amber-300 bg-amber-50">
-          <AlertTriangle className="h-4 w-4 text-amber-700" />
-          <AlertTitle className="text-amber-900">Fechamento pendente</AlertTitle>
-          <AlertDescription className="text-amber-800">
+        <Alert className="mb-6 border-2 border-rust bg-rust/5 text-rust rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+          <AlertTriangle className="h-4 w-4 text-rust" />
+          <AlertTitle className="text-sm font-black uppercase text-rust">Fechamento pendente</AlertTitle>
+          <AlertDescription className="text-xs font-semibold leading-relaxed">
             Esta ação precisa ser fechada para virar memória e aprendizado.
           </AlertDescription>
         </Alert>
@@ -92,40 +92,40 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
         <div className="lg:col-span-2 space-y-6">
           {/* Métricas de Participação */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-             <Card className="bg-zinc-50/50 border-zinc-100">
-               <CardContent className="p-4 flex flex-col items-center justify-center">
-                 <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Convidados</span>
-                 <p className="text-2xl font-black text-zinc-900">{metrics.totalInvited}</p>
-               </CardContent>
+             <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black uppercase text-cement tracking-widest mb-1">Convidados</span>
+                  <p className="text-2xl font-black text-charcoal">{metrics.totalInvited}</p>
+                </CardContent>
              </Card>
-             <Card className="bg-emerald-50/50 border-emerald-100">
-               <CardContent className="p-4 flex flex-col items-center justify-center">
-                 <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mb-1">Confirmados</span>
-                 <p className="text-2xl font-black text-emerald-700">{metrics.confirmed}</p>
-               </CardContent>
+             <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black uppercase text-moss tracking-widest mb-1">Confirmados</span>
+                  <p className="text-2xl font-black text-moss">{metrics.confirmed}</p>
+                </CardContent>
              </Card>
-             <Card className="bg-blue-50/50 border-blue-100">
-               <CardContent className="p-4 flex flex-col items-center justify-center">
-                 <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Presentes</span>
-                 <p className="text-2xl font-black text-blue-700">{metrics.attended}</p>
-               </CardContent>
+             <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black uppercase text-charcoal tracking-widest mb-1">Presentes</span>
+                  <p className="text-2xl font-black text-charcoal">{metrics.attended}</p>
+                </CardContent>
              </Card>
-             <Card className="bg-indigo-50/50 border-indigo-100">
-               <CardContent className="p-4 flex flex-col items-center justify-center">
-                 <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-1">Ajudaram</span>
-                 <p className="text-2xl font-black text-indigo-700">{metrics.helped}</p>
-               </CardContent>
+             <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+                <CardContent className="p-4 flex flex-col items-center justify-center">
+                  <span className="text-[10px] font-black uppercase text-burnt-yellow tracking-widest mb-1">Ajudaram</span>
+                  <p className="text-2xl font-black text-charcoal">{metrics.helped}</p>
+                </CardContent>
              </Card>
           </div>
 
-          <Card className="border-zinc-200">
-            <CardHeader className="bg-zinc-50/50 border-b border-zinc-100">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
+          <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+            <CardHeader className="border-b-2 border-black">
+              <CardTitle className="text-base font-black uppercase flex items-center gap-2 text-charcoal">
+                <Target className="h-4 w-4 text-cement" />
                 Interessados (Base Radar)
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-5">
                <EventParticipants 
                  eventId={event.id} 
                  initialParticipants={participants} 
@@ -134,98 +134,98 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
+          <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+            <CardHeader className="border-b-2 border-black">
+              <CardTitle className="text-base font-black uppercase flex items-center gap-2 text-charcoal">
+                <Info className="h-4 w-4 text-cement" />
                 Informações Gerais
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase">Status</p>
-                  <Badge variant={event.status === 'done' ? 'default' : 'secondary'} className="font-black uppercase text-[10px]">
-                    {event.status}
+                  <p className="text-[10px] font-black text-cement uppercase tracking-widest">Status</p>
+                  <Badge variant={event.status === 'done' ? 'default' : 'secondary'} className="font-black uppercase text-[10px] rounded-[2px] border-2 border-black">
+                    {event.status === 'done' ? 'Concluído' : event.status}
                   </Badge>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase">Tipo</p>
-                  <p className="text-sm font-medium">{event.type.replace('_', ' ')}</p>
+                  <p className="text-[10px] font-black text-cement uppercase tracking-widest">Tipo</p>
+                  <p className="text-sm font-black text-charcoal">{event.type.replace('_', ' ')}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase">Início</p>
-                  <p className="text-sm font-medium">
+                  <p className="text-[10px] font-black text-cement uppercase tracking-widest">Início</p>
+                  <p className="text-sm font-semibold text-charcoal">
                     {formatDate(event.startsAt)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase">Fim</p>
-                  <p className="text-sm font-medium">
+                  <p className="text-[10px] font-black text-cement uppercase tracking-widest">Fim</p>
+                  <p className="text-sm font-semibold text-charcoal">
                     {formatDate(event.endsAt)}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-1 pt-2">
-                <p className="text-xs text-muted-foreground font-semibold uppercase">Localização</p>
+              <div className="space-y-1 pt-2 border-t border-cement/20">
+                <p className="text-[10px] font-black text-cement uppercase tracking-widest">Localização</p>
                 <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <MapPin className="h-4 w-4 text-cement mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium">{event.neighborhood || 'Bairro não definido'}</p>
-                    <p className="text-xs text-muted-foreground">{event.locationText || 'Endereço não detalhado'}</p>
+                    <p className="text-sm font-black text-charcoal">{event.neighborhood || 'Bairro não definido'}</p>
+                    <p className="text-xs font-semibold text-cement">{event.locationText || 'Endereço não detalhado'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1 pt-2">
-                <p className="text-xs text-muted-foreground font-semibold uppercase">Descrição</p>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{event.description || 'Sem descrição.'}</p>
+              <div className="space-y-1 pt-2 border-t border-cement/20">
+                <p className="text-[10px] font-black text-cement uppercase tracking-widest">Descrição</p>
+                <p className="text-xs font-semibold whitespace-pre-wrap leading-relaxed text-charcoal">{event.description || 'Sem descrição.'}</p>
               </div>
             </CardContent>
           </Card>
 
           {event.status === 'done' && (
-            <Card className="border-green-200 bg-green-50/20 shadow-sm shadow-green-100">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <Card className="bloco-concreto relative overflow-hidden py-0 border-moss bg-moss/5 text-charcoal">
+              <CardHeader className="border-b-2 border-black bg-white">
+                <CardTitle className="text-base font-black uppercase flex items-center gap-2 text-charcoal">
+                  <CheckCircle2 className="h-4 w-4 text-moss" />
                   Resultado da Ação
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-5 space-y-4">
                 {result ? (
                   <div className="space-y-4">
                     <div className="space-y-1">
-                       <p className="text-xs text-muted-foreground font-semibold uppercase">Resumo</p>
-                       <p className="text-sm leading-relaxed">{result.resultSummary}</p>
+                       <p className="text-[10px] font-black text-cement uppercase tracking-widest">Resumo</p>
+                       <p className="text-xs font-semibold leading-relaxed text-charcoal">{result.resultSummary}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
-                         <p className="text-xs text-muted-foreground font-semibold uppercase">Pessoas estimadas</p>
-                         <p className="text-xl font-black text-zinc-900">{result.estimatedPeopleCount || 'N/A'}</p>
+                         <p className="text-[10px] font-black text-cement uppercase tracking-widest">Pessoas estimadas</p>
+                         <p className="text-xl font-black text-charcoal">{result.estimatedPeopleCount || 'N/A'}</p>
                       </div>
                     </div>
                     {result.nextSteps && (
-                      <div className="space-y-1 pt-2 bg-white/50 p-3 rounded-lg border border-white">
-                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1 flex items-center gap-1">
-                           <Zap className="h-3 w-3" /> Próximos Passos
+                      <div className="space-y-1.5 pt-2 bg-white p-3 rounded-[2px] border-2 border-black">
+                         <p className="text-[10px] font-black text-charcoal uppercase tracking-widest mb-1 flex items-center gap-1">
+                           <Zap className="h-3 w-3 text-burnt-yellow" /> Próximos Passos
                          </p>
-                         <p className="text-sm italic font-medium text-zinc-700">{result.nextSteps}</p>
+                         <p className="text-xs font-semibold text-cement italic leading-relaxed">{result.nextSteps}</p>
                       </div>
                     )}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {!hasLinkedMemory && createMemoryHref ? (
                         <Button
                           size="sm"
-                          className="bg-indigo-600 font-bold hover:bg-indigo-700"
+                          className="h-10 bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] px-4 text-xs font-black uppercase tracking-wider hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-all"
                           nativeButton={false}
                           render={<Link href={createMemoryHref} />}
                         >
                           Criar memória deste resultado
                         </Button>
                       ) : (
-                        <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                        <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-white text-charcoal font-black uppercase text-[10px]">
                           Memória já vinculada
                         </Badge>
                       )}
@@ -233,8 +233,8 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                     <p className="text-sm text-muted-foreground mb-4 font-medium italic">O resultado ainda não foi registrado.</p>
-                     <Button size="sm" variant="outline" className="font-bold border-green-200 bg-white" nativeButton={false} render={<Link href={`/campo/${event.id}/resultado`} />}>
+                     <p className="text-xs text-cement mb-4 font-semibold italic">O resultado ainda não foi registrado.</p>
+                     <Button size="sm" variant="outline" className="h-10 border-2 border-black bg-white text-charcoal font-black uppercase text-xs rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow" nativeButton={false} render={<Link href={`/campo/${event.id}/resultado`} />}>
                         Registrar Resultado
                      </Button>
                   </div>
@@ -243,73 +243,111 @@ export default async function FieldEventDetailPage({ params }: { params: Promise
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Equipe de Apoio (Voluntários)</CardTitle>
+          <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
+            <CardHeader className="border-b-2 border-black">
+              <CardTitle className="text-base font-black uppercase text-charcoal">Equipe de Apoio (Voluntários)</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-charcoal/70 italic bg-charcoal/5 p-3 rounded-[4px] border-2 border-dashed border-cement">
+            <CardContent className="space-y-4 p-5">
+              <p className="text-xs text-charcoal/70 italic bg-charcoal/5 p-3 rounded-[2px] border-2 border-dashed border-cement">
                 Esta seção é para organização da equipe interna. Pessoas interessadas vindas do Instagram devem ser gerenciadas na seção &quot;Interessados&quot;.
               </p>
 
               {volunteerLinks.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum voluntário vinculado a esta ação.</p>
+                <p className="text-sm text-cement py-4 text-center font-bold">Nenhum voluntário vinculado a esta ação.</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-[10px] font-black uppercase">Voluntário</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase">Função</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-                      <TableHead />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop View */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b-2 border-black hover:bg-transparent">
+                          <TableHead className="text-[10px] font-black uppercase text-charcoal">Voluntário</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-charcoal">Função</TableHead>
+                          <TableHead className="text-[10px] font-black uppercase text-charcoal">Status</TableHead>
+                          <TableHead />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {volunteerLinks.map((volunteer) => (
+                          <TableRow key={volunteer.volunteerId} className="border-b border-cement/20 hover:bg-charcoal/5">
+                            <TableCell>
+                              <Link href={`/voluntarios/${volunteer.volunteerId}`} className="underline font-bold text-sm text-charcoal">
+                                {volunteer.displayName}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-charcoal">{volunteer.role ?? "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[10px] font-black uppercase tracking-wider rounded-[2px] border-2 border-black bg-white text-charcoal">{volunteer.status}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {manageable ? (
+                                <form action={updateVolunteerEventStatusAction} className="flex gap-2">
+                                  <input type="hidden" name="eventId" value={id} />
+                                  <input type="hidden" name="volunteerId" value={volunteer.volunteerId} />
+                                  <input type="hidden" name="returnTo" value={`/campo/${id}`} />
+                                  <select name="status" defaultValue={volunteer.status} className="flex h-8 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-0.5 text-xs font-black uppercase">
+                                    <option value="convidado">Convidado</option>
+                                    <option value="confirmado">Confirmado</option>
+                                    <option value="presente">Presente</option>
+                                    <option value="ausente">Ausente</option>
+                                  </select>
+                                  <Button type="submit" variant="outline" size="sm" className="h-8 text-[10px] font-black uppercase border-2 border-black rounded-[2px]">Atualizar</Button>
+                                </form>
+                              ) : null}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile View: Card list fallback */}
+                  <div className="grid gap-3 md:hidden">
                     {volunteerLinks.map((volunteer) => (
-                      <TableRow key={volunteer.volunteerId}>
-                        <TableCell>
-                          <Link href={`/voluntarios/${volunteer.volunteerId}`} className="underline font-bold text-sm">
-                            {volunteer.displayName}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-xs">{volunteer.role ?? "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-bold">{volunteer.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {manageable ? (
-                            <form action={updateVolunteerEventStatusAction} className="flex gap-2">
-                              <input type="hidden" name="eventId" value={id} />
-                              <input type="hidden" name="volunteerId" value={volunteer.volunteerId} />
-                              <input type="hidden" name="returnTo" value={`/campo/${id}`} />
-                              <select name="status" defaultValue={volunteer.status} className="flex h-8 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-1 text-xs font-bold">
+                      <div key={volunteer.volunteerId} className="rounded-[2px] border-2 border-black bg-white p-4 space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <Link href={`/voluntarios/${volunteer.volunteerId}`} className="underline font-black text-sm text-charcoal">
+                              {volunteer.displayName}
+                            </Link>
+                            <p className="text-xs font-semibold text-cement mt-1">Função: {volunteer.role ?? "-"}</p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-wider rounded-[2px] border-2 border-black bg-white text-charcoal">{volunteer.status}</Badge>
+                        </div>
+                        {manageable ? (
+                          <form action={updateVolunteerEventStatusAction} className="flex flex-col gap-2 pt-2 border-t border-cement/10">
+                            <input type="hidden" name="eventId" value={id} />
+                            <input type="hidden" name="volunteerId" value={volunteer.volunteerId} />
+                            <input type="hidden" name="returnTo" value={`/campo/${id}`} />
+                            <div className="flex gap-2">
+                              <select name="status" defaultValue={volunteer.status} className="flex-1 h-9 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2 py-1 text-xs font-black uppercase">
                                 <option value="convidado">Convidado</option>
                                 <option value="confirmado">Confirmado</option>
                                 <option value="presente">Presente</option>
                                 <option value="ausente">Ausente</option>
                               </select>
-                              <Button type="submit" variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase">Atualizar</Button>
-                            </form>
-                          ) : null}
-                        </TableCell>
-                      </TableRow>
+                              <Button type="submit" variant="outline" size="sm" className="h-9 text-[10px] font-black uppercase border-2 border-black rounded-[2px] px-4">Atualizar</Button>
+                            </div>
+                          </form>
+                        ) : null}
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               )}
 
               {manageable && availableVolunteers.length > 0 ? (
-                <form action={assignVolunteerToFieldEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] pt-4 border-t border-zinc-50">
+                <form action={assignVolunteerToFieldEventAction} className="grid gap-3 md:grid-cols-[1fr_1fr_auto] pt-4 border-t border-zinc-100">
                   <input type="hidden" name="eventId" value={id} />
                   <input type="hidden" name="returnTo" value={`/campo/${id}`} />
-                  <select name="volunteerId" className="flex h-10 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-1 text-sm font-bold" required>
+                  <select name="volunteerId" className="flex h-10 rounded-[2px] border-2 border-charcoal bg-off-white text-charcoal px-2.5 py-1 text-sm font-black uppercase" required>
                     <option value="">Vincular Equipe...</option>
                     {availableVolunteers.map((volunteer) => (
                       <option key={volunteer.id} value={volunteer.id}>{volunteer.displayName}</option>
                     ))}
                   </select>
-                  <Input name="role" placeholder="Função na ação" className="font-bold h-10" />
-                  <Button type="submit" className="h-10 px-6 font-black uppercase text-xs tracking-widest">Adicionar</Button>
+                  <Input name="role" placeholder="Função na ação" className="font-bold h-10 rounded-[2px] border-2 border-charcoal bg-off-white" />
+                  <Button type="submit" className="h-10 px-6 font-black uppercase text-xs tracking-widest bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">Adicionar</Button>
                 </form>
               ) : null}
             </CardContent>

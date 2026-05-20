@@ -79,11 +79,11 @@ export default async function FieldAgendaPage() {
         description="Jornadas de campanha no território, da convocação ao follow-up."
         actions={
           <div className="flex gap-2">
-            <Button nativeButton={false} className="bg-[#d39b2a] font-bold text-[#11202a] shadow-sm hover:bg-[#e0aa3b]" render={<Link href="/campo/novo" />}>
+            <Button nativeButton={false} className="bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow/90 font-black text-xs uppercase tracking-wider" render={<Link href="/campo/novo" />}>
               <Plus className="mr-2 h-4 w-4" />
               Nova missão
             </Button>
-            <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-bold text-[#11202a]" render={<Link href="/territorios" />}>
+            <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider" render={<Link href="/territorios" />}>
               <MapPin className="mr-2 h-4 w-4" />
               Ver mapa
             </Button>
@@ -108,8 +108,8 @@ export default async function FieldAgendaPage() {
             </>
           }
           aside={
-            <div className="space-y-4 rounded-[28px] border border-white/10 bg-black/15 p-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próxima missão</p>
+            <div className="space-y-4 rounded-[2px] border-2 border-white bg-white/10 p-5">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Próxima missão</p>
               {nextMission || loopPriorityMission ? (
                 <>
                   <h3 className="text-2xl font-black tracking-tight text-white">
@@ -117,23 +117,23 @@ export default async function FieldAgendaPage() {
                   </h3>
                   <div className="flex flex-wrap items-center gap-2">
                     {nextMission ? (
-                      <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
+                      <Badge className="border-2 border-white bg-white/10 text-white hover:bg-white/20 rounded-[2px] font-black uppercase text-[10px]">
                         {nextMission.neighborhood || "Território em definição"}
                       </Badge>
                     ) : null}
-                    <Badge className="border border-white/10 bg-white/10 text-white hover:bg-white/10">
+                    <Badge className="border-2 border-white bg-white/10 text-white hover:bg-white/20 rounded-[2px] font-black uppercase text-[10px]">
                       {loopPriorityMission ? "Loop aberto" : journeys[nextMission!.id].currentPhaseLabel}
                     </Badge>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
-                    <p className="mt-2 text-sm font-black text-indigo-200">
+                  <div className="rounded-[2px] border-2 border-white bg-black/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Próximo passo</p>
+                    <p className="mt-2 text-sm font-black text-white">
                       {loopPriorityMission ? loopPriorityMission.recommendedAction : journeys[nextMission!.id].nextStep}
                     </p>
                   </div>
                   <Button
                     nativeButton={false}
-                    className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
+                    className="h-12 bg-burnt-yellow border-2 border-black px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
                     render={<Link href={loopPriorityMission?.href ?? `/campo/${nextMission!.id}`} />}
                   >
                     Abrir missão <ArrowRight className="ml-2 h-4 w-4" />
@@ -145,13 +145,13 @@ export default async function FieldAgendaPage() {
                   <p className="text-sm font-medium leading-6 text-zinc-300">
                     Nenhuma missão presencial está aberta agora. O campo depende de território, contexto e confirmação humana.
                   </p>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Próximo passo</p>
-                    <p className="mt-2 text-sm font-black text-emerald-200">Preparar a base: revisar territórios quentes ou abrir a próxima missão presencial.</p>
+                  <div className="rounded-[2px] border-2 border-white bg-black/20 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Próximo passo</p>
+                    <p className="mt-2 text-sm font-black text-white">Preparar a base: revisar territórios quentes ou abrir a próxima missão presencial.</p>
                   </div>
                   <Button
                     nativeButton={false}
-                    className="h-12 bg-[#d39b2a] px-6 text-xs font-black uppercase tracking-wider text-[#11202a] hover:bg-[#e0aa3b]"
+                    className="h-12 bg-burnt-yellow border-2 border-black px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
                     render={<Link href="/campo/novo" />}
                   >
                     Criar missão <ArrowRight className="ml-2 h-4 w-4" />
@@ -165,27 +165,27 @@ export default async function FieldAgendaPage() {
         <section className="space-y-5">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Missões ativas</p>
-              <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Campo em andamento</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Missões ativas</p>
+              <h3 className="mt-2 text-2xl font-black tracking-tight text-charcoal uppercase">Campo em andamento</h3>
             </div>
-            <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-black text-[#11202a]" render={<Link href={nextMission ? `/campo/${nextMission.id}` : "/campo/novo"} />}>
+            <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5" render={<Link href={nextMission ? `/campo/${nextMission.id}` : "/campo/novo"} />}>
               {nextMission ? "Fechar ciclo" : "Criar missão"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
 
           {activeEvents.length === 0 ? (
-            <div className="rounded-[30px] border border-zinc-100 bg-white p-6 shadow-sm">
+            <div className="bloco-concreto bg-white p-6 shadow-sm">
               {fieldLoop.missions.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ciclo ainda aberto</p>
-                  <h4 className="text-2xl font-black tracking-tight text-zinc-950">{fieldLoop.missions[0].title}</h4>
-                  <p className="text-sm leading-6 text-zinc-600">{fieldLoop.missions[0].description}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Ciclo ainda aberto</p>
+                  <h4 className="text-2xl font-black tracking-tight text-charcoal">{fieldLoop.missions[0].title}</h4>
+                  <p className="text-sm leading-6 text-charcoal font-medium">{fieldLoop.missions[0].description}</p>
                   <div className="flex flex-wrap gap-2">
-                    <Button nativeButton={false} className="bg-[#0f1b24] font-black text-white hover:bg-[#172733]" render={<Link href={fieldLoop.missions[0].href} />}>
+                    <Button nativeButton={false} className="bg-charcoal text-white font-black hover:bg-charcoal/90 rounded-[2px] border-2 border-black" render={<Link href={fieldLoop.missions[0].href} />}>
                       Fechar ciclo
                     </Button>
-                    <Button nativeButton={false} variant="outline" className="border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/memoria" />}>
+                    <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] rounded-[2px]" render={<Link href="/memoria" />}>
                       Abrir memória
                     </Button>
                   </div>
@@ -198,7 +198,7 @@ export default async function FieldAgendaPage() {
                   nextActionLabel="criar missão de campo"
                   nextActionHref="/campo/novo"
                   secondaryAction={
-                    <Button nativeButton={false} variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/relatorios/territorios" />}>
+                    <Button nativeButton={false} variant="outline" className="h-11 rounded-[2px] border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em]" render={<Link href="/relatorios/territorios" />}>
                       Ver mapa
                     </Button>
                   }
@@ -235,8 +235,8 @@ export default async function FieldAgendaPage() {
 
         <section className="space-y-5">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Loop do campo</p>
-            <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Travas e continuidade</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Loop do campo</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-charcoal uppercase">Travas e continuidade</h3>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -257,11 +257,11 @@ export default async function FieldAgendaPage() {
                 detail: "Presença registrada sem próximo passo explícito.",
               },
             ].map((item) => (
-              <Card key={item.label} className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-sm">
+              <Card key={item.label} className="bloco-concreto relative overflow-hidden py-0 bg-white">
                 <CardContent className="space-y-3 p-5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">{item.label}</p>
-                  <p className="text-3xl font-black text-zinc-950">{item.value}</p>
-                  <p className="text-sm leading-6 text-zinc-600">{item.detail}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">{item.label}</p>
+                  <p className="text-3xl font-black text-charcoal">{item.value}</p>
+                  <p className="text-xs leading-5 text-cement font-semibold">{item.detail}</p>
                 </CardContent>
               </Card>
             ))}
@@ -269,11 +269,11 @@ export default async function FieldAgendaPage() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="radar-outline-card rounded-[30px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
+          <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
             <CardContent className="p-6">
               <div className="mb-5 flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-[#b47a0e]" />
-                <h3 className="text-lg font-black text-zinc-950">Leitura da jornada</h3>
+                <Megaphone className="h-4 w-4 text-cement" />
+                <h3 className="text-lg font-black text-charcoal uppercase">Leitura da jornada</h3>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 {[
@@ -283,29 +283,29 @@ export default async function FieldAgendaPage() {
                   { label: "Realizar/Registrar", count: events.filter((event) => journeys[event.id].currentPhase === "realizar" || journeys[event.id].currentPhase === "registrar").length },
                   { label: "Follow-up", count: events.filter((event) => journeys[event.id].currentPhase === "follow_up").length },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">{item.label}</p>
-                    <p className="mt-2 text-2xl font-black text-zinc-950">{item.count}</p>
+                  <div key={item.label} className="rounded-[2px] border-2 border-black bg-white p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">{item.label}</p>
+                    <p className="mt-2 text-2xl font-black text-charcoal">{item.count}</p>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="radar-outline-card rounded-[30px] border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] shadow-sm">
+          <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-[#b47a0e]" />
-                <h3 className="text-lg font-black text-zinc-950">Fechamento de ciclo</h3>
+                <ClipboardCheck className="h-4 w-4 text-cement" />
+                <h3 className="text-lg font-black text-charcoal uppercase">Fechamento de ciclo</h3>
               </div>
               <div className="grid gap-3">
-                <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Convites pendentes</p>
-                  <p className="mt-2 text-2xl font-black text-zinc-950">{Math.max(totals.invites - totals.confirmed, 0)}</p>
+                <div className="rounded-[2px] border-2 border-black bg-white p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Convites pendentes</p>
+                  <p className="mt-2 text-2xl font-black text-charcoal">{Math.max(totals.invites - totals.confirmed, 0)}</p>
                 </div>
-                <div className="rounded-2xl border border-[#d8c7ac] bg-white/75 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Memória pendente</p>
-                  <p className="mt-2 text-2xl font-black text-zinc-950">{fieldLoop.stats.resultsWithoutMemoryCount}</p>
+                <div className="rounded-[2px] border-2 border-black bg-white p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Memória pendente</p>
+                  <p className="mt-2 text-2xl font-black text-charcoal">{fieldLoop.stats.resultsWithoutMemoryCount}</p>
                 </div>
               </div>
             </CardContent>
@@ -314,12 +314,12 @@ export default async function FieldAgendaPage() {
 
         <section className="space-y-5">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Memória sugerida</p>
-            <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">O que o campo precisa guardar</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Memória sugerida</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-charcoal uppercase">O que o campo precisa guardar</h3>
           </div>
 
           {fieldLoop.memorySuggestions.length === 0 ? (
-            <Card className="rounded-[30px] border-zinc-100 shadow-sm">
+            <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
               <CardContent className="p-6">
                 <GamefulEmptyState
                   variant="memory"
@@ -334,24 +334,24 @@ export default async function FieldAgendaPage() {
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
               {fieldLoop.memorySuggestions.slice(0, 4).map((suggestion) => (
-                <Card key={`${suggestion.type}-${suggestion.title}`} className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-sm">
+                <Card key={`${suggestion.type}-${suggestion.title}`} className="bloco-concreto relative overflow-hidden py-0 bg-white">
                   <CardContent className="space-y-4 p-5">
                     <div className="flex items-center justify-between gap-3">
-                      <Badge variant="outline" className="border-[#d8c7ac] bg-white/75 text-[10px] font-black uppercase tracking-[0.16em] text-[#8b7759]">
+                      <Badge variant="outline" className="border-2 border-black bg-white text-[10px] font-black uppercase tracking-[0.16em] text-charcoal rounded-[2px]">
                         {suggestion.type.replaceAll("_", " ")}
                       </Badge>
-                      <span className="text-xs font-semibold text-zinc-500">{suggestion.sourceCount} sinais</span>
+                      <span className="text-xs font-semibold text-cement">{suggestion.sourceCount} sinais</span>
                     </div>
                     <div>
-                      <h4 className="text-lg font-black tracking-tight text-zinc-950">{suggestion.title}</h4>
-                      <p className="mt-2 text-sm leading-6 text-zinc-600">{suggestion.summary}</p>
+                      <h4 className="text-lg font-black tracking-tight text-charcoal">{suggestion.title}</h4>
+                      <p className="mt-2 text-xs leading-5 text-cement font-semibold">{suggestion.summary}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button nativeButton={false} className="bg-[#0f1b24] font-black text-white hover:bg-[#172733]" render={<Link href={suggestion.href} />}>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button nativeButton={false} className="bg-charcoal text-white font-black hover:bg-charcoal/90 rounded-[2px] border-2 border-black" render={<Link href={suggestion.href} />}>
                         Abrir memória
                       </Button>
                       {suggestion.sourceHref ? (
-                        <Button nativeButton={false} variant="outline" className="border-[#d8c7ac] bg-[#f7f0e4] font-black text-[#11202a]" render={<Link href={suggestion.sourceHref} />}>
+                        <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5" render={<Link href={suggestion.sourceHref} />}>
                           Ver origem
                         </Button>
                       ) : null}
@@ -365,13 +365,13 @@ export default async function FieldAgendaPage() {
 
         <section className="space-y-5">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">Ciclos fechados</p>
-            <h3 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Missões concluídas e continuidade</h3>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Ciclos fechados</p>
+            <h3 className="mt-2 text-2xl font-black tracking-tight text-charcoal uppercase">Missões concluídas e continuidade</h3>
           </div>
 
           <div className="grid gap-4">
             {completedEvents.length === 0 ? (
-              <Card className="rounded-[30px] border-zinc-100 shadow-sm">
+              <Card className="bloco-concreto relative overflow-hidden py-0 bg-white">
                 <CardContent className="p-6">
                   <GamefulEmptyState
                     variant="memory"
@@ -403,7 +403,6 @@ export default async function FieldAgendaPage() {
                     { label: "Confirmações", value: event.metrics?.confirmed ?? 0 },
                     { label: "Convites", value: event.metrics?.totalInvited ?? 0 },
                   ]}
-                  className="hover:border-emerald-200"
                 />
               ))
             )}

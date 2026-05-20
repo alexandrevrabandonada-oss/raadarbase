@@ -20,29 +20,29 @@ type GamefulMetricCardProps = {
 
 const toneMap = {
   light: {
-    card: "radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] text-zinc-950 shadow-[0_12px_36px_rgba(15,23,42,0.04)]",
-    muted: "text-[#796a55]",
-    value: "text-zinc-950",
+    card: "bloco-concreto relative overflow-hidden py-0 bg-white text-charcoal shadow-sm",
+    muted: "text-cement font-semibold",
+    value: "text-charcoal",
   },
   dark: {
-    card: "border-white/10 bg-black/20 text-white shadow-none",
-    muted: "text-[#d4c09a]",
+    card: "border-2 border-white/20 bg-charcoal text-white shadow-none rounded-[2px]",
+    muted: "text-cement font-semibold",
     value: "text-white",
   },
   indigo: {
-    card: "border-indigo-100 bg-indigo-50/70 text-indigo-950 shadow-none",
-    muted: "text-indigo-500",
-    value: "text-indigo-950",
+    card: "border-2 border-black bg-burnt-yellow/10 text-charcoal shadow-none rounded-[2px]",
+    muted: "text-cement font-semibold",
+    value: "text-charcoal",
   },
   amber: {
-    card: "border-amber-100 bg-amber-50/80 text-amber-950 shadow-none",
-    muted: "text-amber-600",
-    value: "text-amber-950",
+    card: "border-2 border-rust bg-rust/5 text-rust shadow-none rounded-[2px]",
+    muted: "text-rust font-semibold",
+    value: "text-rust",
   },
   emerald: {
-    card: "border-emerald-100 bg-emerald-50/80 text-emerald-950 shadow-none",
-    muted: "text-emerald-600",
-    value: "text-emerald-950",
+    card: "border-2 border-moss bg-moss/5 text-moss shadow-none rounded-[2px]",
+    muted: "text-moss font-semibold",
+    value: "text-moss",
   },
 } as const;
 
@@ -70,7 +70,7 @@ export function GamefulMetricCard({
               {icon ? <span className="shrink-0">{icon}</span> : null}
               <p className="text-[10px] font-black uppercase tracking-[0.2em]">{label}</p>
             </div>
-            {detail && layout === "stack" ? <p className={cn("mt-2 text-sm leading-6", styles.muted)}>{detail}</p> : null}
+            {detail && layout === "stack" ? <p className={cn("mt-2 text-xs leading-5", styles.muted)}>{detail}</p> : null}
           </div>
           <p
             className={cn(
@@ -84,7 +84,7 @@ export function GamefulMetricCard({
             {value}
           </p>
         </div>
-        {detail && layout === "split" ? <p className={cn("text-sm leading-6", styles.muted)}>{detail}</p> : null}
+        {detail && layout === "split" ? <p className={cn("text-xs leading-5", styles.muted)}>{detail}</p> : null}
         {helper ? <p className={cn("text-xs leading-5", styles.muted)}>{helper}</p> : null}
       </CardContent>
     </Card>

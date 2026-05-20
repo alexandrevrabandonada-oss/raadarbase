@@ -46,8 +46,6 @@ export default async function VolunteersPage({
   ]);
   const reviewDashboard = await getVolunteerReviewDashboard();
 
-  const canExportContacts = canManageContacts(session.internalUser.role);
-
   return (
     <AppShell>
       <RadarPageHeader
@@ -57,11 +55,11 @@ export default async function VolunteersPage({
         compact
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button nativeButton={false} className="bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200" render={<Link href="/voluntarios/novo" />}>
+            <Button nativeButton={false} className="bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow/90 font-black text-xs uppercase tracking-wider" render={<Link href="/voluntarios/novo" />}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Adicionar Voluntário
             </Button>
-            <Button nativeButton={false} variant="outline" className="border-zinc-200" render={<Link href="/voluntarios/inscricoes" />}>
+            <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider" render={<Link href="/voluntarios/inscricoes" />}>
               Ver inscrições
             </Button>
           </div>
@@ -77,9 +75,9 @@ export default async function VolunteersPage({
 
       <OperationalAlert 
         type="contato_manual" 
-        className="mb-8 border-emerald-100 bg-emerald-50/50"
+        className="mb-8 border-2 border-moss bg-moss/5 rounded-[2px]"
       >
-        <p className="text-xs font-medium text-emerald-800">
+        <p className="text-xs font-semibold text-moss">
           <strong>Lembrete Ético:</strong> Voluntários são pessoas que preencheram o formulário oficial ou confirmaram interesse em ajudar. Nunca use dados do Instagram para cadastrar voluntários sem consentimento direto.
         </p>
       </OperationalAlert>
@@ -92,22 +90,22 @@ export default async function VolunteersPage({
         className="mb-8"
       />
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[2.1fr_0.9fr]">
         <div className="space-y-6">
-          <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100">
-            <CardHeader className="pb-3 border-b border-zinc-50">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-500">Busca Estratégica</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Busca Estratégica</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <form className="grid gap-3 md:grid-cols-5">
-                <Input name="search" placeholder="Nome ou bairro" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.search ?? ""} />
-                <Input name="status" placeholder="Status" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.status ?? ""} />
-                <Input name="neighborhood" placeholder="Bairro" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.neighborhood ?? ""} />
-                <Input name="skill" placeholder="Habilidade" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.skill ?? ""} />
-                <Input name="availability" placeholder="Disponibilidade" className="bg-zinc-50 border-zinc-100" defaultValue={resolvedSearchParams?.availability ?? ""} />
+                <Input name="search" placeholder="Nome ou bairro" className="bg-charcoal/5 border-2 border-black rounded-[2px] text-charcoal font-semibold" defaultValue={resolvedSearchParams?.search ?? ""} />
+                <Input name="status" placeholder="Status" className="bg-charcoal/5 border-2 border-black rounded-[2px] text-charcoal font-semibold" defaultValue={resolvedSearchParams?.status ?? ""} />
+                <Input name="neighborhood" placeholder="Bairro" className="bg-charcoal/5 border-2 border-black rounded-[2px] text-charcoal font-semibold" defaultValue={resolvedSearchParams?.neighborhood ?? ""} />
+                <Input name="skill" placeholder="Habilidade" className="bg-charcoal/5 border-2 border-black rounded-[2px] text-charcoal font-semibold" defaultValue={resolvedSearchParams?.skill ?? ""} />
+                <Input name="availability" placeholder="Disponibilidade" className="bg-charcoal/5 border-2 border-black rounded-[2px] text-charcoal font-semibold" defaultValue={resolvedSearchParams?.availability ?? ""} />
                 <div className="md:col-span-5 flex gap-2 pt-2">
-                  <Button type="submit" className="bg-zinc-900 text-white hover:bg-zinc-800 px-8">Filtrar</Button>
-                  <Button nativeButton={false} variant="outline" className="border-zinc-200" render={<Link href="/voluntarios" />}>
+                  <Button type="submit" className="bg-charcoal text-white hover:bg-charcoal/90 rounded-[2px] border-2 border-black font-black uppercase text-xs tracking-wider">Filtrar</Button>
+                  <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider" render={<Link href="/voluntarios" />}>
                     Limpar Filtros
                   </Button>
                 </div>
@@ -115,9 +113,9 @@ export default async function VolunteersPage({
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-sm bg-white ring-1 ring-zinc-100 overflow-hidden">
-            <CardHeader className="pb-3 border-b border-zinc-50">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-500">Base Consentida</CardTitle>
+          <Card className="bloco-concreto bg-white overflow-hidden">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Base Consentida</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
 
@@ -130,7 +128,7 @@ export default async function VolunteersPage({
                     nextActionLabel="revisar inscrições"
                     nextActionHref="/voluntarios/inscricoes"
                     secondaryAction={
-                      <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/pessoas" />}>
+                      <Button variant="outline" className="h-11 rounded-[2px] border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/pessoas" />}>
                         Ver prioridades
                       </Button>
                     }
@@ -141,34 +139,33 @@ export default async function VolunteersPage({
                   <div className="space-y-3 p-4 lg:hidden">
                     {volunteers.map((volunteer) => (
                       <Link key={volunteer.id} href={`/voluntarios/${volunteer.id}`} className="block">
-                        <Card className="border border-zinc-200 bg-white shadow-sm">
+                        <Card className="bloco-concreto bg-white">
                           <CardContent className="space-y-3 p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="truncate text-base font-black text-indigo-950">{volunteer.displayName}</p>
-                                <p className="truncate text-xs text-zinc-500">{volunteer.neighborhood ?? "Sem bairro"}</p>
+                                <p className="truncate text-base font-black text-charcoal">{volunteer.displayName}</p>
+                                <p className="truncate text-xs text-cement font-semibold">{volunteer.neighborhood ?? "Sem bairro"}</p>
                               </div>
                               <Badge
-                                variant="outline"
                                 className={cn(
-                                  "shrink-0 font-black text-[9px] uppercase tracking-widest",
+                                  "shrink-0 rounded-[2px] border-2 border-black font-black text-[9px] uppercase tracking-widest",
                                   volunteer.status === "ativo"
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                    ? "bg-moss/10 text-moss"
                                     : volunteer.status === "novo"
-                                      ? "bg-orange-50 text-orange-700 border-orange-100"
-                                      : "bg-zinc-100 text-zinc-500 border-zinc-200",
+                                      ? "bg-burnt-yellow/10 text-charcoal"
+                                      : "bg-charcoal/10 text-charcoal",
                                 )}
                               >
                                 {volunteer.status}
                               </Badge>
                             </div>
-                            <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                            <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-widest text-cement">
                               <span>{volunteer.skills.slice(0, 3).join(", ") || "Sem habilidade"}</span>
                               <span>{[...volunteer.availability.weekdays, ...volunteer.availability.periods].slice(0, 2).join(", ") || "Sem disponibilidade"}</span>
                             </div>
-                            <div className="flex items-center justify-between gap-3 text-xs">
-                              <span className="text-zinc-500">Perfil consentido</span>
-                              <span className="font-black text-indigo-600">Abrir</span>
+                            <div className="flex items-center justify-between gap-3 text-xs pt-1 border-t border-black/10">
+                              <span className="text-cement font-semibold">Perfil consentido</span>
+                              <span className="font-black text-charcoal">Abrir →</span>
                             </div>
                           </CardContent>
                         </Card>
@@ -176,48 +173,48 @@ export default async function VolunteersPage({
                     ))}
                   </div>
                   <div className="hidden lg:block">
-                <Table>
-                  <TableHeader className="bg-zinc-50/50">
-                    <TableRow>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Nome</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Bairro</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Habilidades</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Disponibilidade</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Status</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {volunteers.map((volunteer) => (
-                      <TableRow key={volunteer.id} className="group hover:bg-zinc-50/50 transition-colors">
-                        <TableCell className="py-4">
-                          <Link href={`/voluntarios/${volunteer.id}`} className="font-black text-indigo-950 hover:text-indigo-600 transition-colors">
-                            {volunteer.displayName}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-xs font-medium text-zinc-600">{volunteer.neighborhood ?? "-"}</TableCell>
-                        <TableCell className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{volunteer.skills.join(", ") || "-"}</TableCell>
-                        <TableCell className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">
-                          {[...volunteer.availability.weekdays, ...volunteer.availability.periods].join(", ") || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={cn(
-                            "font-black text-[9px] uppercase tracking-widest",
-                            volunteer.status === 'ativo' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                            volunteer.status === 'novo' ? 'bg-orange-50 text-orange-700 border-orange-100' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                          )}>
-                            {volunteer.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                           <Link href={`/voluntarios/${volunteer.id}`} className="text-xs font-black text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                             Perfil →
-                           </Link>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    <Table>
+                      <TableHeader className="bg-charcoal/5 border-b-2 border-black">
+                        <TableRow>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Nome</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Bairro</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Habilidades</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Disponibilidade</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Status</TableHead>
+                          <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {volunteers.map((volunteer) => (
+                          <TableRow key={volunteer.id} className="group hover:bg-charcoal/5 border-b border-black/10 transition-colors">
+                            <TableCell className="py-4">
+                              <Link href={`/voluntarios/${volunteer.id}`} className="font-black text-charcoal hover:underline">
+                                {volunteer.displayName}
+                              </Link>
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-charcoal">{volunteer.neighborhood ?? "-"}</TableCell>
+                            <TableCell className="text-[10px] font-bold text-cement uppercase tracking-tighter">{volunteer.skills.join(", ") || "-"}</TableCell>
+                            <TableCell className="text-[10px] font-bold text-cement uppercase tracking-tighter">
+                              {[...volunteer.availability.weekdays, ...volunteer.availability.periods].join(", ") || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={cn(
+                                "font-black text-[9px] uppercase tracking-widest rounded-[2px] border-2 border-black",
+                                volunteer.status === 'ativo' ? 'bg-moss/10 text-moss' : 
+                                volunteer.status === 'novo' ? 'bg-burnt-yellow/10 text-charcoal' : 'bg-charcoal/10 text-charcoal'
+                              )}>
+                                {volunteer.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                               <Link href={`/voluntarios/${volunteer.id}`} className="text-xs font-black text-charcoal opacity-0 group-hover:opacity-100 transition-opacity">
+                                 Perfil →
+                               </Link>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 </>
               )}
@@ -226,54 +223,54 @@ export default async function VolunteersPage({
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Por habilidade</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Por habilidade</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {stats.skills.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : stats.skills.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm"><span>{label}</span><strong>{count}</strong></div>)}
+            <CardContent className="space-y-2 pt-4">
+              {stats.skills.length === 0 ? <p className="text-sm text-cement">Sem dados.</p> : stats.skills.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm text-charcoal font-semibold"><span>{label}</span><strong>{count}</strong></div>)}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Por bairro</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Por bairro</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {stats.neighborhoods.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : stats.neighborhoods.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm"><span>{label}</span><strong>{count}</strong></div>)}
+            <CardContent className="space-y-2 pt-4">
+              {stats.neighborhoods.length === 0 ? <p className="text-sm text-cement">Sem dados.</p> : stats.neighborhoods.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm text-charcoal font-semibold"><span>{label}</span><strong>{count}</strong></div>)}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Por disponibilidade</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Por disponibilidade</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {stats.availability.length === 0 ? <p className="text-sm text-muted-foreground">Sem dados.</p> : stats.availability.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm"><span>{label}</span><strong>{count}</strong></div>)}
+            <CardContent className="space-y-2 pt-4">
+              {stats.availability.length === 0 ? <p className="text-sm text-cement">Sem dados.</p> : stats.availability.slice(0, 8).map(([label, count]) => <div key={label} className="flex justify-between text-sm text-charcoal font-semibold"><span>{label}</span><strong>{count}</strong></div>)}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Revisão periódica</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Revisão periódica</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 pt-4 text-sm text-charcoal font-semibold">
               <div className="flex justify-between"><span>Pendentes +90d</span><strong>{reviewDashboard.pending90d.length}</strong></div>
               <div className="flex justify-between"><span>Elegíveis anonimização</span><strong>{reviewDashboard.rejectedEligible.length + reviewDashboard.archivedEligible.length}</strong></div>
-              <div className="text-muted-foreground">Última rodada: {reviewDashboard.latestRound?.status ?? "nenhuma"}</div>
-              <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios/revisao-periodica" />}>
+              <div className="text-xs text-cement font-medium">Última rodada: {reviewDashboard.latestRound?.status ?? "nenhuma"}</div>
+              <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider w-full" render={<Link href="/voluntarios/revisao-periodica" />}>
                 Abrir revisão
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Grupos de Trabalho</CardTitle>
+          <Card className="bloco-concreto bg-white">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Grupos de Trabalho</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-sm text-muted-foreground">{squads.length} grupos cadastrados.</div>
-              <Button nativeButton={false} variant="outline" render={<Link href="/voluntarios/squads" />}>
+            <CardContent className="space-y-3 pt-4">
+              <div className="text-sm text-cement font-semibold">{squads.length} grupos cadastrados.</div>
+              <Button nativeButton={false} variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider w-full" render={<Link href="/voluntarios/squads" />}>
                 Ver grupos
               </Button>
             </CardContent>

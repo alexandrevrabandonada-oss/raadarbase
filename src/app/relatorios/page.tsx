@@ -1,4 +1,3 @@
- 
 import Link from "next/link";
 import AppShell from "@/components/app-shell";
 
@@ -23,6 +22,7 @@ import { PilotDashboardClient } from "./pilot-dashboard-client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { DailyClosure } from "@/components/radar/reports/daily-closure";
+import { cn } from "@/lib/utils";
 import { getOperationalTelemetry } from "@/lib/data/audit";
 import { TelemetryDashboard } from "./telemetry-dashboard";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
@@ -101,41 +101,41 @@ export default async function RelatoriosPage() {
       <CycleAlertList alerts={cycleAlerts.alerts} className="mb-6" />
 
       <Tabs defaultValue="operacional" className="space-y-6">
-        <TabsList className="bg-zinc-100 p-1 border border-zinc-200 h-12">
-          <TabsTrigger value="operacional" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+        <TabsList className="bg-charcoal/5 border-2 border-black h-auto flex flex-wrap gap-1 p-1 rounded-[2px]">
+          <TabsTrigger value="operacional" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             📊 Painel Piloto
           </TabsTrigger>
-          <TabsTrigger value="fechamento" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="fechamento" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             ✅ Fechamento Dia
           </TabsTrigger>
-          <TabsTrigger value="qualidade" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="qualidade" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             🧹 Qualidade
           </TabsTrigger>
-          <TabsTrigger value="relatorios" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="relatorios" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             📝 Pautas
           </TabsTrigger>
-          <TabsTrigger value="ritmo" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="ritmo" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             ⚡ Ritmo
           </TabsTrigger>
-          <TabsTrigger value="feedback" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="feedback" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             💬 Voz da Equipe
           </TabsTrigger>
-          <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="retrospectiva" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             🧠 Retrospectiva
           </TabsTrigger>
-          <TabsTrigger value="progresso" className="data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-[10px] uppercase tracking-widest px-6 h-10">
+          <TabsTrigger value="progresso" className="data-[state=active]:bg-charcoal data-[state=active]:text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 border-2 border-transparent data-[state=active]:border-black rounded-[2px] transition-all text-charcoal">
             🚀 Progresso Coletivo
           </TabsTrigger>
         </TabsList>
 
-        <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 mb-6">
+        <div className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow p-4 mb-6">
            <div className="flex items-start gap-3">
-              <div className="h-8 w-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+              <div className="h-8 w-8 rounded-[2px] border-2 border-black bg-burnt-yellow text-charcoal flex items-center justify-center shrink-0">
                 <Activity className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">Dica Estratégica</p>
-                <p className="text-sm text-indigo-900 font-medium leading-relaxed">
+                <p className="text-[10px] font-black uppercase tracking-widest text-charcoal mb-1">Dica Estratégica</p>
+                <p className="text-sm text-charcoal font-medium leading-relaxed">
                   <strong>O que olhar primeiro?</strong> Comece pelo <strong>Fechamento do Dia</strong> para garantir que nada ficou parado. Depois, use a <strong>Qualidade da Base</strong> para garantir que a equipe está focada nos perfis certos.
                 </p>
               </div>
@@ -144,8 +144,8 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="qualidade" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <Activity className="w-5 h-5 text-charcoal" />
               Higiene e Qualidade da Base
             </h2>
           </div>
@@ -159,8 +159,8 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="fechamento" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <FileText className="w-5 h-5 text-charcoal" />
               Fechamento Diário Operacional
             </h2>
           </div>
@@ -183,35 +183,35 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="retrospectiva" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <FileText className="w-5 h-5 text-charcoal" />
               Retrospectiva e Aprendizado do Piloto
             </h2>
-            <Button variant="outline" size="sm" className="hidden md:flex">
+            <Button variant="outline" size="sm" className="hidden md:flex border-2 border-black bg-white text-charcoal rounded-[2px] font-black text-xs uppercase tracking-wider">
               Exportar Markdown
             </Button>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Engajamento por Tema</CardTitle>
+            <Card className="bloco-concreto bg-white">
+              <CardHeader className="pb-3 border-b-2 border-black">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Engajamento por Tema</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-charcoal/5 border-b-2 border-black">
                     <TableRow>
-                      <TableHead>Tema</TableHead>
-                      <TableHead className="text-right">Casos</TableHead>
-                      <TableHead className="text-right">Taxa de Resposta</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Tema</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal text-right">Casos</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal text-right">Taxa de Resposta</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pilotData.retrospective?.responseRateByTheme.map((t) => (
-                      <TableRow key={t.theme}>
-                        <TableCell className="font-medium">{t.theme}</TableCell>
-                        <TableCell className="text-right text-slate-500">{t.count}</TableCell>
-                        <TableCell className="text-right font-bold text-emerald-600">{t.rate}%</TableCell>
+                      <TableRow key={t.theme} className="group hover:bg-charcoal/5 border-b border-black/10 transition-colors">
+                        <TableCell className="font-black text-charcoal">{t.theme}</TableCell>
+                        <TableCell className="text-right font-semibold text-cement">{t.count}</TableCell>
+                        <TableCell className="text-right font-black text-moss">{t.rate}%</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -219,23 +219,23 @@ export default async function RelatoriosPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-500">Motivos de &quot;Não Abordar&quot;</CardTitle>
+            <Card className="bloco-concreto bg-white">
+              <CardHeader className="pb-3 border-b-2 border-black">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Motivos de &quot;Não Abordar&quot;</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-charcoal/5 border-b-2 border-black">
                     <TableRow>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead className="text-right">Ocorrências</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Motivo</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal text-right">Ocorrências</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pilotData.retrospective?.nonContactReasons.map((r) => (
-                      <TableRow key={r.reason}>
-                        <TableCell className="font-medium">{r.reason}</TableCell>
-                        <TableCell className="text-right text-red-600 font-bold">{r.count}</TableCell>
+                      <TableRow key={r.reason} className="group hover:bg-charcoal/5 border-b border-black/10 transition-colors">
+                        <TableCell className="font-black text-charcoal">{r.reason}</TableCell>
+                        <TableCell className="text-right text-rust font-black">{r.count}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -244,23 +244,23 @@ export default async function RelatoriosPage() {
             </Card>
           </div>
 
-          <Card className="bg-indigo-50 border-indigo-100">
-            <CardHeader>
-              <CardTitle className="text-indigo-900">Diário de Bordo e Aprendizados</CardTitle>
+          <Card className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow">
+            <CardHeader className="pb-3 border-b-2 border-black">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-charcoal">Diário de Bordo e Aprendizados</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-indigo-700">O que funcionou bem?</label>
-                  <textarea className="w-full min-h-[100px] p-3 text-sm rounded-md border border-indigo-200 focus:ring-2 focus:ring-indigo-500" placeholder="Ex: Mensagens diretas sobre o tema X tiveram 50% de resposta..."></textarea>
+                  <label className="text-xs font-black uppercase tracking-widest text-charcoal">O que funcionou bem?</label>
+                  <textarea className="w-full min-h-[100px] p-3 text-sm rounded-[2px] border-2 border-black bg-white font-semibold text-charcoal focus:ring-0 focus:outline-none" placeholder="Ex: Mensagens diretas sobre o tema X tiveram 50% de resposta..."></textarea>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-indigo-700">O que precisa mudar?</label>
-                  <textarea className="w-full min-h-[100px] p-3 text-sm rounded-md border border-indigo-200 focus:ring-2 focus:ring-indigo-500" placeholder="Ex: O template Y está gerando confusão..."></textarea>
+                  <label className="text-xs font-black uppercase tracking-widest text-charcoal">O que precisa mudar?</label>
+                  <textarea className="w-full min-h-[100px] p-3 text-sm rounded-[2px] border-2 border-black bg-white font-semibold text-charcoal focus:ring-0 focus:outline-none" placeholder="Ex: O template Y está gerando confusão..."></textarea>
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Salvar Reflexões da Semana</Button>
+                <Button className="bg-charcoal text-white hover:bg-charcoal/90 rounded-[2px] border-2 border-black font-black uppercase text-xs tracking-wider">Salvar Reflexões da Semana</Button>
               </div>
             </CardContent>
           </Card>
@@ -270,10 +270,10 @@ export default async function RelatoriosPage() {
            <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
               <div className="space-y-6">
                 <PilotFeedbackForm currentRoute="/relatorios" />
-                <Card className="border-indigo-100 bg-indigo-50/30">
+                <Card className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow">
                   <CardContent className="pt-6">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-indigo-700 mb-2">Por que reportar?</h3>
-                    <p className="text-xs text-indigo-800 leading-relaxed">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-charcoal mb-2">Por que reportar?</h3>
+                    <p className="text-xs text-charcoal/90 leading-relaxed font-semibold">
                       O piloto de 7 dias serve para encontrarmos onde o Radar atrapalha em vez de ajudar. Cada reporte seu vira uma melhoria para a próxima versão.
                     </p>
                   </CardContent>
@@ -287,12 +287,12 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="operacional" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <LayoutDashboard className="w-5 h-5 text-emerald-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <LayoutDashboard className="w-5 h-5 text-charcoal" />
               Monitoramento Diário da Operação
             </h2>
             <div className="flex gap-2">
-              <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} variant="outline" size="sm">
+              <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} className="border-2 border-black bg-white text-charcoal font-black rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider" size="sm">
                 Exportar CSV Completo
               </Button>
             </div>
@@ -302,8 +302,8 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="ritmo" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <Activity className="w-5 h-5 text-charcoal" />
               Ritmo de Trabalho da Equipe
             </h2>
           </div>
@@ -356,72 +356,75 @@ export default async function RelatoriosPage() {
 
         <TabsContent value="relatorios" className="space-y-6">
           <div className="flex justify-between items-center">
-            <div className="text-sm text-muted-foreground italic">
+            <div className="text-sm text-cement font-semibold italic">
               Relatórios descrevem pautas, não perfis individuais.
             </div>
-            <Button nativeButton={false} render={<Link href="/relatorios/novo" />} size="sm">
+            <Button nativeButton={false} className="bg-burnt-yellow text-charcoal border-2 border-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow/90 font-black text-xs uppercase tracking-wider" render={<Link href="/relatorios/novo" />} size="sm">
               <Plus className="mr-2 h-4 w-4" /> Novo Relatório
             </Button>
           </div>
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-primary/20 bg-primary/5">
+            <Card className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow">
               <CardContent className="space-y-3 pt-6">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary">Primeiro relatório real do Instagram</p>
-                    <h2 className="mt-1 text-2xl font-black">{firstRealReport ? firstRealReport.title : "Ainda não gerado"}</h2>
+                    <p className="text-xs font-black uppercase tracking-widest text-charcoal">Primeiro relatório real do Instagram</p>
+                    <h2 className="mt-1 text-2xl font-black text-charcoal">{firstRealReport ? firstRealReport.title : "Ainda não gerado"}</h2>
                   </div>
-                  <Badge variant={firstRealReport ? "default" : "outline"}>{firstRealReport ? "gerado" : "pendente"}</Badge>
+                  <Badge className={cn(
+                    "font-black text-[9px] uppercase tracking-widest rounded-[2px] border-2 border-black",
+                    firstRealReport ? "bg-moss/10 text-moss" : "bg-charcoal/10 text-charcoal"
+                  )}>{firstRealReport ? "gerado" : "pendente"}</Badge>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs uppercase text-muted-foreground">Posts analisados</p>
-                    <p className="text-xl font-black">{firstMetrics.postsAnalyzed ?? 0}</p>
+                  <div className="rounded-[2px] border-2 border-black bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cement">Posts</p>
+                    <p className="text-xl font-black text-charcoal">{firstMetrics.postsAnalyzed ?? 0}</p>
                   </div>
-                  <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs uppercase text-muted-foreground">Interações</p>
-                    <p className="text-xl font-black">{firstMetrics.interactionsAnalyzed ?? 0}</p>
+                  <div className="rounded-[2px] border-2 border-black bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cement">Interações</p>
+                    <p className="text-xl font-black text-charcoal">{firstMetrics.interactionsAnalyzed ?? 0}</p>
                   </div>
-                  <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs uppercase text-muted-foreground">Pessoas únicas</p>
-                    <p className="text-xl font-black">{firstMetrics.uniquePeople ?? 0}</p>
+                  <div className="rounded-[2px] border-2 border-black bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cement">Pessoas</p>
+                    <p className="text-xl font-black text-charcoal">{firstMetrics.uniquePeople ?? 0}</p>
                   </div>
-                  <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs uppercase text-muted-foreground">Temas detectados</p>
-                    <p className="text-xl font-black">{firstMetrics.themesDetected ?? 0}</p>
+                  <div className="rounded-[2px] border-2 border-black bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cement">Temas</p>
+                    <p className="text-xl font-black text-charcoal">{firstMetrics.themesDetected ?? 0}</p>
                   </div>
-                  <div className="rounded-md border bg-background p-3">
-                    <p className="text-xs uppercase text-muted-foreground">Pendências</p>
-                    <p className="text-xl font-black">{firstMetrics.pendingThemes ?? 0}</p>
+                  <div className="rounded-[2px] border-2 border-black bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cement">Penden.</p>
+                    <p className="text-xl font-black text-charcoal">{firstMetrics.pendingThemes ?? 0}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   {firstRealReport ? (
                     <>
-                      <Button nativeButton={false} render={<Link href={`/relatorios/${firstRealReport.id}`} />}>Abrir relatório</Button>
-                      <Button variant="outline" nativeButton={false} render={<Link href={`/acoes/novo?reportId=${firstRealReport.id}`} />}>Criar plano público</Button>
+                      <Button className="bg-charcoal text-white hover:bg-charcoal/90 rounded-[2px] border-2 border-black font-black uppercase text-xs tracking-wider" nativeButton={false} render={<Link href={`/relatorios/${firstRealReport.id}`} />}>Abrir relatório</Button>
+                      <Button variant="outline" className="border-2 border-black bg-white font-black text-charcoal rounded-[2px] hover:bg-charcoal/5 text-xs uppercase tracking-wider" nativeButton={false} render={<Link href={`/acoes/novo?reportId=${firstRealReport.id}`} />}>Criar plano público</Button>
                     </>
                   ) : (
-                    <Button nativeButton={false} render={<Link href="/relatorios/novo" />}>Gerar primeiro relatório</Button>
+                    <Button className="bg-charcoal text-white hover:bg-charcoal/90 rounded-[2px] border-2 border-black font-black uppercase text-xs tracking-wider" nativeButton={false} render={<Link href="/relatorios/novo" />}>Gerar primeiro relatório</Button>
                   )}
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-emerald-700/20 bg-emerald-50/50">
+            <Card className="bloco-concreto bg-moss/5 border-moss">
               <CardContent className="pt-6 h-full flex flex-col justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">Estatísticas do Piloto (7 Dias)</p>
-                  <h2 className="mt-1 text-lg font-black text-emerald-950">Exportar Base Diária</h2>
-                  <div className="text-sm text-emerald-900 mt-2 italic leading-relaxed">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-moss">Estatísticas do Piloto (7 Dias)</p>
+                  <h2 className="mt-1 text-lg font-black text-charcoal">Exportar Base Diária</h2>
+                  <div className="text-xs font-semibold text-charcoal/90 mt-2 italic leading-relaxed">
                     Baixe o acompanhamento diário da operação (CSV).<br/>
                     Para saber quem assumiu cada tarefa, quantos foram encaminhados e o progresso real das abordagens.
                   </div>
                 </div>
                 <div className="mt-4 flex justify-end">
-                  <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} className="bg-emerald-700 hover:bg-emerald-800 text-white">
+                  <Button nativeButton={false} render={<a href="/api/piloto/export" target="_blank" rel="noreferrer" />} className="bg-moss text-white hover:bg-moss/90 rounded-[2px] border-2 border-black font-black uppercase text-xs tracking-wider">
                     Baixar CSV do Piloto
                   </Button>
                 </div>
@@ -429,49 +432,50 @@ export default async function RelatoriosPage() {
             </Card>
           </div>
 
-          <Card>
+          <Card className="bloco-concreto bg-white mt-6 overflow-hidden">
             <CardContent className="p-0 overflow-x-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-charcoal/5 border-b-2 border-black">
                   <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead>Gerado em</TableHead>
-                    <TableHead>Criado por</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Título</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Status</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Período</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Gerado em</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal">Criado por</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest py-4 text-charcoal text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reports.map((report) => (
-                    <TableRow key={report.id}>
-                      <TableCell className="font-semibold">
-                        <Link href={`/relatorios/${report.id}`} className="flex items-center hover:underline">
-                          <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <TableRow key={report.id} className="group hover:bg-charcoal/5 border-b border-black/10 transition-colors">
+                      <TableCell className="font-black">
+                        <Link href={`/relatorios/${report.id}`} className="flex items-center hover:underline text-charcoal">
+                          <FileText className="mr-2 h-4 w-4 text-cement" />
                           {report.title}
                         </Link>
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={
-                            report.status === 'generated' ? 'default' : 
-                            report.status === 'archived' ? 'secondary' : 'outline'
-                          }
+                          className={cn(
+                            "font-black text-[9px] uppercase tracking-widest rounded-[2px] border-2 border-black",
+                            report.status === 'generated' ? 'bg-moss/10 text-moss' : 
+                            report.status === 'archived' ? 'bg-charcoal/10 text-charcoal' : 'bg-charcoal/10 text-charcoal'
+                          )}
                         >
                           {report.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs font-semibold text-charcoal">
                         {report.period_start} a {report.period_end}
                       </TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs font-semibold text-charcoal">
                         {report.generated_at ? formatDateTime(report.generated_at) : "-"}
                       </TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="text-xs font-semibold text-cement">
                         {report.created_by_email}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/relatorios/${report.id}`} />}>
+                        <Button variant="ghost" size="sm" nativeButton={false} className="border-2 border-transparent text-charcoal hover:border-black font-black text-xs uppercase tracking-wider" render={<Link href={`/relatorios/${report.id}`} />}>
                           Ver
                         </Button>
                       </TableCell>
@@ -479,7 +483,7 @@ export default async function RelatoriosPage() {
                   ))}
                   {reports.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="py-12 text-center font-semibold text-cement">
                         Nenhum relatório criado ainda.
                       </TableCell>
                     </TableRow>
@@ -491,8 +495,8 @@ export default async function RelatoriosPage() {
         </TabsContent>
         <TabsContent value="progresso" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+              <Activity className="w-5 h-5 text-charcoal" />
               Central de Progresso Coletivo
             </h2>
           </div>
