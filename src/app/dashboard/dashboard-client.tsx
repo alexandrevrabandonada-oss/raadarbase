@@ -239,7 +239,7 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
   const myQueue = priorityPeople.filter((p) => p.responsibleId === session.id);
 
   return (
-    <div className="space-y-8 pb-32 lg:pb-16">
+    <div className="space-y-8 pb-16">
       <HeroSection data={data} />
 
       <HeroJourneyWelcomeWidget
@@ -255,7 +255,7 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
         statusDetail={data.overallStatus.detail}
         primaryAction={{
           label: "Iniciar Jornada",
-          href: "/minha-fila",
+          href: "/treinamento/mini-game",
           icon: Route,
         }}
         secondaryActions={[
@@ -338,7 +338,7 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       }
       actions={
         <>
-          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/minha-fila" />}>
+          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/treinamento/mini-game" />}>
             <Route className="h-4 w-4" />
             Iniciar Jornada
           </Button>

@@ -81,7 +81,7 @@ export function OperationalCommandBar({
     <section
       aria-label={title}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] xl:sticky xl:top-4 xl:z-30 xl:px-0 xl:pb-0",
+        "hidden xl:sticky xl:top-4 xl:z-30 xl:block xl:px-0 xl:pb-0",
         className,
       )}
     >

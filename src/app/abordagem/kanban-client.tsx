@@ -372,7 +372,7 @@ export function KanbanClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-32 lg:pb-20">
+    <div className="flex flex-col gap-6 pb-20">
       <GamefulHero
         eyebrow="Fluxo cooperativo"
         title="Mural de Missões"

@@ -19,7 +19,6 @@ import {
   Calendar,
   HeartHandshake,
   Smartphone,
-  LayoutDashboard,
   ShieldAlert,
   History,
   Flame,
@@ -30,6 +29,7 @@ import {
   Coffee,
   MapPinned,
   PauseCircle,
+  Play,
   Route,
   TowerControl,
   Instagram,
@@ -330,8 +330,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   if (queue.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-8 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)]">
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
           <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
             <Sparkles className="h-6 w-6" />
           </div>
@@ -339,61 +339,76 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             <Sparkles className="h-6 w-6" />
           </div>
 
-          <div className="flex flex-col items-center">
-            <div className="relative mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-charcoal border-2 border-burnt-yellow text-burnt-yellow shadow-lg shadow-burnt-yellow/20 animate-pulse">
-              <Trophy className="h-10 w-10 text-burnt-yellow" />
-            </div>
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
+            <div className="space-y-5 text-left">
+              <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                <Sparkles className="h-3.5 w-3.5" />
+                Primeira jornada
+              </div>
+              <div className="space-y-3">
+                <h2 className="max-w-[9ch] text-4xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
+                  Aprenda antes de operar
+                </h2>
+                <p className="max-w-xl text-sm font-semibold leading-6 text-zinc-300 md:text-base md:leading-7">
+                  Sua fila real está limpa agora. Comece pelo simulador e pela jornada guiada para entender como abordar, registrar e respeitar os limites éticos da operação.
+                </p>
+              </div>
 
-            <span className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Trilha Concluída</span>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
-              Quest Cumprida!
-            </h2>
-            <p className="mt-3 max-w-md text-sm font-semibold leading-relaxed text-zinc-300">
-              Sua fila de missões operacionais de hoje está completamente limpa. Cada contato e acolhimento feito mantém nossa chama de base aquecida e articulada!
-            </p>
-
-            <div className="mt-6 w-full rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
-              <div className="flex flex-col items-center justify-around gap-4 sm:flex-row">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-burnt-yellow/10 border border-burnt-yellow/20 text-burnt-yellow">
-                    <Flame className="h-5 w-5 fill-burnt-yellow/10 text-burnt-yellow" />
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  ["01", "Jogar simulador"],
+                  ["02", "Ver guia do operador"],
+                  ["03", "Assumir missão real"],
+                ].map(([step, label]) => (
+                  <div key={step} className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-burnt-yellow">{step}</p>
+                    <p className="mt-2 text-sm font-black text-white">{label}</p>
                   </div>
-                  <div className="text-left">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Combo Ativo</p>
-                    <p className="text-sm font-black text-white">x{streak} Conclusões</p>
-                  </div>
-                </div>
-
-                <div className="h-px w-full bg-cement/30 sm:h-8 sm:w-px" />
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Estado da Trilha</p>
-                    <p className="text-sm font-black text-emerald-400">100% Limpa e Segura</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
-              <Button
-                className="h-12 rounded-[2px] bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
-                nativeButton={false}
-                render={<Link href="/abordagem?filter=sem_responsavel" />}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" /> Assumir missões abertas
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.5)] transition-all"
-                nativeButton={false}
-                render={<Link href="/dashboard" />}
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" /> Retornar à base
-              </Button>
+            <div className="space-y-4">
+              <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow p-5 text-charcoal shadow-[4px_4px_0px_0px_rgba(231,224,210,0.35)]">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[2px] border-2 border-charcoal bg-off-white">
+                    <Play className="h-6 w-6 fill-charcoal text-charcoal" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em]">Simulador interativo</p>
+                    <h3 className="mt-1 text-2xl font-black tracking-tight">Estação Volta Redonda</h3>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-charcoal/80">
+                      Treine três decisões reais: abordagem manual, privacidade e fechamento de coordenação.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="mt-5 h-12 w-full rounded-[2px] border-2 border-charcoal bg-charcoal px-6 text-xs font-black uppercase tracking-wider text-off-white hover:bg-charcoal/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.4)]"
+                  nativeButton={false}
+                  render={<Link href="/treinamento/mini-game" />}
+                >
+                  Jogar mini game <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  variant="outline"
+                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15"
+                  nativeButton={false}
+                  render={<Link href="/treinamento" />}
+                >
+                  <Trophy className="mr-2 h-4 w-4" /> Jornada guiada
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15"
+                  nativeButton={false}
+                  render={<Link href="/abordagem?filter=sem_responsavel" />}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> Assumir missão real
+                </Button>
+              </div>
             </div>
           </div>
         </div>
