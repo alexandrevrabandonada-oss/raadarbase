@@ -118,6 +118,10 @@ export type DashboardViewData = {
     collectiveProgress: number;
     referralsMade: number;
     doNotContactRespected: number;
+    bairroListensSubmitted: number;
+    linksPrepared: number;
+    responsesRecorded: number;
+    fieldActionsCompleted: number;
   };
   integrationAlerts: {
     webhookQuarantineCount: number;

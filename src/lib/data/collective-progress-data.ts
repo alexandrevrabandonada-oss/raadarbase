@@ -12,6 +12,7 @@ export type CollectiveProgressMetrics = {
     territoriesInMobilization: number;
     fieldActionsCompleted: number;
     doNotContactRespected: number;
+    bairroListensSubmitted: number;
   };
   funnel: {
     prepare: number;
@@ -45,6 +46,7 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
         territoriesInMobilization: 8,
         fieldActionsCompleted: 5,
         doNotContactRespected: 18,
+        bairroListensSubmitted: 37,
       },
       funnel: {
         prepare: 127,
@@ -88,12 +90,14 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
     { count: responsesRecordedCount },
     { count: referralsMadeCount },
     { count: doNotContactCount },
+    { count: bairroListensCount },
   ] = await Promise.all([
     supabase.from("ig_people").select("*", { count: "exact", head: true }),
     supabase.from("ig_people").select("*", { count: "exact", head: true }).neq("status", "novo"),
     supabase.from("ig_people").select("*", { count: "exact", head: true }).in("status", ["respondeu", "contato_confirmado"]),
     supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }),
     supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("status", "nao_abordar"),
+    supabase.from("bairro_escuta_submissions").select("*", { count: "exact", head: true }),
   ]);
 
   // 2. Territories and Field Actions
@@ -214,6 +218,7 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
       territoriesInMobilization: uniqueTerritories.size,
       fieldActionsCompleted: (fieldActionsData || []).length,
       doNotContactRespected: doNotContactCount || 0,
+      bairroListensSubmitted: bairroListensCount || 0,
     },
     funnel: {
       prepare: funnelPrepareCount || 0,

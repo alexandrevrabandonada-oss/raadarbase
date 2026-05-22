@@ -289,6 +289,10 @@ async function loadDashboardData() {
       collectiveProgress: collective.funnel.conclude,
       referralsMade: collective.progress.referralsMade,
       doNotContactRespected: collective.ethics.doNotContactRespected,
+      bairroListensSubmitted: collective.progress.bairroListensSubmitted,
+      linksPrepared: collective.progress.linksPrepared,
+      responsesRecorded: collective.progress.responsesRecorded,
+      fieldActionsCompleted: collective.progress.fieldActionsCompleted,
     },
     integrationAlerts: {
       webhookQuarantineCount: operationalAlerts.webhookQuarantineCount,
