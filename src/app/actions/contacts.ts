@@ -315,6 +315,7 @@ export async function markResponded(personId: string): Promise<ActionResult> {
     entityId: personId,
     summary: "Pessoa marcada como respondeu.",
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.status = "respondeu";
@@ -341,6 +342,7 @@ export async function markContactConfirmed(personId: string, channel = "Instagra
     summary: "Contato confirmado com consentimento.",
     metadata: { channel },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.status = "contato_confirmado";
@@ -398,6 +400,7 @@ export async function markDoNotContact(personId: string, reason = "Pedido da pr�
     summary: "Pessoa marcada como não abordar.",
     metadata: { reason },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.status = "nao_abordar";
@@ -429,6 +432,7 @@ export async function updatePersonNotes(personId: string, notes: string): Promis
     entityId: personId,
     summary: "Notas internas atualizadas.",
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.notes = notes;
@@ -454,6 +458,7 @@ export async function updatePersonTags(personId: string, tags: string[]): Promis
     summary: "Tags temáticas atualizadas.",
     metadata: { tags },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (person) => {
           person.themes = tags;
@@ -733,6 +738,8 @@ export async function updateOutreachTaskStatus(taskId: string, nextColumn: Board
 }
 
 export async function getPersonInteractionsAction(personId: string) {
+  validateId(personId, "Pessoa");
+  await requireRole(["admin", "operador", "comunicacao", "leitura"]);
   const { listInteractions } = await import("@/lib/data/interactions");
   return listInteractions(personId);
 }
@@ -867,4 +874,43 @@ export async function updatePersonThemeAction(personId: string, themes: string[]
     },
     revalidate: [`/pessoas/${personId}`, "/relatorios"],
   });
+}
+
+export async function acquireLockAction(personId: string): Promise<{ ok: boolean; success: boolean; ownerName?: string }> {
+  try {
+    validateId(personId, "Pessoa");
+    const actor = await requireRole(["admin", "operador"]);
+    const { acquireOutreachLock } = await import("@/lib/data/locks");
+    const actorName = actor.full_name?.trim() || actor.email;
+    const result = await acquireOutreachLock(personId, actor.id, actorName);
+    return { ok: true, ...result };
+  } catch {
+    return { ok: false, success: false };
+  }
+}
+
+export async function releaseLockAction(personId: string): Promise<{ ok: boolean }> {
+  try {
+    validateId(personId, "Pessoa");
+    const actor = await requireRole(["admin", "operador"]);
+    const { releaseOutreachLock } = await import("@/lib/data/locks");
+    await releaseOutreachLock(personId, actor.id);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export async function checkLockAction(
+  personId: string,
+): Promise<{ ok: boolean; locked: boolean; lockedByOther: boolean; ownerName?: string; expiresAt?: number }> {
+  try {
+    validateId(personId, "Pessoa");
+    const actor = await requireRole(["admin", "operador"]);
+    const { checkOutreachLock } = await import("@/lib/data/locks");
+    const result = await checkOutreachLock(personId, actor.id);
+    return { ok: true, ...result };
+  } catch {
+    return { ok: false, locked: false, lockedByOther: false };
+  }
 }

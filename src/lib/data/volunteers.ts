@@ -373,10 +373,45 @@ export async function listVolunteers(filters?: VolunteerFilters): Promise<Volunt
   if (shouldUseMockData()) return [];
 
   const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase.from("campaign_volunteers").select("*").order("created_at", { ascending: false });
+  let query = supabase.from("campaign_volunteers").select("*");
+
+  if (filters?.status) {
+    query = query.eq("status", filters.status);
+  }
+
+  if (filters?.neighborhood) {
+    query = query.eq("neighborhood", filters.neighborhood);
+  }
+
+  if (filters?.skill) {
+    query = query.contains("skills", [filters.skill]);
+  }
+
+  if (filters?.search && filters.search.trim()) {
+    const search = filters.search.trim();
+    query = query.or(`display_name.ilike.%${search}%,neighborhood.ilike.%${search}%,city.ilike.%${search}%`);
+  }
+
+  query = query.order("created_at", { ascending: false });
+
+  const { data, error } = await query;
   if (error) throw error;
 
-  return applyVolunteerFilters((data ?? []).map((row) => sanitizeVolunteerForList(toVolunteer(row))), filters);
+  let items = (data ?? []).map((row) => sanitizeVolunteerForList(toVolunteer(row)));
+
+  if (filters?.availability && filters.availability.trim()) {
+    const wanted = filters.availability.trim().toLowerCase();
+    items = items.filter((volunteer) => {
+      const values = [
+        ...volunteer.availability.weekdays,
+        ...volunteer.availability.periods,
+        volunteer.availability.notes ?? "",
+      ].join(" ").toLowerCase();
+      return values.includes(wanted);
+    });
+  }
+
+  return items;
 }
 
 export async function getVolunteer(id: string, options?: { includeContact?: boolean }): Promise<VolunteerDetail | null> {

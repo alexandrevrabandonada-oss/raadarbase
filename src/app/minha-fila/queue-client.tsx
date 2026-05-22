@@ -7,7 +7,6 @@ import { QueueCard } from "./queue-card";
 import { QueueList } from "./queue-list";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 import { Button } from "@/components/ui/button";
-import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
@@ -36,16 +35,16 @@ import {
   Copy,
   MessageSquare,
   Trophy,
-  Award,
+  Heart,
 } from "lucide-react";
 import {
   trackOperationalEvent,
-  recordPersonResponse,
-  recordPersonReferral,
-  recordDMPreparedAction,
-  confirmDMSentAction,
+  acquireLockAction,
+  releaseLockAction,
+  checkLockAction,
 } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 import { useCompletion } from "@/hooks/use-completion";
 import {
   Dialog,
@@ -57,8 +56,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { OperatorWellnessCard } from "@/components/radar/wellness/operator-wellness-card";
-import { assessQueueWellness } from "@/lib/data/operator-wellness";
+import {
+  assessQueueWellness,
+  checkAndReconcileStreak,
+  updateStreakOnActivity,
+  getZenOffDays,
+  setZenOffDays
+} from "@/lib/data/operator-wellness";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
+import { playSynthConfirm, playSynthSuccess, playSynthSkip, playSynthZen } from "@/lib/audio";
 import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import type { RadarMission } from "@/lib/missions/mission-types";
@@ -178,6 +184,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [queue, setQueue] = useState(initialQueue);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
+  const [sunMode, setSunMode] = useState(false);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
@@ -192,6 +199,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return 0;
   });
 
+  const [multiDayStreak, setMultiDayStreak] = useState(() => {
+    if (typeof window !== "undefined") {
+      const reconciled = checkAndReconcileStreak();
+      return reconciled.currentStreak;
+    }
+    return 0;
+  });
+
   const incrementStreak = () => {
     setStreak((prev) => {
       const next = prev + 1;
@@ -202,13 +217,109 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       }
       return next;
     });
+
+    if (typeof window !== "undefined") {
+      const updated = updateStreakOnActivity();
+      setMultiDayStreak(updated.currentStreak);
+    }
   };
+
+  const [showZenSettings, setShowZenSettings] = useState(false);
+  const [selectedZenDays, setSelectedZenDays] = useState<number[]>([]);
+
+  useEffect(() => {
+    const hydrationTimer = window.setTimeout(() => {
+      setSelectedZenDays(getZenOffDays());
+    }, 0);
+
+    return () => window.clearTimeout(hydrationTimer);
+  }, []);
+
+  const handleSaveZenDays = (days: number[]) => {
+    setSelectedZenDays(days);
+    setZenOffDays(days);
+    playSynthZen();
+    toast({
+      title: "Ritmo Zen atualizado 🧘",
+      description: "Seus dias de descanso programados foram salvos com sucesso.",
+    });
+  };
+
+  const openResponseDialog = () => {
+    playSynthConfirm();
+    setShowResponseDialog(true);
+  };
+
+  const openReferralDialog = () => {
+    playSynthConfirm();
+    setShowReferralDialog(true);
+  };
+
+  const openZenSettings = () => {
+    playSynthConfirm();
+    setShowZenSettings(true);
+  };
+
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
   const [workMode, setWorkMode] = useState<MinhaJornadaWorkMode>("recommended");
+  const [lockState, setLockState] = useState<{ locked: boolean; lockedByOther: boolean; ownerName?: string } | null>(null);
 
   useEffect(() => {
     trackOperationalEvent("minha_fila_opened");
   }, []);
+
+  useEffect(() => {
+    const currentPerson = queue[currentIndex];
+    if (!currentPerson) {
+      const resetTimer = window.setTimeout(() => setLockState(null), 0);
+      return () => window.clearTimeout(resetTimer);
+    }
+
+    let active = true;
+
+    async function manageLock() {
+      const checkRes = await checkLockAction(currentPerson.id);
+      if (!active) return;
+
+      if (checkRes.ok && checkRes.lockedByOther) {
+        setLockState({
+          locked: true,
+          lockedByOther: true,
+          ownerName: checkRes.ownerName
+        });
+      } else {
+        const acquireRes = await acquireLockAction(currentPerson.id);
+        if (!active) return;
+
+        if (acquireRes.ok && acquireRes.success) {
+          setLockState({
+            locked: true,
+            lockedByOther: false
+          });
+        } else {
+          setLockState({
+            locked: true,
+            lockedByOther: true,
+            ownerName: acquireRes.ownerName || "outro operador"
+          });
+        }
+      }
+    }
+
+    manageLock();
+
+    const interval = setInterval(() => {
+      if (active) {
+        acquireLockAction(currentPerson.id);
+      }
+    }, 2 * 60 * 1000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+      releaseLockAction(currentPerson.id);
+    };
+  }, [currentIndex, queue]);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -221,6 +332,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   }, []);
 
   const wellness = assessQueueWellness(queue.length);
+  const isZenDay = typeof window !== "undefined" && selectedZenDays.includes(new Date().getDay());
   const completedCount = Math.min(currentIndex, queue.length);
   const progressPercent = queue.length === 0 ? 0 : Math.round((completedCount / queue.length) * 100);
   const {
@@ -264,6 +376,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   };
 
   const handleSkip = () => {
+    playSynthSkip();
     toast({
       title: "Missão pausada sem perda de histórico.",
       description: `@${currentPerson.username} saiu da vez por agora. A trilha segue com o contexto preservado.`,
@@ -274,18 +387,22 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const handleCopyDM = async () => {
     if (currentPerson.suggestedMessage) {
       await navigator.clipboard.writeText(currentPerson.suggestedMessage);
+      playSynthConfirm();
       toast({ title: "Mensagem preparada", description: "Revise e envie manualmente no Instagram." });
-      await recordDMPreparedAction(currentPerson.id, "minha_fila");
+      await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila"], toast);
       setCopyStatus("waiting");
     }
   };
 
   const handleConfirmSent = async () => {
     startTransition(async () => {
-      const result = await confirmDMSentAction(currentPerson.id, "minha_fila");
+      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila"], toast);
       if (result.ok) {
+        playSynthSuccess();
         setCopyStatus("confirmed");
-        toast({ title: "Envio manual confirmado.", description: "Próximo passo salvo e missão em acompanhamento." });
+        if (!result.offline) {
+          toast({ title: "Envio manual confirmado.", description: "Próximo passo salvo e missão em acompanhamento." });
+        }
         incrementStreak();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
@@ -295,11 +412,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   const handleResponse = async (kind: PersonResponseKind) => {
     startTransition(async () => {
-      const result = await recordPersonResponse(currentPerson.id, kind);
+      const result = await executeOrQueueAction("recordResponse", [currentPerson.id, kind], toast);
       if (result.ok) {
+        playSynthSuccess();
         showCompletion(kind === "nao_quer_contato" ? "dnc_respected" : "response_recorded");
-        const feedback = missionFeedback(kind);
-        toast({ title: feedback.title, description: feedback.description });
+        if (!result.offline) {
+          const feedback = missionFeedback(kind);
+          toast({ title: feedback.title, description: feedback.description });
+        }
         setShowResponseDialog(false);
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
@@ -315,10 +435,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   const handleReferral = async (type: PersonReferralType) => {
     startTransition(async () => {
-      const result = await recordPersonReferral(currentPerson.id, type);
+      const result = await executeOrQueueAction("recordReferral", [currentPerson.id, type], toast);
       if (result.ok) {
+        playSynthSuccess();
         showCompletion("referral_done");
-        toast({ title: "Encaminhamento registrado.", description: "A missão ganhou um destino claro com histórico preservado." });
+        if (!result.offline) {
+          toast({ title: "Encaminhamento registrado.", description: "A missão ganhou um destino claro com histórico preservado." });
+        }
         setShowReferralDialog(false);
         incrementStreak();
         handleNext();
@@ -429,11 +552,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         : currentPerson.riskFlags.recentOutreach || currentPerson.isPendingResponse
           ? "waiting"
           : "free";
-  const currentBlocked = holdTone === "blocked" || Boolean(currentMission?.guardrail.blocksContact);
+  const currentBlocked = holdTone === "blocked" || Boolean(currentMission?.guardrail.blocksContact) || Boolean(lockState?.lockedByOther);
   const currentWaiting = holdTone === "waiting";
   const currentHoldLabel = currentMission?.guardrail.message
     || (currentBlocked
-      ? currentPerson.doNotContactReason || "Restrição ética ativa."
+      ? lockState?.lockedByOther
+        ? `Bloqueado temporariamente: sendo atendido por ${lockState.ownerName}.`
+        : currentPerson.doNotContactReason || "Restrição ética ativa."
       : currentWaiting
         ? currentPerson.riskFlags.recentOutreach
           ? "Contato recente. Aguarde a janela ética antes de insistir."
@@ -447,7 +572,27 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const currentMissionSignals = currentMission?.signals ?? [];
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-32 lg:pb-20">
+    <div className={cn("transition-colors duration-300 w-full min-h-screen", sunMode ? "sun-mode bg-[#FFF7CD] pb-24" : "")}>
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
+        <div className="flex justify-end items-center gap-3 pt-4 border-b border-cement/15 pb-3">
+          <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+            Visualização:
+          </span>
+          <button
+            onClick={() => {
+              playSynthConfirm();
+              setSunMode(!sunMode);
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+              sunMode
+                ? "border-black bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] animate-pulse"
+                : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+            )}
+          >
+            {sunMode ? "☀️ Modo Sol Ativo" : "🔆 Ativar Modo Sol"}
+          </button>
+        </div>
       {focusMode ? (
         /* ==================== IMMERSIVE MODE: HUD PILOTO AUTOMÁTICO ==================== */
         <div className="fixed inset-0 z-50 bg-[#0B0B0B] text-off-white p-4 md:p-8 flex flex-col justify-center overflow-y-auto no-scrollbar">
@@ -478,14 +623,38 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               />
             </div>
 
+            {lockState?.lockedByOther && (
+              <div className="border-2 border-rust bg-charcoal p-4 flex items-start gap-3 rounded-[2px] text-xs">
+                <ShieldAlert className="h-5 w-5 text-rust shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
+                  <p className="text-zinc-300 font-semibold mt-1">
+                    O operador <strong className="text-white">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima missão.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isZenDay && (
+              <div className="border border-burnt-yellow/20 bg-burnt-yellow/10 p-3 flex items-start gap-3 rounded-[2px] text-xs">
+                <span className="text-sm shrink-0">🧘</span>
+                <div>
+                  <p className="font-black uppercase text-burnt-yellow tracking-wider">Modo Zen: Dia de Descanso</p>
+                  <p className="text-zinc-400 font-semibold mt-0.5">
+                    Hoje seu combo de <strong className="text-white">{multiDayStreak} dias</strong> está seguro. Acolha com calma no seu próprio ritmo!
+                  </p>
+                </div>
+              </div>
+            )}
+
             <QueueCard
               person={currentPerson}
               mission={currentMission}
               compact={true}
               contactDisabled={currentBlocked}
               onCopyDM={handleCopyDM}
-              onRegisterResponse={() => setShowResponseDialog(true)}
-              onReferral={() => setShowReferralDialog(true)}
+              onRegisterResponse={openResponseDialog}
+              onReferral={openReferralDialog}
               onSkip={handleSkip}
               onNext={handleNext}
               copyStatus={copyStatus}
@@ -531,11 +700,12 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             compact={isCompact}
             titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
             descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[32rem]")}
-            metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
+            metricsClassName={cn("grid-cols-2 gap-2", isCompact ? "lg:grid-cols-5" : "md:grid-cols-3 lg:grid-cols-5")}
             badges={
               <>
                 <GamefulHeroBadge>Fase atual: {missionPhaseLabel(currentPerson)}</GamefulHeroBadge>
                 <GamefulHeroBadge className="border-[#f0c15b]/25 bg-[#f0c15b]/10 text-[#f7d88c]">Operador: {operatorName}</GamefulHeroBadge>
+                {isZenDay && <GamefulHeroBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">🧘 Dia Zen Ativo</GamefulHeroBadge>}
               </>
             }
             metrics={
@@ -543,7 +713,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
                 <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
                 <GamefulMetricCard label="Missão" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
-                <GamefulMetricCard label="Carga" value={wellness.level === "healthy" ? "Estável" : wellness.level === "warning" ? "Bloco de 5" : "Pausa"} tone="dark" detail={wellness.level === "healthy" ? "Ritmo saudável." : wellness.level === "warning" ? "Feche um bloco curto." : "Pedir apoio ou redistribuir."} compact layout="split" title={wellness.microcopy} valueClassName="max-w-[11ch]" />
+                <GamefulMetricCard label="Combo Diário" value={`x${streak} ⚡`} tone="dark" detail="Ações concluídas hoje." compact layout="split" />
+                <GamefulMetricCard label="Combo de Dias" value={multiDayStreak > 0 ? `x${multiDayStreak} 🔥` : "0"} tone="dark" detail={isZenDay ? "Dia Zen: Combo seguro!" : "Mantido com atividade diária."} compact layout="split" />
               </>
             }
             actions={
@@ -574,6 +745,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
                   Quadro de Missões
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
+                  onClick={openZenSettings}
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Dias de Descanso Zen
                 </Button>
                 {compactHydrated ? (
                   <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || queue.length > 5} onToggle={setCompact} />
@@ -620,7 +799,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             statusDetail={currentHoldLabel}
             primaryAction={{
               label: currentMissionAction,
-              onClick: currentBlocked ? handleSkip : () => setShowResponseDialog(true),
+              onClick: currentBlocked ? handleSkip : openResponseDialog,
               icon: MessageSquare,
             }}
             secondaryActions={[
@@ -653,6 +832,30 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           />
 
           {wellness.level !== "healthy" && !isCompact && <OperatorWellnessCard wellness={wellness} />}
+
+          {isZenDay && (
+            <div className="border-2 border-burnt-yellow bg-[#FFFDEB] p-4 flex items-start gap-4 rounded-[2px] text-charcoal">
+              <div className="h-10 w-10 flex items-center justify-center rounded-full bg-burnt-yellow/10 text-burnt-yellow shrink-0 border border-burnt-yellow/20">
+                <Heart className="h-5 w-5 fill-burnt-yellow text-burnt-yellow" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="font-black uppercase text-xs tracking-wider text-charcoal flex items-center gap-1.5">
+                    🧘 Dia de Descanso Zen Ativo
+                  </h4>
+                  <button
+                    onClick={openZenSettings}
+                    className="text-[10px] font-black uppercase text-burnt-yellow hover:underline"
+                  >
+                    Ajustar dias de descanso
+                  </button>
+                </div>
+                <p className="text-xs font-semibold leading-relaxed mt-1 text-zinc-700">
+                  Hoje é um de seus dias de descanso programados. Seu combo histórico de <strong className="text-charcoal">{multiDayStreak} dias</strong> está totalmente protegido e seguro. Não há qualquer pressão operacional hoje!
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className={cn("grid gap-8", isCompact ? "2xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-[1.3fr_0.7fr]")}>
             <div className="space-y-6">
@@ -697,14 +900,26 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </div>
               </div>
 
+              {lockState?.lockedByOther && (
+                <div className="border-2 border-rust bg-white p-4 flex items-start gap-3 rounded-[2px] mb-4 text-xs">
+                  <ShieldAlert className="h-5 w-5 text-rust shrink-0 mt-0.5 animate-pulse" />
+                  <div>
+                    <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
+                    <p className="text-zinc-700 font-semibold mt-1">
+                      O operador <strong className="text-black">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima missão.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <QueueCard
                 person={currentPerson}
                 mission={currentMission}
                 compact={isCompact}
                 contactDisabled={currentBlocked}
                 onCopyDM={handleCopyDM}
-                onRegisterResponse={() => setShowResponseDialog(true)}
-                onReferral={() => setShowReferralDialog(true)}
+                onRegisterResponse={openResponseDialog}
+                onReferral={openReferralDialog}
                 onSkip={handleSkip}
                 onNext={handleNext}
                 copyStatus={copyStatus}
@@ -1059,7 +1274,70 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={showZenSettings} onOpenChange={setShowZenSettings}>
+        <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[480px]">
+          <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
+            <DialogTitle className="text-xl font-black uppercase flex items-center gap-2">
+              🧘 Ritmo Zen: Dias de Descanso
+            </DialogTitle>
+            <DialogDescription className="font-bold text-zinc-400">
+              Configure em quais dias da semana seu combo de dias estará protegido.
+            </DialogDescription>
+          </div>
+          <div className="p-6 space-y-4 bg-white">
+            <p className="text-xs font-semibold leading-relaxed text-zinc-600">
+              Nos dias selecionados, a ausência de registro de ações não quebrará seu combo histórico (streak). Escolha os dias que melhor se adequam à sua rotina voluntária:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Domingo", value: 0 },
+                { label: "Segunda-feira", value: 1 },
+                { label: "Terça-feira", value: 2 },
+                { label: "Quarta-feira", value: 3 },
+                { label: "Quinta-feira", value: 4 },
+                { label: "Sexta-feira", value: 5 },
+                { label: "Sábado", value: 6 }
+              ].map((day) => {
+                const isSelected = selectedZenDays.includes(day.value);
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        handleSaveZenDays(selectedZenDays.filter((d) => d !== day.value));
+                      } else {
+                        handleSaveZenDays([...selectedZenDays, day.value]);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center justify-between rounded-[2px] border-2 px-3 py-2 text-xs font-bold transition-all",
+                      isSelected
+                        ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                        : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                    )}
+                  >
+                    <span>{day.label}</span>
+                    {isSelected && <span className="text-xs">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="outline"
+                className="h-10 border-2 border-black rounded-[2px] text-xs font-black uppercase"
+                onClick={() => setShowZenSettings(false)}
+              >
+                Concluir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  </div>
   );
 }
 

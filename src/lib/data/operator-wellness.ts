@@ -170,3 +170,162 @@ export function shouldRecommendBreak(
 export function getRandomMicrocopy(): string {
   return WELLNESS_MICROCOPY[Math.floor(Math.random() * WELLNESS_MICROCOPY.length)];
 }
+
+/**
+ * Retorna os dias configurados como Dia de Descanso Zen (0 = Domingo, 6 = Sábado).
+ * Por padrão, Domingo (0) e Sábado (6) são dias Zen.
+ */
+export function getZenOffDays(): number[] {
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("radar_zen_off_days");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+  }
+  return [0, 6]; // Padrão: Sábado e Domingo
+}
+
+/**
+ * Define os dias de descanso Zen
+ */
+export function setZenOffDays(days: number[]): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("radar_zen_off_days", JSON.stringify(days));
+  }
+}
+
+/**
+ * Verifica se o dia atual é um Dia de Descanso Zen
+ */
+export function isTodayZenOffDay(): boolean {
+  const today = new Date().getDay();
+  return getZenOffDays().includes(today);
+}
+
+/**
+ * Retorna os dados do streak histórico/multi-dia
+ */
+export interface MultiDayStreak {
+  currentStreak: number;
+  lastActiveDate: string | null; // formato YYYY-MM-DD
+}
+
+export function getMultiDayStreak(): MultiDayStreak {
+  if (typeof window === "undefined") {
+    return { currentStreak: 0, lastActiveDate: null };
+  }
+  const saved = localStorage.getItem("radar_multi_day_streak");
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      // Fallback
+    }
+  }
+  return { currentStreak: 0, lastActiveDate: null };
+}
+
+export function saveMultiDayStreak(streak: MultiDayStreak): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("radar_multi_day_streak", JSON.stringify(streak));
+  }
+}
+
+/**
+ * Incrementa/atualiza o streak histórico quando uma tarefa é concluída
+ */
+export function updateStreakOnActivity(): MultiDayStreak {
+  const streak = getMultiDayStreak();
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  if (streak.lastActiveDate === todayStr) {
+    return streak;
+  }
+
+  const lastDate = streak.lastActiveDate ? new Date(streak.lastActiveDate) : null;
+  const today = new Date(todayStr);
+
+  if (!lastDate) {
+    streak.currentStreak = 1;
+  } else {
+    // Normalizar datas para evitar problemas com fuso horário
+    const d1 = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+    const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffTime = d2.getTime() - d1.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      streak.currentStreak += 1;
+    } else if (diffDays > 1) {
+      let wasPreserved = true;
+      const zenDays = getZenOffDays();
+
+      for (let i = 1; i < diffDays; i++) {
+        const checkDate = new Date(d1);
+        checkDate.setDate(d1.getDate() + i);
+        if (!zenDays.includes(checkDate.getDay())) {
+          wasPreserved = false;
+          break;
+        }
+      }
+
+      if (wasPreserved) {
+        streak.currentStreak += 1;
+      } else {
+        streak.currentStreak = 1;
+      }
+    }
+  }
+
+  streak.lastActiveDate = todayStr;
+  saveMultiDayStreak(streak);
+  return streak;
+}
+
+/**
+ * Reconcilia o streak no carregamento da fila
+ */
+export function checkAndReconcileStreak(): MultiDayStreak {
+  const streak = getMultiDayStreak();
+  if (!streak.lastActiveDate) return streak;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  if (streak.lastActiveDate === todayStr) return streak;
+
+  const lastDate = new Date(streak.lastActiveDate);
+  const today = new Date(todayStr);
+  const d1 = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+  const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffTime = d2.getTime() - d1.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 1) return streak;
+
+  let wasPreserved = true;
+  const zenDays = getZenOffDays();
+
+  for (let i = 1; i < diffDays; i++) {
+    const checkDate = new Date(d1);
+    checkDate.setDate(d1.getDate() + i);
+    if (!zenDays.includes(checkDate.getDay())) {
+      wasPreserved = false;
+      break;
+    }
+  }
+
+  if (!wasPreserved) {
+    if (zenDays.includes(today.getDay())) {
+      return streak;
+    }
+    
+    streak.currentStreak = 0;
+    streak.lastActiveDate = null;
+    saveMultiDayStreak(streak);
+  }
+
+  return streak;
+}

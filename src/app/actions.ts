@@ -120,6 +120,24 @@ export async function updatePersonThemeAction(personId: string, themes: string[]
   return contacts.updatePersonThemeAction(personId, themes);
 }
 
+export async function acquireLockAction(
+  personId: string
+) {
+  return contacts.acquireLockAction(personId);
+}
+
+export async function releaseLockAction(
+  personId: string
+) {
+  return contacts.releaseLockAction(personId);
+}
+
+export async function checkLockAction(
+  personId: string
+) {
+  return contacts.checkLockAction(personId);
+}
+
 // --- TEMPLATES ---
 export async function upsertMessageTemplate(
   templateId: string | null,

@@ -16,6 +16,7 @@ const sourceFiles = {
   webhookActions: "src/app/integracoes/meta/webhooks/actions.ts",
   incidentsActions: "src/app/operacao/incidentes/actions.ts",
   snapshotsExport: "src/app/api/escuta/bairro/snapshots/[id]/export/route.ts",
+  receiptDistribution: "src/lib/data/public-receipt-distribution.ts",
 };
 
 const roleMatrix = {
@@ -83,8 +84,8 @@ const roleMatrix = {
       expectations: [{ file: sourceFiles.devolutionActions, pattern: 'requireRole(["admin", "operador", "comunicacao"])' }],
     },
     {
-      capability: "registrar_distribuicao",
-      expectations: [{ file: "src/app/actions.ts", pattern: 'requireRole(["admin", "operador", "comunicacao"])' }],
+      capability: "sem_registro_distribuicao",
+      expectations: [{ file: sourceFiles.receiptDistribution, pattern: 'requireRole(["admin", "operador"])' }],
     },
     {
       capability: "sem_acesso_amplo_contato",

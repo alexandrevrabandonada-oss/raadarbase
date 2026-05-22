@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardCopy, Download, FileText } from "lucide-react";
+import { ClipboardCopy, Download, FileText, MessageSquare } from "lucide-react";
 import type { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
+import { useToast } from "@/hooks/use-toast";
 
 type WeeklyClosureAlert = {
   title: string;
@@ -122,8 +123,22 @@ function buildMarkdown(data: WeeklyClosureNarrativeData) {
   return sanitizePrivacy(markdown);
 }
 
+function convertToWhatsAppFormat(markdown: string): string {
+  return markdown
+    // Convert headers (e.g. # title, ## title)
+    .replace(/^#\s+(.+)$/gm, (match, p1) => `*${p1.toUpperCase()}*`)
+    .replace(/^##\s+(.+)$/gm, (match, p1) => `*${p1.toUpperCase()}*`)
+    // Convert lists (e.g. - item) to bullet points
+    .replace(/^-\s+(.+)$/gm, (match, p1) => `• ${p1}`)
+    // Convert bold (e.g. **bold**) to single *bold* (WhatsApp style)
+    .replace(/\*\*(.*?)\*\*/g, '*$1*')
+    // Convert horizontal rule ---
+    .replace(/^---$/gm, '────────────────────────');
+}
+
 export function WeeklyClosureMarkdownGenerator({ data }: { data: WeeklyClosureNarrativeData }) {
   const [generated, setGenerated] = useState<string>("");
+  const { toast } = useToast();
 
   const filename = useMemo(() => {
     const d = new Date();
@@ -140,6 +155,20 @@ export function WeeklyClosureMarkdownGenerator({ data }: { data: WeeklyClosureNa
   async function onCopy() {
     if (!generated) return;
     await navigator.clipboard.writeText(generated);
+    toast({
+      title: "Copiado para o Clipboard 📋",
+      description: "O relatório em Markdown foi copiado com sucesso.",
+    });
+  }
+
+  async function onCopyWhatsApp() {
+    if (!generated) return;
+    const formatted = convertToWhatsAppFormat(generated);
+    await navigator.clipboard.writeText(formatted);
+    toast({
+      title: "Pronto para o WhatsApp 📲",
+      description: "O texto formatado foi copiado. Só colar no grupo de coordenação!",
+    });
   }
 
   function onDownload() {
@@ -167,7 +196,10 @@ export function WeeklyClosureMarkdownGenerator({ data }: { data: WeeklyClosureNa
             Gerar fechamento da semana
           </Button>
           <Button onClick={onCopy} variant="outline" disabled={!generated}>
-            <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar
+            <ClipboardCopy className="mr-2 h-4 w-4" /> Copiar .md
+          </Button>
+          <Button onClick={onCopyWhatsApp} variant="outline" disabled={!generated} className="border-emerald-600/35 hover:bg-emerald-500/10 text-emerald-700 hover:text-emerald-800 font-bold">
+            <MessageSquare className="mr-2 h-4 w-4" /> Copiar p/ WhatsApp
           </Button>
           <Button onClick={onDownload} variant="outline" disabled={!generated}>
             <Download className="mr-2 h-4 w-4" /> Baixar .md

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/logout-button";
+import { ConnectionIndicator } from "@/components/connection-indicator";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -378,6 +379,8 @@ export function Sidebar({
             Modo demo ativo: dados simulados para leitura e validacao.
           </div>
         ) : null}
+
+        <ConnectionIndicator variant="desktop" />
 
         <div className="rounded-[2px] border-2 border-cement bg-charcoal/30 p-3">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-burnt-yellow">Sessão</p>

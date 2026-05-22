@@ -1,13 +1,10 @@
 "use server";
 
 import { requireRole } from "@/lib/authz/roles";
-import { requireInternalSession } from "@/lib/supabase/auth";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { outreachTasks as mockTasks } from "@/lib/mock-data";
 import type { PersonImportPreview } from "@/lib/data/import";
-import type { KanbanColumnId } from "@/lib/types";
-import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 import { type ActionResult, validateId, performAction, updateMockPerson } from "./utils";
 
 export async function assignPersonResponsible(personId: string, internalUserId: string | null): Promise<ActionResult> {
@@ -21,6 +18,7 @@ export async function assignPersonResponsible(personId: string, internalUserId: 
     summary: internalUserId ? "Responsável pela pessoa atribuído." : "Responsável pela pessoa removido.",
     metadata: { assignedTo: internalUserId },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (p) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +46,7 @@ export async function assumePersonResponsible(personId: string): Promise<ActionR
     entityId: personId,
     summary: "Responsável pela pessoa atribuído (assumido).",
     mutate: async () => {
-      const actor = await requireInternalSession();
+      const actor = await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         updateMockPerson(personId, (p) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,6 +76,7 @@ export async function assignTaskResponsible(taskId: string, internalUserId: stri
     summary: internalUserId ? "Responsável pela tarefa atribuído." : "Responsável pela tarefa removido.",
     metadata: { assignedTo: internalUserId },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         const task = mockTasks.find((t) => t.id === taskId);
         if (task) {
@@ -106,7 +105,7 @@ export async function assumeTaskResponsible(taskId: string): Promise<ActionResul
     entityId: taskId,
     summary: "Responsável pela tarefa atribuído (assumido).",
     mutate: async () => {
-      const actor = await requireInternalSession();
+      const actor = await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         const task = mockTasks.find((t) => t.id === taskId);
         if (task) {
@@ -138,6 +137,7 @@ export async function executePersonImportBatch(previews: PersonImportPreview[]):
     summary: `Importação em lote de ${previews.length} pessoas executada.`,
     metadata: { importedCount: previews.length },
     mutate: async () => {
+      await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {
         return; // Mock import not supported yet, just skip
       }

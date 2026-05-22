@@ -23,6 +23,14 @@ import {
 import { cn } from "@/lib/utils";
 import { TrainingScenarioView } from "./training-scenario-view";
 import { useCompletion } from "@/hooks/use-completion";
+import {
+  readMiniGameTrainingResult,
+  type MiniGameTrainingResult,
+} from "@/lib/training-mini-game-result";
+import {
+  readTrainingProgress,
+  writeTrainingProgress,
+} from "@/lib/training-progress";
 
 const ETHICAL_COMMITMENT = [
   { id: "e1", label: "Toda DM que eu enviar será manual", icon: Zap },
@@ -60,6 +68,7 @@ const OFFICIAL_COMPLETION_CHECKLIST = [
   { id: "c4", label: "Completei as fases praticas do modo treinamento" },
   { id: "c5", label: "Estou pronto para operar sem depender de orientacao informal" },
 ];
+const PRACTICAL_CHECKLIST_ID = "c4";
 
 export default function TrainingClient() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = React.useState(-1); // -1 is lobby
@@ -67,10 +76,52 @@ export default function TrainingClient() {
   const [ethicalChecks, setEthicalChecks] = React.useState<string[]>([]);
   const [officialChecklist, setOfficialChecklist] = React.useState<string[]>([]);
   const [isFinished, setIsFinished] = React.useState(false);
+  const [miniGameResult, setMiniGameResult] = React.useState<MiniGameTrainingResult | null>(null);
+  const [progressReady, setProgressReady] = React.useState(false);
   const { showCompletion } = useCompletion();
 
   const currentPhase = currentPhaseIndex >= 0 ? TRAINING_PHASES[currentPhaseIndex] : null;
-  const progress = Math.round(((completedPhases.length) / TRAINING_PHASES.length) * 100);
+  const phaseProgress = completedPhases.length / TRAINING_PHASES.length;
+  const practiceProgress = miniGameResult ? 1 : 0;
+  const ethicalProgress = ethicalChecks.length / ETHICAL_COMMITMENT.length;
+  const checklistProgress = officialChecklist.length / OFFICIAL_COMPLETION_CHECKLIST.length;
+  const progress = Math.round(
+    ((phaseProgress + practiceProgress + ethicalProgress + checklistProgress) / 4) * 100,
+  );
+
+  React.useEffect(() => {
+    const hydrationTimer = window.setTimeout(() => {
+      const nextMiniGameResult = readMiniGameTrainingResult();
+      const savedProgress = readTrainingProgress();
+      setMiniGameResult(nextMiniGameResult);
+      if (savedProgress) {
+        setCompletedPhases(savedProgress.completedPhases);
+        setEthicalChecks(savedProgress.ethicalChecks);
+        setOfficialChecklist(savedProgress.officialChecklist);
+        setIsFinished(savedProgress.finished);
+      }
+      if (nextMiniGameResult) {
+        setOfficialChecklist((previous) => previous.includes(PRACTICAL_CHECKLIST_ID)
+          ? previous
+          : [...previous, PRACTICAL_CHECKLIST_ID]);
+      }
+      setProgressReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(hydrationTimer);
+  }, []);
+
+  React.useEffect(() => {
+    if (!progressReady) return;
+
+    writeTrainingProgress({
+      completedPhases,
+      ethicalChecks,
+      finished: isFinished,
+      officialChecklist,
+      version: 1,
+    });
+  }, [completedPhases, ethicalChecks, isFinished, officialChecklist, progressReady]);
 
   const startPhase = (index: number) => {
     setCurrentPhaseIndex(index);
@@ -93,8 +144,29 @@ export default function TrainingClient() {
   const allEthicalDone = ethicalChecks.length === ETHICAL_COMMITMENT.length;
   const allPhasesDone = completedPhases.length === TRAINING_PHASES.length;
   const allOfficialChecklistDone = officialChecklist.length === OFFICIAL_COMPLETION_CHECKLIST.length;
+  const trainingRequirements = [
+    {
+      done: Boolean(miniGameResult),
+      label: "Simulador pratico",
+      detail: miniGameResult ? "Pratica registrada" : "Jogue o simulador",
+    },
+    {
+      done: allEthicalDone,
+      label: "Compromisso etico",
+      detail: `${ethicalChecks.length}/${ETHICAL_COMMITMENT.length} confirmacoes`,
+    },
+    {
+      done: allOfficialChecklistDone,
+      label: "Checklist oficial",
+      detail: `${officialChecklist.length}/${OFFICIAL_COMPLETION_CHECKLIST.length} itens`,
+    },
+  ];
+  const allTrainingRequirementsDone = trainingRequirements.every((requirement) => requirement.done);
+  const nextPhaseIndex = TRAINING_PHASES.findIndex((phase) => !completedPhases.includes(phase.id));
+  const nextPhase = nextPhaseIndex >= 0 ? TRAINING_PHASES[nextPhaseIndex] : null;
 
   const toggleOfficialChecklist = (id: string) => {
+    if (id === PRACTICAL_CHECKLIST_ID && miniGameResult) return;
     setOfficialChecklist((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
@@ -133,7 +205,13 @@ export default function TrainingClient() {
       <div className="max-w-5xl mx-auto py-8 px-6 space-y-8">
         <header className="flex items-center justify-between border-b border-zinc-100 pb-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setCurrentPhaseIndex(-1)} className="rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCurrentPhaseIndex(-1)}
+              className="rounded-full"
+              aria-label="Voltar ao lobby do treinamento"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -166,6 +244,84 @@ export default function TrainingClient() {
           Complete as 6 fases para se tornar um operador certificado do Radar de Base.
         </p>
       </header>
+
+      <Card className="overflow-hidden rounded-[2px] border-2 border-charcoal bg-white shadow-[4px_4px_0_0_rgba(26,26,26,1)]">
+        <CardContent className="grid gap-4 p-5 text-left md:grid-cols-[1fr_auto] md:items-center md:p-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-600">Retomada do treinamento</p>
+            {nextPhase ? (
+              <>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">
+                  Continuar na fase {nextPhaseIndex + 1}: {nextPhase.title}
+                </h2>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-zinc-500">
+                  Proximo passo: {nextPhase.objective}
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-zinc-950">Fases praticas concluidas</h2>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-zinc-500">
+                  Revise compromisso etico e checklist oficial para fechar a liberacao.
+                </p>
+              </>
+            )}
+          </div>
+          {nextPhase ? (
+            <Button
+              type="button"
+              onClick={() => startPhase(nextPhaseIndex)}
+              className="h-12 rounded-[2px] bg-indigo-600 px-6 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700"
+            >
+              Continuar fase <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}
+              className="h-12 rounded-[2px] bg-zinc-950 px-6 text-xs font-black uppercase tracking-widest text-white hover:bg-zinc-900"
+            >
+              Ver checklist <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Mini-Game Onboarding Banner */}
+      <Card className="border-4 border-charcoal bg-burnt-yellow text-charcoal shadow-[4px_4px_0_0_rgba(26,26,26,1)] rounded-[2px] overflow-hidden">
+        <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-left">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-charcoal text-off-white text-[10px] font-black uppercase tracking-widest rounded-[2px]">
+              <Zap className="h-3 w-3 text-burnt-yellow" /> Jogo Interativo
+            </div>
+            <h3 className="text-2xl font-black tracking-tight uppercase">Estação Volta Redonda: O Jogo</h3>
+            <p className="text-sm font-semibold max-w-xl leading-relaxed text-charcoal/90">
+              Aprenda a operar na rua e nas redes de forma leve e divertida. Descubra os limites éticos e acumule pontos Concreto e Zen na simulação.
+            </p>
+            {miniGameResult && (
+              <div className="mt-3 border-2 border-charcoal bg-off-white p-3 text-left text-charcoal">
+                <p className="text-[10px] font-black uppercase tracking-widest">Pratica concluida</p>
+                <p className="mt-1 text-sm font-black uppercase">
+                  {miniGameResult.masteredKinds.length}/5 competencias dominadas
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-relaxed text-charcoal/75">
+                  {miniGameResult.reviewKinds.length === 0
+                    ? "Fluxo pratico concluido sem revisao pendente."
+                    : `${miniGameResult.reviewKinds.length} competencia pede repeticao no simulador.`}
+                </p>
+              </div>
+            )}
+          </div>
+          <Button
+            nativeButton={false}
+            className="w-full md:w-auto bg-charcoal text-off-white hover:bg-charcoal/90 font-black uppercase text-xs tracking-widest h-12 px-8 rounded-[2px] shrink-0 border-2 border-charcoal shadow-[2px_2px_0_0_rgba(26,26,26,1)]"
+            render={<Link href="/treinamento/mini-game" />}
+          >
+            {miniGameResult ? "Revisar Simulador" : "Jogar Simulador"} <Play className="ml-2 h-4 w-4 fill-current" />
+          </Button>
+        </CardContent>
+      </Card>
+
 
       <section className="space-y-5">
         <div className="flex items-center gap-2 text-zinc-900">
@@ -203,6 +359,12 @@ export default function TrainingClient() {
              <span className="text-lg font-black text-indigo-600">{progress}%</span>
           </div>
           <Progress value={progress} className="h-3 bg-zinc-100" indicatorClassName="bg-indigo-600 transition-all duration-1000" />
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <TrainingProgressMetric label="Fases" value={`${completedPhases.length}/${TRAINING_PHASES.length}`} />
+            <TrainingProgressMetric label="Simulador" value={miniGameResult ? "Concluido" : "Pendente"} />
+            <TrainingProgressMetric label="Compromisso" value={`${ethicalChecks.length}/${ETHICAL_COMMITMENT.length}`} />
+            <TrainingProgressMetric label="Checklist" value={`${officialChecklist.length}/${OFFICIAL_COMPLETION_CHECKLIST.length}`} />
+          </div>
         </CardContent>
       </Card>
 
@@ -293,21 +455,47 @@ export default function TrainingClient() {
             ))}
           </div>
 
-          <div className="flex justify-center">
+          <div className="mx-auto grid max-w-2xl gap-3 sm:grid-cols-3">
+            {trainingRequirements.map((requirement) => (
+              <div
+                key={requirement.label}
+                className={cn(
+                  "rounded-xl border px-4 py-3 text-left",
+                  requirement.done
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-zinc-200 bg-white text-zinc-600",
+                )}
+              >
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-widest">
+                  <CheckCircle2 className={cn("h-4 w-4", requirement.done ? "text-emerald-600" : "text-zinc-300")} />
+                  {requirement.label}
+                </p>
+                <p className="mt-2 text-xs font-semibold">{requirement.detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col items-center gap-3">
             <Button 
               size="lg" 
-              disabled={!allEthicalDone}
+              disabled={!allTrainingRequirementsDone}
               className={cn(
                 "font-black uppercase text-xs tracking-wider h-16 px-20 rounded-2xl transition-all shadow-2xl",
-                allEthicalDone ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                allTrainingRequirementsDone ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
               )}
               onClick={() => {
+                if (!allTrainingRequirementsDone) return;
                 setIsFinished(true);
                 showCompletion("training_finished");
               }}
             >
               Concluir Treinamento
             </Button>
+            {!allTrainingRequirementsDone && (
+              <p className="max-w-md text-center text-sm font-semibold leading-relaxed text-zinc-500">
+                A liberacao final exige simulador pratico, compromisso etico e checklist oficial completos.
+              </p>
+            )}
           </div>
         </section>
       )}
@@ -331,6 +519,7 @@ export default function TrainingClient() {
                 key={item.id}
                 type="button"
                 onClick={() => toggleOfficialChecklist(item.id)}
+                aria-describedby={item.id === PRACTICAL_CHECKLIST_ID && miniGameResult ? "mini-game-practical-sync" : undefined}
                 className={cn(
                   "w-full rounded-xl border px-4 py-3 text-left text-sm font-bold transition-colors",
                   officialChecklist.includes(item.id)
@@ -342,6 +531,14 @@ export default function TrainingClient() {
                   <CheckCircle2 className={cn("h-4 w-4", officialChecklist.includes(item.id) ? "text-emerald-600" : "text-zinc-300")} />
                   {item.label}
                 </span>
+                {item.id === PRACTICAL_CHECKLIST_ID && miniGameResult && (
+                  <span
+                    id="mini-game-practical-sync"
+                    className="mt-2 block text-xs font-semibold text-emerald-700"
+                  >
+                    Confirmado automaticamente pelo simulador pratico.
+                  </span>
+                )}
               </button>
             ))}
 
@@ -356,6 +553,15 @@ export default function TrainingClient() {
           </CardContent>
         </Card>
       </section>
+    </div>
+  );
+}
+
+function TrainingProgressMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[2px] border border-zinc-200 bg-white px-3 py-2">
+      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-zinc-900">{value}</p>
     </div>
   );
 }

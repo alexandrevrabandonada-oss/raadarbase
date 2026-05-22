@@ -15,10 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Radar de Base",
   description: "Painel interno da VR Abandonada para escuta popular e gestão ética de contatos.",
+  manifest: "/manifest.json",
 };
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CompletionProvider } from "@/components/radar/completion-provider";
+import { PWARegister } from "@/components/pwa-register";
 
 export default function RootLayout({
   children,
@@ -31,6 +33,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        <PWARegister />
         <TooltipProvider>
           <CompletionProvider>
             {children}

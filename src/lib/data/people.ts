@@ -77,15 +77,64 @@ export async function getPersonById(id: string): Promise<PersonWithContact | nul
 }
 
 export async function listConfirmedPeople(): Promise<PersonWithContact[]> {
-  const people = await listPeople();
-  return people.filter(
-    (person) =>
-      person.status === "contato_confirmado" ||
-      person.contact?.consent_status === "confirmed",
-  );
+  if (shouldUseMockData()) {
+    return mockPeople.filter(
+      (person) =>
+        person.status === "contato_confirmado" ||
+        person.contact?.consent_status === "confirmed",
+    );
+  }
+  try {
+    const supabase = getSupabaseAdminClient();
+    
+    const { data: contactsData, error: contactsError } = await supabase
+      .from("contacts")
+      .select("*")
+      .eq("consent_status", "confirmed");
+    if (contactsError) throw contactsError;
+
+    const confirmedPersonIdsFromContacts = (contactsData ?? []).map((c) => c.person_id);
+    
+    let query = supabase.from("ig_people").select("*, internal_users(full_name)");
+    if (confirmedPersonIdsFromContacts.length > 0) {
+      query = query.or(`status.eq.contato_confirmado,id.in.(${confirmedPersonIdsFromContacts.join(",")})`);
+    } else {
+      query = query.eq("status", "contato_confirmado");
+    }
+
+    const { data: peopleData, error: peopleError } = await query.order("last_interaction_at", { ascending: false });
+    if (peopleError) throw peopleError;
+
+    const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
+    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+  } catch (error) {
+    handleSupabaseReadError("listConfirmedPeople", error);
+  }
 }
 
 export async function listPeopleWithoutTheme(): Promise<PersonWithContact[]> {
-  const people = await listPeople();
-  return people.filter(p => !p.themes || p.themes.length === 0);
+  if (shouldUseMockData()) return mockPeople.filter(p => !p.themes || p.themes.length === 0);
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data: peopleData, error: peopleError } = await supabase
+      .from("ig_people")
+      .select("*, internal_users(full_name)")
+      .or("themes.is.null,themes.eq.{}")
+      .order("last_interaction_at", { ascending: false });
+
+    if (peopleError) throw peopleError;
+    if (!peopleData || peopleData.length === 0) return [];
+
+    const personIds = peopleData.map((p) => p.id);
+    const { data: contactsData, error: contactsError } = await supabase
+      .from("contacts")
+      .select("*")
+      .in("person_id", personIds);
+
+    if (contactsError) throw contactsError;
+    const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
+    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+  } catch (error) {
+    handleSupabaseReadError("listPeopleWithoutTheme", error);
+  }
 }

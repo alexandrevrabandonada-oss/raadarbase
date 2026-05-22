@@ -27,6 +27,7 @@ import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { MissionCard } from "@/components/radar/mission-card";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
+import { playSynthConfirm, playSynthSuccess, playSynthSkip } from "@/lib/audio";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 
 import { 
@@ -274,6 +275,7 @@ export function KanbanClient({
 
   async function updateTaskColumn(taskId: string, nextColumnValue: BoardColumnId) {
     const previous = tasks;
+    playSynthConfirm();
     setSavingTaskId(taskId);
     setFeedback(null);
     setTasks((current) =>
@@ -282,9 +284,11 @@ export function KanbanClient({
 
     const result = await updateOutreachTaskStatus(taskId, nextColumnValue);
     if (!result.ok) {
+      playSynthSkip();
       setTasks(previous);
       setFeedback({ text: result.error, type: "error" });
     } else {
+      playSynthSuccess();
       setFeedback({ text: result.message, type: "success" });
     }
     setSavingTaskId(null);
@@ -297,11 +301,13 @@ export function KanbanClient({
     const result = await recordPersonResponse(task.personId, responseType);
     
     if (!result.ok) {
+      playSynthSkip();
       setFeedback({ text: result.error, type: "error" });
       setSavingTaskId(null);
       return;
     }
 
+    playSynthSuccess();
     const boardColumn = (() => {
       switch (responseType) {
         case "nao_respondeu":
@@ -338,16 +344,20 @@ export function KanbanClient({
   async function copyMessage(task: BoardTask) {
     if (!task.priority?.suggestedMessage) return;
     await navigator.clipboard.writeText(task.priority.suggestedMessage);
+    playSynthConfirm();
     setFeedback({ text: "Mensagem copiada para o clipboard.", type: "success" });
     setTimeout(() => setFeedback(null), 3000);
   }
 
   async function runAssumeTask(taskId: string) {
+    playSynthConfirm();
     setSavingTaskId(taskId);
     const result = await assumeTaskResponsible(taskId);
     if (!result.ok) {
+      playSynthSkip();
       setFeedback({ text: result.error, type: "error" });
     } else {
+      playSynthSuccess();
       setFeedback({ text: result.message, type: "success" });
       setTasks(current => current.map(t => t.id === taskId ? { ...t, responsibleId: "me" } : t));
     }
@@ -356,6 +366,7 @@ export function KanbanClient({
   }
 
   async function runBalance() {
+    playSynthConfirm();
     if (selectedOperators.length === 0) {
       setFeedback({ text: "Selecione operadores para balancear.", type: "error" });
       return;
@@ -363,9 +374,11 @@ export function KanbanClient({
     setIsDistributing(true);
     const result = await balanceTasks(selectedOperators);
     if (result.ok) {
+      playSynthSuccess();
       setFeedback({ text: result.message, type: "success" });
       window.location.reload();
     } else {
+      playSynthSkip();
       setFeedback({ text: result.error, type: "error" });
     }
     setIsDistributing(false);

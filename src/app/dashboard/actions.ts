@@ -4,11 +4,13 @@ import { countWebhookEventsByStatus, getStaleQuarantineEvents, getInvalidSignatu
 import { isWebhookEnabled, isWebhookConfigured } from "@/lib/meta/webhook-security";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
+import { requireRole } from "@/lib/authz/roles";
 
 /**
  * Obtém estatísticas de webhooks para o dashboard
  */
 export async function getWebhookStatsAction() {
+  await requireRole(["admin", "operador", "comunicacao", "leitura"]);
   const [counts, staleEvents, invalidSignatureEvents] = await Promise.all([
     countWebhookEventsByStatus().catch(() => ({ received: 0, verified: 0, quarantined: 0, ignored: 0, processed: 0, failed: 0 })),
     getStaleQuarantineEvents().catch(() => []),
@@ -28,6 +30,7 @@ export async function getWebhookStatsAction() {
  * Obtém alertas operacionais para o dashboard
  */
 export async function getOperationalAlertsAction() {
+  await requireRole(["admin", "operador", "comunicacao", "leitura"]);
   if (shouldUseMockData()) {
     return {
       webhookQuarantineCount: 2,

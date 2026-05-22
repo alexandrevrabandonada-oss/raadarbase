@@ -1,9 +1,11 @@
 "use server";
 
 import type { Json } from "@/lib/supabase/database.types";
+import { requireRole } from "@/lib/authz/roles";
 import { type ActionResult, performAction } from "./utils";
 
 export async function listFieldAgendaEventsAction() {
+  await requireRole(["admin", "operador", "comunicacao", "leitura"]);
   const { listFieldAgendaEvents } = await import("@/lib/data/field-agenda");
   return listFieldAgendaEvents({ status: "planned" });
 }

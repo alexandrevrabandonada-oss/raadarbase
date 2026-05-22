@@ -253,3 +253,91 @@
     }
   }
 }
+
+.sun-mode {
+  --background: #FFF7CD !important; /* Solar bright yellow */
+  --foreground: #000000 !important; /* Deep black text */
+  --card: #FFF7CD !important;
+  --card-foreground: #000000 !important;
+  --popover: #FFF7CD !important;
+  --popover-foreground: #000000 !important;
+  --primary: #000000 !important;
+  --primary-foreground: #FFF7CD !important;
+  --secondary: #FFF7CD !important;
+  --secondary-foreground: #000000 !important;
+  --muted: #000000 !important;
+  --muted-foreground: #FFF7CD !important;
+  --accent: #000000 !important;
+  --accent-foreground: #FFF7CD !important;
+  --destructive: #D32F2F !important;
+  --border: #000000 !important;
+  --input: #000000 !important;
+  --ring: #000000 !important;
+  --radar-paper: #FFF7CD !important;
+  --radar-paper-strong: #FFF2A2 !important;
+  --radar-ink: #000000 !important;
+  --radar-panel: #FFF7CD !important;
+  
+  /* Make all text elements pure dark for sun visibility */
+  color: #000000 !important;
+  
+  /* Solid thick shadows & outlines */
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.sun-mode * {
+  border-color: #000000 !important;
+}
+
+/* Specific component overrides for total Sun Mode fidelity */
+.sun-mode .bg-concrete-dark,
+.sun-mode .bg-charcoal,
+.sun-mode .bg-charcoal\/40,
+.sun-mode .bg-charcoal\/20,
+.sun-mode .bg-\[\#13212b\],
+.sun-mode .bg-\[\#0d1820\],
+.sun-mode .radar-panel-dark {
+  background-color: #FFF7CD !important;
+  background-image: none !important;
+  color: #000000 !important;
+}
+
+.sun-mode .bloco-concreto,
+.sun-mode .bloco-concreto-stale,
+.sun-mode .radar-outline-card {
+  background-color: #FFF7CD !important;
+  background-image: none !important;
+  border-color: #000000 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+  color: #000000 !important;
+}
+
+.sun-mode .text-off-white,
+.sun-mode .text-zinc-300,
+.sun-mode .text-zinc-400,
+.sun-mode .text-cement,
+.sun-mode .text-burnt-yellow,
+.sun-mode .text-dark-yellow,
+.sun-mode .text-\[\#d4b678\],
+.sun-mode .text-\[\#7d6f59\] {
+  color: #000000 !important;
+}
+
+.sun-mode .border-dashed {
+  border-style: dashed !important;
+  border-color: #000000 !important;
+}
+
+.sun-mode button,
+.sun-mode .button {
+  border: 2px solid #000000 !important;
+  background-color: #FFF7CD !important;
+  color: #000000 !important;
+  box-shadow: 2px 2px 0px 0px #000000 !important;
+}
+
+.sun-mode button:hover,
+.sun-mode .button:hover {
+  background-color: #FFF2A2 !important;
+}
