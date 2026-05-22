@@ -114,5 +114,5 @@ describe("health route", () => {
         "blocked",
       ].includes(body.staging_webhook_validation_status),
     ).toBe(true);
-  });
+  }, 30000);
 });

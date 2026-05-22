@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { submitNeighborhoodListenAction } from "./actions";
+import { useToast } from "@/hooks/use-toast";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 
 const TOPIC_OPTIONS = [
   { value: "saude", label: "Saude" },
@@ -25,6 +27,7 @@ export function BairroListenForm({ sourceReportId, topicPreset }: { sourceReport
   const [relato, setRelato] = useState("");
   const [wantsContact, setWantsContact] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const shareMessage = "Contribua em 30 segundos: diga seu bairro + pauta + relato curto em /escuta/bairro";
 
@@ -34,9 +37,33 @@ export function BairroListenForm({ sourceReportId, topicPreset }: { sourceReport
       onSubmit={(event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
+        const consentToContact = formData.get("consent_to_contact") === "true" || formData.get("quer_contato") === "on";
+        const consentimentoBasico = formData.get("consentimento_basico") === "on";
+
+        const payload = {
+          bairro: formData.get("bairro") as string,
+          pauta: selectedTopic,
+          relato_curto: relato,
+          consent_to_contact: consentToContact,
+          contato_opcional: formData.get("contato_opcional") as string || "",
+          consentimento_basico: consentimentoBasico,
+          consentimento_explicito: consentimentoBasico || formData.get("consentimento_explicito") === "on",
+          aviso_privacidade_aceito: consentimentoBasico || formData.get("aviso_privacidade_aceito") === "on",
+          source_report_id: sourceReportId,
+        };
+
         startTransition(async () => {
-          const result = await submitNeighborhoodListenAction(formData);
-          setFeedback(result.ok ? { type: "success", text: result.message } : { type: "error", text: result.error });
+          const result = await executeOrQueueAction("submitNeighborhoodListen", [payload], toast);
+          setFeedback(
+            result.ok
+              ? {
+                  type: "success",
+                  text: result.offline
+                    ? "Relato salvo offline 💾 Será enviado automaticamente quando a internet voltar."
+                    : "Escuta registrada com sucesso.",
+                }
+              : { type: "error", text: result.error || "Falha ao registrar escuta." }
+          );
           if (result.ok) {
             event.currentTarget.reset();
             setSelectedTopic(topicPreset ?? "");

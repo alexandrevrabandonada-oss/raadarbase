@@ -42,17 +42,29 @@ function redactContactPreview(value: string) {
   return `${normalized.slice(0, 2)}***`;
 }
 
-export async function submitNeighborhoodListenAction(formData: FormData): Promise<ActionResult> {
+export type NeighborhoodListenPayload = {
+  bairro: string;
+  pauta: string;
+  relato_curto: string;
+  consent_to_contact: boolean;
+  contato_opcional?: string;
+  consentimento_explicito: boolean;
+  aviso_privacidade_aceito: boolean;
+  source_report_id?: string | null;
+  consentimento_basico?: boolean;
+};
+
+export async function submitNeighborhoodListenObjectAction(payload: NeighborhoodListenPayload): Promise<ActionResult> {
   try {
-    const bairro = sanitize(valueOf(formData, "bairro"), 120);
-    const pauta = sanitize(valueOf(formData, "pauta"), 160);
-    const relatoCurto = sanitize(valueOf(formData, "relato_curto"), 800);
-    const consentToContact = boolOfAny(formData, ["consent_to_contact", "quer_contato"]);
-    const contatoOpcional = sanitize(valueOf(formData, "contato_opcional"), 200);
-    const consentimentoBasico = boolOf(formData, "consentimento_basico");
-    const consentimentoExplicito = boolOfAny(formData, ["consentimento_explicito", "consentimento_basico"]);
-    const avisoPrivacidadeAceito = boolOfAny(formData, ["aviso_privacidade_aceito", "consentimento_basico"]);
-    const sourceReportId = sanitize(valueOf(formData, "source_report_id"), 80) || null;
+    const bairro = sanitize(payload.bairro || "", 120);
+    const pauta = sanitize(payload.pauta || "", 160);
+    const relatoCurto = sanitize(payload.relato_curto || "", 800);
+    const consentToContact = !!payload.consent_to_contact;
+    const contatoOpcional = sanitize(payload.contato_opcional || "", 200);
+    const consentimentoBasico = !!payload.consentimento_basico;
+    const consentimentoExplicito = !!payload.consentimento_explicito || consentimentoBasico;
+    const avisoPrivacidadeAceito = !!payload.aviso_privacidade_aceito || consentimentoBasico;
+    const sourceReportId = sanitize(payload.source_report_id || "", 80) || null;
 
     if (!bairro || !pauta || !relatoCurto) {
       return { ok: false, error: "Preencha bairro, pauta e relato curto." };
@@ -68,7 +80,7 @@ export async function submitNeighborhoodListenAction(formData: FormData): Promis
     }
 
     const supabase = getSupabaseAdminClient();
-    const payload: TableInsert<"bairro_escuta_submissions"> = {
+    const dbPayload: TableInsert<"bairro_escuta_submissions"> = {
       bairro,
       pauta,
       relato_curto: relatoCurto,
@@ -87,7 +99,7 @@ export async function submitNeighborhoodListenAction(formData: FormData): Promis
       },
     };
 
-    const { error } = await supabase.from("bairro_escuta_submissions").insert(payload);
+    const { error } = await supabase.from("bairro_escuta_submissions").insert(dbPayload);
     if (error) throw new Error(error.message);
 
     await writeAuditLog({
@@ -107,3 +119,19 @@ export async function submitNeighborhoodListenAction(formData: FormData): Promis
     return { ok: false, error: error instanceof Error ? error.message : "Falha ao registrar escuta." };
   }
 }
+
+export async function submitNeighborhoodListenAction(formData: FormData): Promise<ActionResult> {
+  const consentToContact = boolOfAny(formData, ["consent_to_contact", "quer_contato"]);
+  const consentimentoBasico = boolOf(formData, "consentimento_basico");
+  return submitNeighborhoodListenObjectAction({
+    bairro: valueOf(formData, "bairro"),
+    pauta: valueOf(formData, "pauta"),
+    relato_curto: valueOf(formData, "relato_curto"),
+    consent_to_contact: consentToContact,
+    contato_opcional: valueOf(formData, "contato_opcional"),
+    consentimento_basico: consentimentoBasico,
+    consentimento_explicito: boolOfAny(formData, ["consentimento_explicito", "consentimento_basico"]),
+    aviso_privacidade_aceito: boolOfAny(formData, ["aviso_privacidade_aceito", "consentimento_basico"]),
+    source_report_id: valueOf(formData, "source_report_id"),
+  });
+}

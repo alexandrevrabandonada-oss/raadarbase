@@ -5,9 +5,15 @@ import {
   confirmDMSentAction,
   recordPersonResponse,
   recordPersonReferral,
+  submitNeighborhoodListenObjectAction,
 } from "@/app/actions";
 
-export type OfflineTaskType = "recordDMPrepared" | "confirmDMSent" | "recordResponse" | "recordReferral";
+export type OfflineTaskType =
+  | "recordDMPrepared"
+  | "confirmDMSent"
+  | "recordResponse"
+  | "recordReferral"
+  | "submitNeighborhoodListen";
 
 export type OfflineTask = {
   id: string;
@@ -72,6 +78,8 @@ async function runServerAction(action: OfflineTaskType, args: any[]) {
       return await recordPersonResponse(args[0], args[1]);
     case "recordReferral":
       return await recordPersonReferral(args[0], args[1]);
+    case "submitNeighborhoodListen":
+      return await submitNeighborhoodListenObjectAction(args[0]);
     default:
       throw new Error(`Unknown offline task action: ${action}`);
   }

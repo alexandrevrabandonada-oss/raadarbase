@@ -226,3 +226,10 @@ export async function trackOperationalEvent(
 ): Promise<ActionResult> {
   return telemetry.trackOperationalEvent(event, personId, metadata);
 }
+
+import * as escutaBairro from "./escuta/bairro/actions";
+
+export async function submitNeighborhoodListenObjectAction(payload: any): Promise<ActionResult> {
+  return escutaBairro.submitNeighborhoodListenObjectAction(payload);
+}
+
