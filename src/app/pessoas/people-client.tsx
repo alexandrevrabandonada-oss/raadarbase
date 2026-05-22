@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState, useEffect, useTransition } from "react";
-import type { IgPerson, PeoplePriorityQuickFilter, PriorityPerson, PersonStatus } from "@/lib/types";
+import type { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Search, 
@@ -19,9 +19,13 @@ import {
   Info,
   Filter,
   UserPlus,
-  ShieldAlert
+  ShieldAlert,
+  Copy,
+  Instagram,
+  Route,
+  Send,
 } from "lucide-react";
-import { assumePersonResponsible, trackOperationalEvent } from "@/app/actions";
+import { assumePersonResponsible } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 
 // Radar Design System
@@ -41,26 +45,15 @@ import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 
-const quickFilters: Array<{ id: PeoplePriorityQuickFilter | "quer_evento" | "quer_voluntariado" | "quer_eluta"; label: string }> = [
-  { id: "todos", label: "Geral" },
-  { id: "quentes", label: "Urgentes" },
-  { id: "sem_responsavel", label: "Sem Dono" },
-  { id: "pendente_resposta", label: "Esperando" },
-  { id: "sem_encaminhamento", label: "A encaminhar" },
-];
-
-export function PeopleClient({ 
-  people, 
-  priorityPeople, 
-  operators = [] 
-}: { 
-  people: IgPerson[]; 
+export function PeopleClient({
+  priorityPeople,
+  operators = [],
+}: {
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
 }) {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<PersonStatus | "todos">("todos");
   const [priorityFilter, setPriorityFilter] = useState<string>("todos");
   const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"cards" | "list">(() => {
@@ -99,6 +92,8 @@ export function PeopleClient({
             return person.isPendingResponse;
           case "sem_encaminhamento":
             return person.status === "respondeu" && !person.hasReferral;
+          case "prontas_aviso":
+            return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
           case "quer_evento":
             return person.themes.includes("quer_evento_campo");
           case "quer_voluntariado":
@@ -145,18 +140,6 @@ export function PeopleClient({
     }
   }, [filteredPriorityPeople.length, viewMode]);
 
-  const filteredPeople = useMemo(() => {
-    return people
-      .filter((person) => {
-        if (statusFilter === "todos") return person.status !== "nao_abordar";
-        return person.status === statusFilter;
-      })
-      .filter((person) => person.username.toLowerCase().includes(query.replace("@", "").toLowerCase()))
-      .sort((a, b) =>
-          Date.parse(b.lastInteractionAt ?? "1970-01-01") - Date.parse(a.lastInteractionAt ?? "1970-01-01")
-      );
-  }, [people, query, statusFilter]);
-
   function handleAssume(personId: string) {
     startTransition(async () => {
       await assumePersonResponsible(personId);
@@ -178,7 +161,8 @@ export function PeopleClient({
       semResponsavel: active.filter(p => !p.responsibleName).length,
       esperando: active.filter(p => p.isPendingResponse).length,
       aEncaminhar: active.filter(p => p.status === "respondeu" && !p.hasReferral).length,
-      naoAbordar: priorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length
+      naoAbordar: priorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
+      prontasAviso: active.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
     };
   }, [priorityPeople]);
 
@@ -200,7 +184,7 @@ export function PeopleClient({
       <GamefulHero
         eyebrow="Sala de vínculos"
         title="Prioridades da Equipe"
-        description={isCompact ? "Filtre as missões essenciais e puxe a lista operacional para perto." : "Filtre as missões essenciais, abra a ficha certa e garanta que cada vínculo tenha responsável, contexto e próximo passo visível."}
+        description={isCompact ? "Entre na rodada de avisos individuais ou revise a lista operacional." : "Comece pela rodada de avisos individuais: uma pessoa por vez, mensagem manual e registro claro do envio."}
         variant="light"
         compact={isCompact}
         titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
@@ -224,6 +208,15 @@ export function PeopleClient({
           <>
             <Button
               className="h-12 bg-[#0f1b24] px-6 text-xs font-black uppercase tracking-[0.18em] text-white hover:bg-[#172733]"
+              nativeButton={false}
+              render={<Link href="/minha-fila?rodada=foco" />}
+            >
+              <Send className="mr-2 h-4 w-4" />
+              Começar rodada
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 border-[#d8c7ac] bg-[#f7f0e4] px-6 text-xs font-black uppercase tracking-[0.18em] text-[#11202a]"
               onClick={() => setPriorityFilter("sem_responsavel")}
             >
               <UserPlus className="mr-2 h-4 w-4" />
@@ -247,26 +240,67 @@ export function PeopleClient({
 
       <OperationalCommandBar
         title="Barra de comando"
-        statusLabel="Sem dono"
-        statusValue={`${stats.semResponsavel} missões`}
-        statusDetail="Filtre o que ainda não tem responsável e puxe a lista operacional para perto."
+        statusLabel="Rodada manual"
+        statusValue={`${stats.total} missões ativas`}
+        statusDetail="A jornada trabalha uma pessoa por vez: prepara a fala, abre o canal e registra o envio."
         primaryAction={{
-          label: "Assumir Missões",
-          onClick: focusUnassignedMissions,
-          icon: UserPlus,
+          label: "Começar Rodada",
+          href: "/minha-fila?rodada=foco",
+          icon: Send,
         }}
         secondaryActions={[
           {
-            label: "Filtrar Sem Dono",
-            onClick: () => setPriorityFilter("sem_responsavel"),
-            icon: Filter,
+            label: "Assumir Sem Dono",
+            onClick: focusUnassignedMissions,
+            icon: UserPlus,
           },
         ]}
         shortcutAction={{
-          label: "Abrir Minha Jornada",
-          href: "/minha-fila",
+          label: "Importar Base",
+          href: "/pessoas/importar",
+          icon: PlusCircle,
         }}
       />
+
+      <section className="radar-outline-card border-2 border-black bg-[#fff8ed] p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,0.12)] sm:p-5">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center border-2 border-black bg-burnt-yellow text-charcoal">
+                <Route className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Caminho mais simples</p>
+                <h2 className="text-xl font-black tracking-tight text-charcoal">Rodada de avisos individuais</h2>
+              </div>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              {[
+                { icon: Copy, title: "Preparar", detail: "Copiar a mensagem da pessoa." },
+                { icon: Instagram, title: "Enviar", detail: "Personalizar e mandar manualmente." },
+                { icon: CheckCircle2, title: "Registrar", detail: "Salvar que o aviso foi enviado." },
+              ].map(({ icon: Icon, title, detail }) => (
+                <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-[#d8c7ac] bg-white/80 p-3">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-charcoal" />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-black uppercase tracking-[0.14em] text-charcoal">{title}</span>
+                    <span className="mt-1 block text-xs font-semibold leading-4 text-[#645845]">{detail}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            className="h-12 border-2 border-black bg-charcoal px-6 text-xs font-black uppercase tracking-[0.18em] text-off-white shadow-[3px_3px_0px_0px_rgba(242,169,0,0.5)] hover:bg-charcoal/90"
+            nativeButton={false}
+            render={<Link href="/minha-fila?rodada=foco" />}
+          >
+            <Send className="mr-2 h-4 w-4" />
+            Abrir rodada agora
+          </Button>
+        </div>
+      </section>
 
       <div className="sticky top-24 z-20 space-y-3">
         <OperationalStatusBar
@@ -279,6 +313,7 @@ export function PeopleClient({
             { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
             { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
             { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
+            { id: "prontas_aviso", label: "Prontas p/ Aviso", value: stats.prontasAviso, tone: "neutral", icon: Send, filterable: true },
           ]}
           actions={null}
         />

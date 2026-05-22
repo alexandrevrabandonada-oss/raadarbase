@@ -28,6 +28,7 @@ function buildPriorityPerson(): PriorityPerson {
     outreachStatusLabel: "Novo",
     suggestedMessage: "Oi @ana",
     suggestedTemplateName: "Escuta",
+    suggestedTemplateId: null,
     instagramUrl: "https://instagram.com/ana.muito.grande",
     hasPendingTask: false,
     isPendingResponse: false,

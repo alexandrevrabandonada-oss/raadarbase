@@ -65,9 +65,9 @@ export function removeOfflineTask(id: string) {
 async function runServerAction(action: OfflineTaskType, args: any[]) {
   switch (action) {
     case "recordDMPrepared":
-      return await recordDMPreparedAction(args[0], args[1]);
+      return await recordDMPreparedAction(args[0], args[1], args[2]);
     case "confirmDMSent":
-      return await confirmDMSentAction(args[0], args[1]);
+      return await confirmDMSentAction(args[0], args[1], args[2]);
     case "recordResponse":
       return await recordPersonResponse(args[0], args[1]);
     case "recordReferral":
@@ -112,7 +112,7 @@ export async function syncOfflineTasks(
         console.error(`Offline action ${task.action} failed with server error:`, result?.error);
         errorCount++;
         // In case of error (e.g. database validation), we keep it or discard it depending on business logic.
-        // For Volta Redonda camp, we discard to prevent blocking the queue with dead tasks, but log it.
+        // For state-wide campaign, we discard to prevent blocking the queue with dead tasks, but log it.
         removeOfflineTask(task.id);
       }
     } catch (err) {

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from "@/hooks/use-toast";
 import { recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
 import { JourneyProgress } from "@/components/radar/journey-progress";
+import { AnnouncementStatusBadge } from "@/components/radar/announcement-status-badge";
 import {
   getPriorityPersonHoldState,
   getPriorityPersonHoldText,
@@ -47,7 +48,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     if (person.suggestedMessage) {
       await navigator.clipboard.writeText(person.suggestedMessage);
       toast({ title: "Mensagem preparada", description: "Revise e envie manualmente." });
-      await recordDMPreparedAction(person.id, "lista_operacional");
+      await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
       setCopyStatus("waiting");
       setShowConfirmDialog(true);
     }
@@ -55,7 +56,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
 
   const handleConfirmSent = () => {
     startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "lista_operacional");
+      const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
       if (result.ok) {
         setCopyStatus("confirmed");
         setShowConfirmDialog(false);
@@ -92,6 +93,9 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             {missionPhaseLabel}
           </Badge>
         </div>
+      </td>
+      <td className="px-2 py-3">
+        <AnnouncementStatusBadge status={person.announcementStatus} />
       </td>
       <td className="px-2 py-3">
         <p className="max-w-[190px] truncate text-[11px] font-medium text-zinc-600 xl:max-w-[220px]" title={missionReason}>{missionReason}</p>
@@ -238,6 +242,7 @@ export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssum
             <th className="w-10 px-3 py-3 text-center text-[10px] font-black uppercase tracking-widest text-zinc-400">#</th>
             <th className="min-w-[160px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pessoa</th>
             <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Fase</th>
+            <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Aviso</th>
             <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:min-w-[220px]">Motivo</th>
             <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:min-w-[220px]">Próxima ação</th>
             <th className="min-w-[140px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Progresso</th>

@@ -101,6 +101,11 @@ function renderSuggestedMessage(template: MessageTemplate, person: PersonWithCon
 
 function getSuggestedTemplate(task: OutreachTaskWithPerson | null, person: PersonWithContact, mainTheme: string | null, templates: MessageTemplate[]) {
   const activeTemplates = templates.filter((template) => template.active);
+
+  // 0. Prioridade Máxima: Modelo de Campanha Ativo
+  const campaignDefault = activeTemplates.find((t) => t.isCampaignDefault);
+  if (campaignDefault) return campaignDefault;
+
   const taskColumn = normalizeOutreachColumn(task?.column);
 
   // 1. Prioridade por Categoria (Casos específicos de interação)
@@ -313,7 +318,8 @@ function buildPriorityPerson(
     responsibleName: (task as any)?.internal_users?.full_name ?? person.responsibleName,
     suggestedMessage: suggestedTemplate ? renderSuggestedMessage(suggestedTemplate, person, mainTheme) : null,
     suggestedTemplateName: suggestedTemplate?.name ?? null,
-    instagramUrl: person.username ? `https://www.instagram.com/${person.username}/` : null,
+    suggestedTemplateId: suggestedTemplate?.id ?? null,
+    instagramUrl: person.username ? `https://www.instagram.com/direct/t/${person.username.replace(/^@+/, "")}/` : null,
     hasPendingTask,
     isPendingResponse,
     hasReferral,
@@ -377,11 +383,37 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
+    const mockAuditLogs: AuditLogEntry[] = [
+      {
+        id: "audit-1",
+        actorId: "mock-operator",
+        actorEmail: "operador@radar.camp",
+        action: "contact.dm_prepared",
+        entityType: "ig_people",
+        entityId: "p-marco", // Marco Alves (status "novo") -> should become "preparado"
+        summary: "Mensagem preparada para envio",
+        metadata: {},
+        createdAt: new Date(now.getTime() - 3600000).toISOString(),
+      },
+      {
+        id: "audit-2",
+        actorId: "mock-operator",
+        actorEmail: "operador@radar.camp",
+        action: "contact.response_recorded",
+        entityType: "ig_people",
+        entityId: "p-ana", // Ana Souza (status "responder") -> should become "revisar_depois"
+        summary: "Resposta registrada como revisar depois",
+        metadata: { responseType: "revisar_depois" },
+        createdAt: new Date(now.getTime() - 7200000).toISOString(),
+      },
+    ];
+
     const priorityPeople = buildPriorityPeople(mockPeople, mockInteractionsSummary(), mockTasks, mockTemplates, now);
     return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
       priorityPeople,
       interactions: mockInteractionsSummary(),
       tasks: mockTasks,
+      auditLogs: mockAuditLogs,
       now,
     }));
   }
@@ -429,6 +461,7 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
       whenToUse: template.when_to_use ?? null,
       active: template.active,
       updatedAt: template.updated_at,
+      isCampaignDefault: template.is_campaign_default ?? false,
     }));
 
     const interactions: InteractionSummaryWithPerson[] = (interactionsResult.data ?? []).map((interaction) => ({

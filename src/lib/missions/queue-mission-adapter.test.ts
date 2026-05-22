@@ -28,6 +28,7 @@ function person(id: string, overrides: Partial<PriorityPerson> = {}): PriorityPe
     outreachStatusLabel: "Novo",
     suggestedMessage: "Oi",
     suggestedTemplateName: null,
+    suggestedTemplateId: null,
     instagramUrl: null,
     hasPendingTask: false,
     isPendingResponse: false,

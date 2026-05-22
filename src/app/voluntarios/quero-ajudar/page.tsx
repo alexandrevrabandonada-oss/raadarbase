@@ -57,7 +57,7 @@ export default async function PublicVolunteerApplicationPage({ searchParams }: {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">Cidade</Label>
-                  <Input id="city" name="city" defaultValue="Volta Redonda" maxLength={120} />
+                  <Input id="city" name="city" defaultValue="" maxLength={120} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contactPreference">Preferência de contato</Label>

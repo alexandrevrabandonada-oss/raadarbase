@@ -37,7 +37,7 @@ export default async function PessoasPage() {
         title="Pessoas"
         description="Missões ativas da base, organizadas por urgência, dono e próximo passo."
       />
-      <PeopleClient people={people} priorityPeople={people} operators={operators} />
+      <PeopleClient priorityPeople={people} operators={operators} />
     </AppShell>
   );
 }

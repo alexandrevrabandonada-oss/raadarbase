@@ -13,6 +13,10 @@ import {
   Scroll,
   Sparkles,
   BookOpen,
+  Megaphone,
+  ClipboardCheck,
+  CheckCircle2,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import type { MessageTemplate } from "@/lib/types";
-import { removeMessageTemplate, upsertMessageTemplate } from "@/app/actions";
+import { removeMessageTemplate, upsertMessageTemplate, setCampaignDefaultTemplate } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
 // Radar Design System
@@ -29,6 +33,12 @@ import { RadarMetricCard } from "@/components/radar/radar-metric-card";
 import { OperationalAlert } from "@/components/radar/operational-alert";
 import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
+import {
+  announcementPublicationChannels,
+  readAnnouncementPublicationState,
+  writeAnnouncementPublicationState,
+  type AnnouncementChannelId,
+} from "@/lib/announcement-publications";
 
 // Play copy sound using Web Audio API (tactical feedback)
 function playCopySound() {
@@ -57,6 +67,30 @@ function playCopySound() {
     // Ignore audio context failures gracefully
   }
 }
+
+const publicPreCandidacyAnnouncement =
+  "Comunicado publico: estou me colocando como pre-candidato para abrir uma etapa de escuta, organizacao e construcao coletiva na cidade. Vou compartilhar os proximos encontros, pautas e formas de participacao pelos canais abertos. Quem quiser acompanhar pode responder por aqui ou procurar a equipe.";
+
+const announcementFormats = [
+  {
+    id: "post",
+    label: "Post",
+    detail: "Texto base para feed ou legenda.",
+    body: publicPreCandidacyAnnouncement,
+  },
+  {
+    id: "story",
+    label: "Story",
+    detail: "Fala curta para arte ou video rápido.",
+    body: "Comecou uma nova etapa: estou me colocando como pre-candidato. Quero abrir conversas publicas sobre cidade, escuta e organizacao. Acompanhe os proximos passos por aqui.",
+  },
+  {
+    id: "fala",
+    label: "Fala curta",
+    detail: "Roteiro para abertura de video.",
+    body: "Quero contar com clareza: estou me apresentando como pre-candidato. Esta primeira fase e para a cidade saber disso, ouvir as pautas que aparecem e organizar os proximos encontros com responsabilidade.",
+  },
+] as const;
 
 // Sub-component for sidebar content to avoid duplicate layouts for mobile vs desktop
 interface SidebarContentProps {
@@ -269,6 +303,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
   const [whenToUse, setWhenToUse] = useState("");
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [announcementPublications, setAnnouncementPublications] = useState(readAnnouncementPublicationState);
 
   const checklistItems = [
     { id: "check-1", label: "Abrir /pessoas e ver a 'Rotina do Dia'." },
@@ -302,6 +337,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
             whenToUse: whenToUse || null,
             active: true,
             updatedAt: new Date().toISOString(),
+            isCampaignDefault: false,
           },
           ...current,
         ]);
@@ -309,6 +345,22 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
         setBody("");
         setCategory("");
         setWhenToUse("");
+      }
+    });
+  }
+
+  function handleSetCampaignDefault(templateId: string) {
+    const isCurrentDefault = templates.find((t) => t.id === templateId)?.isCampaignDefault || false;
+    startTransition(async () => {
+      const result = await setCampaignDefaultTemplate(templateId);
+      setFeedback(result.ok ? result.message : result.error);
+      if (result.ok) {
+        setTemplates((current) =>
+          current.map((item) => ({
+            ...item,
+            isCampaignDefault: item.id === templateId ? !isCurrentDefault : false,
+          }))
+        );
       }
     });
   }
@@ -335,6 +387,23 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
   const activeTemplates = templates.filter(t => t.active);
 
+  function copyAnnouncement(bodyToCopy: string, label: string) {
+    navigator.clipboard.writeText(bodyToCopy);
+    playCopySound();
+    setFeedback(`${label} copiado.`);
+    setTimeout(() => setFeedback(null), 2000);
+  }
+
+  function toggleAnnouncementPublication(channelId: AnnouncementChannelId) {
+    setAnnouncementPublications((current) => {
+      const next = { ...current, [channelId]: !current[channelId] };
+      writeAnnouncementPublicationState(next);
+      return next;
+    });
+  }
+
+  const publicationCount = Object.values(announcementPublications).filter(Boolean).length;
+
   return (
     <div className="flex flex-col gap-8 pb-20">
       <RadarPageHeader 
@@ -351,6 +420,108 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
         whatToDoNow="Escolha uma fórmula → Clique em Copiar (emitirá um sinal de conjuração) → Adapte manualmente na conversa do Instagram."
         className="max-w-4xl border border-[#23323e] bg-gradient-to-br from-[#121c24] to-[#0a1015]"
       />
+
+      <Card className="overflow-hidden border-2 border-[#0b0b0b] bg-[#fff8ed] py-0 shadow-[4px_4px_0px_0px_rgba(17,32,42,0.16)]">
+        <CardContent className="space-y-5 p-5">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center border-2 border-charcoal bg-burnt-yellow text-charcoal">
+                <Megaphone className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b7759]">
+                  Preparar primeira fala
+                </p>
+                <h2 className="text-xl font-black tracking-tight text-charcoal">
+                  Comunicado publico da temporada
+                </h2>
+              </div>
+            </div>
+
+              <p className="max-w-2xl text-sm font-semibold leading-6 text-[#4b4337]">
+                Esta rodada existe para abrir conhecimento publico da pre-candidatura. Publique primeiro; organize os retornos depois.
+              </p>
+            </div>
+
+            <div className="border-2 border-[#d8c7ac] bg-white/70 p-4">
+              <div className="flex items-center gap-2 text-charcoal">
+                <ClipboardCheck className="h-4 w-4" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Regra da rodada</p>
+              </div>
+              <ul className="mt-4 space-y-3 text-sm font-semibold leading-5 text-[#4b4337]">
+                <li>Primeira etapa: tornar a pre-candidatura conhecida com fala publica clara.</li>
+                <li>Publicar para audiencia ampla antes de iniciar conversas individuais.</li>
+                <li>Usar DM apenas com contexto manual, pedido da pessoa ou consentimento registrado.</li>
+                <li>Nao segmentar nem disparar para seguidores por engajamento.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-3 md:grid-cols-3">
+              {announcementFormats.map((format) => (
+                <div key={format.id} className="flex min-w-0 flex-col border-2 border-charcoal bg-white p-3 shadow-[2px_2px_0px_0px_rgba(11,11,11,0.16)]">
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b7759]">{format.detail}</p>
+                      <p className="text-base font-black text-charcoal">{format.label}</p>
+                    </div>
+                    <Radio className="h-4 w-4 shrink-0 text-burnt-yellow" />
+                  </div>
+                  <Textarea
+                    readOnly
+                    value={format.body}
+                    className="min-h-[150px] flex-1 border-2 border-[#d8c7ac] bg-[#fff8ed] text-xs font-semibold leading-5 text-charcoal"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => copyAnnouncement(format.body, format.label)}
+                    className="mt-3 h-10 border-2 border-charcoal bg-charcoal text-[10px] font-black uppercase tracking-[0.18em] text-white hover:bg-charcoal/90"
+                  >
+                    <Copy className="mr-2 h-3.5 w-3.5" />
+                    Copiar
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-2 border-charcoal bg-charcoal p-4 text-off-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-burnt-yellow">Checklist da rodada</p>
+                  <h3 className="mt-1 text-lg font-black">Publicacao inicial</h3>
+                </div>
+                <div className="border-2 border-burnt-yellow bg-burnt-yellow px-2 py-1 text-xs font-black text-charcoal">
+                  {publicationCount}/{announcementPublicationChannels.length}
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2">
+                {announcementPublicationChannels.map((channel) => (
+                  <label key={channel.id} className="flex cursor-pointer items-start gap-3 border-2 border-cement/50 bg-black/20 p-3">
+                    <input
+                      type="checkbox"
+                      checked={announcementPublications[channel.id]}
+                      onChange={() => toggleAnnouncementPublication(channel.id)}
+                      className="mt-0.5 size-4 accent-[#f2a900]"
+                    />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-2 text-sm font-black">
+                        {announcementPublications[channel.id] ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : null}
+                        {channel.label}
+                      </span>
+                      <span className="mt-1 block text-xs font-semibold leading-5 text-zinc-300">{channel.detail}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] font-semibold leading-5 text-zinc-400">
+                Este registro fica neste navegador e nao cria lista de pessoas.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <RadarMetricCard label="Modelos totais" value={stats.total} icon={MessageSquare} tone="neutral" />
@@ -450,13 +621,19 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
                   key={template.id} 
                   className={cn(
                     "relative overflow-hidden transition-all duration-300 hover:scale-[1.008] shadow-lg border p-0",
-                    template.theme === "escuta" 
-                      ? "border-sky-500/20 bg-gradient-to-br from-[#0c131a] to-[#070b0e] text-white shadow-sky-950/20" 
-                      : "border-amber-500/20 bg-gradient-to-br from-[#16120c] to-[#0d0a07] text-white shadow-amber-950/20"
+                    template.isCampaignDefault
+                      ? "border-[#f2a900] border-2 bg-gradient-to-br from-[#1c1a15] to-[#0c0a07] text-white shadow-[#f2a900]/10"
+                      : template.theme === "escuta" 
+                        ? "border-sky-500/20 bg-gradient-to-br from-[#0c131a] to-[#070b0e] text-white shadow-sky-950/20" 
+                        : "border-amber-500/20 bg-gradient-to-br from-[#16120c] to-[#0d0a07] text-white shadow-amber-950/20"
                   )}
                 >
                   <div className="absolute top-0 right-0 p-1 opacity-[0.03]">
-                    <Scroll className="h-24 w-24 text-white pointer-events-none select-none" />
+                    {template.isCampaignDefault ? (
+                      <Megaphone className="h-24 w-24 text-white pointer-events-none select-none" />
+                    ) : (
+                      <Scroll className="h-24 w-24 text-white pointer-events-none select-none" />
+                    )}
                   </div>
                   <div className="flex flex-col lg:flex-row relative z-10">
                     <div className="flex-1 p-6 space-y-5">
@@ -465,14 +642,24 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
                           <h3 className="text-base font-black tracking-tight text-[#f3f4f6]">
                             {template.name}
                           </h3>
+                          {template.isCampaignDefault && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-[9px] font-black uppercase tracking-widest bg-burnt-yellow/20 text-[#f2a900] border-burnt-yellow shadow-[0_0_10px_rgba(242,169,0,0.15)] animate-pulse"
+                            >
+                              📢 Campanha Ativa
+                            </Badge>
+                          )}
                           {template.category && (
                             <Badge 
                               variant="outline" 
                               className={cn(
                                 "text-[9px] font-black uppercase tracking-widest",
-                                template.theme === "escuta"
-                                  ? "bg-sky-500/10 text-sky-300 border-sky-500/30 shadow-[0_0_10px_rgba(56,189,248,0.1)]"
-                                  : "bg-amber-500/10 text-[#f0c15b] border-amber-500/30 shadow-[0_0_10px_rgba(240,193,91,0.1)]"
+                                template.isCampaignDefault
+                                  ? "bg-burnt-yellow/10 text-burnt-yellow border-burnt-yellow/30"
+                                  : template.theme === "escuta"
+                                    ? "bg-sky-500/10 text-sky-300 border-sky-500/30 shadow-[0_0_10px_rgba(56,189,248,0.1)]"
+                                    : "bg-amber-500/10 text-[#f0c15b] border-amber-500/30 shadow-[0_0_10px_rgba(240,193,91,0.1)]"
                               )}
                             >
                               {template.category}
@@ -514,7 +701,22 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
                             Adapte os detalhes antes de enviar
                           </p>
                           <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                             <Button 
+                            <Button 
+                              type="button" 
+                              size="sm"
+                              variant={template.isCampaignDefault ? "default" : "outline"}
+                              className={cn(
+                                "flex-1 sm:flex-none h-9 font-black text-[10px] uppercase",
+                                template.isCampaignDefault 
+                                  ? "bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/80 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]" 
+                                  : "border-burnt-yellow/40 hover:border-burnt-yellow bg-transparent hover:bg-burnt-yellow/10 text-burnt-yellow"
+                              )}
+                              onClick={() => handleSetCampaignDefault(template.id)} 
+                              disabled={isPending}
+                            >
+                              {template.isCampaignDefault ? "🎯 Desativar Campanha" : "🎯 Destacar Campanha"}
+                            </Button>
+                            <Button 
                               type="button" 
                               size="sm"
                               variant="outline"

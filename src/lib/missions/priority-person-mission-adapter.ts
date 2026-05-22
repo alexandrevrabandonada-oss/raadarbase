@@ -240,6 +240,52 @@ export function getPriorityPersonJourney(person: PriorityPerson): JourneyStatus 
   return buildMissionJourney(mission);
 }
 
+function computeAnnouncementStatus(
+  person: PriorityPerson,
+  personAudits: AuditLogEntry[]
+): 'nao_iniciado' | 'preparado' | 'enviado' | 'respondeu' | 'revisar_depois' {
+  if (person.status === "respondeu" || person.status === "contato_confirmado") {
+    return "respondeu";
+  }
+
+  const responseRecordedLogs = personAudits
+    .filter((log) => log.action === "contact.response_recorded")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (responseRecordedLogs.length > 0) {
+    const latestLog = responseRecordedLogs[0];
+    const metadata = latestLog.metadata;
+    if (metadata && typeof metadata === "object") {
+      const meta = metadata as Record<string, any>;
+      if (meta.responseType === "revisar_depois" || meta.responseType === "manter_aguardando") {
+        return "revisar_depois";
+      }
+    }
+  }
+
+  if (person.status === "abordado") {
+    return "enviado";
+  }
+
+  if (["novo", "responder", "para_abordar"].includes(person.status)) {
+    const preparedLogs = personAudits.filter((log) => log.action === "contact.dm_prepared");
+    if (preparedLogs.length > 0) {
+      const sentLogs = personAudits.filter((log) => log.action === "contact.dm_sent");
+      if (sentLogs.length === 0) {
+        return "preparado";
+      } else {
+        const latestSentTime = Math.max(...sentLogs.map((log) => new Date(log.createdAt).getTime()));
+        const hasPreparedAfterSent = preparedLogs.some((log) => new Date(log.createdAt).getTime() > latestSentTime);
+        if (hasPreparedAfterSent) {
+          return "preparado";
+        }
+      }
+    }
+  }
+
+  return "nao_iniciado";
+}
+
 export function attachMissionMetadataToPriorityPeople({
   priorityPeople,
   interactions,
@@ -298,9 +344,18 @@ export function attachMissionMetadataToPriorityPeople({
       missions.map((mission) => [mission.subjectId!, mission] as const),
     );
 
-    return priorityPeople.map((person) => buildMissionMetadata(person, missionsByPersonId.get(person.id) ?? null));
+    return priorityPeople.map((person) => {
+      const personAudits = auditsByPerson.get(person.id) ?? [];
+      const adapted = buildMissionMetadata(person, missionsByPersonId.get(person.id) ?? null);
+      adapted.announcementStatus = computeAnnouncementStatus(adapted, personAudits);
+      return adapted;
+    });
   } catch {
-    return priorityPeople.map((person) => buildMissionMetadata(person, null, true));
+    return priorityPeople.map((person) => {
+      const adapted = buildMissionMetadata(person, null, true);
+      adapted.announcementStatus = "nao_iniciado";
+      return adapted;
+    });
   }
 }
 

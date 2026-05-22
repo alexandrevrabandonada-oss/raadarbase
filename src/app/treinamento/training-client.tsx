@@ -294,7 +294,7 @@ export default function TrainingClient() {
             <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-charcoal text-off-white text-[10px] font-black uppercase tracking-widest rounded-[2px]">
               <Zap className="h-3 w-3 text-burnt-yellow" /> Jogo Interativo
             </div>
-            <h3 className="text-2xl font-black tracking-tight uppercase">Estação Volta Redonda: O Jogo</h3>
+            <h3 className="text-2xl font-black tracking-tight uppercase">Estação VR Abandonada: O Jogo</h3>
             <p className="text-sm font-semibold max-w-xl leading-relaxed text-charcoal/90">
               Aprenda a operar na rua e nas redes de forma leve e divertida. Descubra os limites éticos e acumule pontos Concreto e Zen na simulação.
             </p>

@@ -208,7 +208,7 @@ function buildApplicationInsert(input: VolunteerApplicationInput): TableInsert<"
   return {
     display_name: sanitizePublicText(input.displayName, 120) ?? "",
     neighborhood: sanitizePublicText(input.neighborhood, 120),
-    city: sanitizePublicText(input.city, 120) ?? "Volta Redonda",
+    city: sanitizePublicText(input.city, 120),
     contact_email: contactEmail,
     contact_phone: contactPhone,
     contact_preference: hasContact && input.consentToContact ? input.contactPreference ?? "nenhum" : "nenhum",

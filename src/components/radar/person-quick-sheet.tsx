@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { PersonScoreBadge } from "./person-score-badge";
+import { AnnouncementStatusBadge } from "./announcement-status-badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCompletion } from "@/hooks/use-completion";
 import Link from "next/link";
@@ -422,7 +423,7 @@ export function PersonQuickSheet({
       onTrainingAction?.("dm_copied", { location });
     } else {
       trackOperationalEvent("dm_copied", person.id, { location });
-      await recordDMPreparedAction(person.id, location);
+      await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
     }
     
     // 3. Entrar em modo de confirmação
@@ -437,7 +438,7 @@ export function PersonQuickSheet({
       return;
     }
     startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "ficha_rapida");
+      const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
       if (result.ok) {
         setCopyStatus("confirmed");
         toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
@@ -462,13 +463,14 @@ export function PersonQuickSheet({
           <div className="radar-panel-dark shrink-0 border-b border-[#24313b] p-6 pt-10 text-white">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="border-[#d0b072]/50 bg-[rgba(212,182,120,0.14)] text-[#f0dfbf] font-black uppercase text-[10px] tracking-widest">
                     Ficha de missão
                   </Badge>
                   <SheetTitle className="text-2xl font-black text-white">
                     {person.displayName || `@${person.username}`}
                   </SheetTitle>
+                  <AnnouncementStatusBadge status={person.announcementStatus} />
                   <Badge variant="outline" className="bg-white/10 text-white border-white/20 font-black uppercase text-[10px] tracking-widest">
                     {missionView.stateLabel}
                   </Badge>

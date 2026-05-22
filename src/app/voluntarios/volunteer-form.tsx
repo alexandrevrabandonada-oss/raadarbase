@@ -81,7 +81,7 @@ export function VolunteerForm({ action, submitLabel, cancelHref, defaults, error
 
         <div className="space-y-2">
           <Label htmlFor="city">Cidade</Label>
-          <Input id="city" name="city" defaultValue={defaults?.city ?? "Volta Redonda"} />
+          <Input id="city" name="city" defaultValue={defaults?.city ?? ""} />
         </div>
 
         <div className="space-y-2">

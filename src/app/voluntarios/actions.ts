@@ -64,7 +64,7 @@ function parseVolunteerForm(formData: FormData): VolunteerMutationInput {
   return {
     displayName: String(formData.get("displayName") ?? ""),
     neighborhood: String(formData.get("neighborhood") ?? ""),
-    city: String(formData.get("city") ?? "Volta Redonda"),
+    city: String(formData.get("city") ?? ""),
     contactEmail: String(formData.get("contactEmail") ?? ""),
     contactPhone: String(formData.get("contactPhone") ?? ""),
     contactPreference: String(formData.get("contactPreference") ?? "nenhum") as VolunteerContactPreference,
@@ -86,7 +86,7 @@ function parseVolunteerApplicationForm(formData: FormData): VolunteerApplication
   return {
     displayName: String(formData.get("displayName") ?? ""),
     neighborhood: String(formData.get("neighborhood") ?? ""),
-    city: String(formData.get("city") ?? "Volta Redonda"),
+    city: String(formData.get("city") ?? ""),
     contactEmail: String(formData.get("contactEmail") ?? ""),
     contactPhone: String(formData.get("contactPhone") ?? ""),
     contactPreference: String(formData.get("contactPreference") ?? "nenhum") as VolunteerContactPreference,

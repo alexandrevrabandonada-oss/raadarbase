@@ -120,11 +120,11 @@ export function PersonActions({
     setShowConfirmDialog(true);
     
     // Telemetria
-    await recordDMPreparedAction(person.id, "perfil_pessoa");
+    await recordDMPreparedAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
   }
 
   function handleConfirmSent() {
-    runAction(() => confirmDMSentAction(person.id, "perfil_pessoa"), {
+    runAction(() => confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId), {
       successText: "Status atualizado para 'Aguardando Retorno'.",
       nextStatus: "abordado"
     });

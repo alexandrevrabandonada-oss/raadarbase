@@ -36,6 +36,7 @@ import {
   MessageSquare,
   Trophy,
   Heart,
+  Clock,
 } from "lucide-react";
 import {
   trackOperationalEvent,
@@ -84,13 +85,24 @@ const RESPONSE_OPTIONS: Array<{
   icon: typeof CheckCircle2;
 }> = [
   { id: "nao_respondeu", label: "Sem retorno", hint: "A conversa segue em espera.", icon: XCircle },
-  { id: "respondeu_bem", label: "Respondeu bem", hint: "A missão avançou com boa abertura.", icon: CheckCircle2 },
+  { id: "respondeu_bem", label: "Respondeu bem", hint: "O aviso avançou com boa abertura.", icon: CheckCircle2 },
   { id: "pediu_informacoes", label: "Pediu informações", hint: "Registrar dúvida e seguir na conversa.", icon: HelpCircle },
   { id: "quer_ir_evento", label: "Quer evento", hint: "Há chance de campo concreto.", icon: Calendar },
   { id: "quer_ajudar_presencial", label: "Quer ajudar", hint: "Encaminhar para voluntariado ou campo.", icon: HeartHandshake },
-  { id: "quer_conhecer_missao_eluta", label: "Quer missão digital", hint: "Boa candidata para ação coordenada.", icon: Smartphone },
+  { id: "quer_conhecer_missao_eluta", label: "Quer aviso digital", hint: "Boa candidata para ação coordenada.", icon: Smartphone },
   { id: "nao_quer_contato", label: "Não quer contato", hint: "A restrição ética precisa ser respeitada.", icon: ShieldAlert },
   { id: "revisar_depois", label: "Revisar depois", hint: "Volta para fila com mais contexto.", icon: History },
+];
+
+const POST_SEND_OPTIONS: Array<{
+  id: PersonResponseKind;
+  label: string;
+  hint: string;
+  icon: typeof CheckCircle2;
+}> = [
+  { id: "manter_aguardando", label: "Aguardar resposta", hint: "Aguardar retorno saudável no Instagram.", icon: Clock },
+  { id: "respondeu_bem", label: "Já respondeu", hint: "A pessoa respondeu de forma positiva.", icon: CheckCircle2 },
+  { id: "revisar_depois", label: "Voltar depois", hint: "Revisar o contato em um momento posterior.", icon: History },
 ];
 
 const REFERRAL_OPTIONS: Array<{
@@ -98,13 +110,13 @@ const REFERRAL_OPTIONS: Array<{
   label: string;
   hint: string;
 }> = [
-  { id: "evento_campo", label: "Missão de Campo", hint: "Conectar a pessoa a uma ação presencial." },
+  { id: "evento_campo", label: "Ação de Campo", hint: "Conectar a pessoa a uma ação presencial." },
   { id: "voluntariado", label: "Voluntariado", hint: "Encaminhar para ajuda recorrente." },
-  { id: "missao_eluta", label: "Missão ÉLuta", hint: "Encaminhar para ação digital coordenada." },
+  { id: "missao_eluta", label: "Ação ÉLuta", hint: "Encaminhar para ação digital coordenada." },
   { id: "grupo_lista", label: "Grupo ou Lista", hint: "Manter vínculo por canal de acompanhamento." },
-  { id: "missao_simples", label: "Missão simples", hint: "Fechar ciclo com uma ação pontual." },
+  { id: "missao_simples", label: "Aviso simples", hint: "Fechar ciclo com uma ação pontual." },
   { id: "revisar_depois", label: "Revisar depois", hint: "Segurar a decisão e voltar com contexto." },
-  { id: "nao_abordar", label: "Não abordar", hint: "Fechar missão por consentimento ou segurança." },
+  { id: "nao_abordar", label: "Não abordar", hint: "Fechar ciclo por consentimento ou segurança." },
 ];
 
 const WORK_MODE_OPTIONS: Array<{
@@ -172,7 +184,7 @@ function missionFeedback(kind: PersonResponseKind) {
     case "revisar_depois":
     case "manter_aguardando":
     case "arquivar_sem_retorno":
-      return { title: "Missão pausada sem perda de histórico.", description: "O contexto ficou salvo para uma retomada segura." };
+      return { title: "Aviso pausado sem perda de histórico.", description: "O contexto ficou salvo para uma retomada segura." };
     default:
       return { title: "Resposta registrada. Próximo passo salvo.", description: "A jornada foi atualizada sem perder o contexto." };
   }
@@ -182,10 +194,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
+  const [filterQuentes, setFilterQuentes] = useState(false);
+  const filteredQueue = useMemo(() => {
+    if (!filterQuentes) return queue;
+    return queue.filter((p) => p.temperature === "quente");
+  }, [queue, filterQuentes]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [sunMode, setSunMode] = useState(false);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
+  const [showPostSendDialog, setShowPostSendDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
   const [focusMode, setFocusMode] = useState(false);
@@ -226,6 +244,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   const [showZenSettings, setShowZenSettings] = useState(false);
   const [selectedZenDays, setSelectedZenDays] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("rodada") !== "foco") return;
+
+    const focusTimer = window.setTimeout(() => {
+      setFocusMode(true);
+    }, 0);
+
+    return () => window.clearTimeout(focusTimer);
+  }, []);
 
   useEffect(() => {
     const hydrationTimer = window.setTimeout(() => {
@@ -269,7 +297,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   }, []);
 
   useEffect(() => {
-    const currentPerson = queue[currentIndex];
+    const currentPerson = filteredQueue[currentIndex];
     if (!currentPerson) {
       const resetTimer = window.setTimeout(() => setLockState(null), 0);
       return () => window.clearTimeout(resetTimer);
@@ -319,7 +347,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       clearInterval(interval);
       releaseLockAction(currentPerson.id);
     };
-  }, [currentIndex, queue]);
+  }, [currentIndex, filteredQueue]);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -331,10 +359,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
-  const wellness = assessQueueWellness(queue.length);
+  const wellness = assessQueueWellness(filteredQueue.length);
   const isZenDay = typeof window !== "undefined" && selectedZenDays.includes(new Date().getDay());
-  const completedCount = Math.min(currentIndex, queue.length);
-  const progressPercent = queue.length === 0 ? 0 : Math.round((completedCount / queue.length) * 100);
+  const completedCount = Math.min(currentIndex, filteredQueue.length);
+  const progressPercent = filteredQueue.length === 0 ? 0 : Math.round((completedCount / filteredQueue.length) * 100);
   const {
     hydrated: compactHydrated,
     manualCompact,
@@ -342,7 +370,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     setCompact,
   } = useCompactMode({
     storageKey: "radar_minha_jornada_compacto",
-    autoCompact: isNotebookViewport || queue.length > 5,
+    autoCompact: isNotebookViewport || filteredQueue.length > 5,
   });
   const missionFeed = useMemo(() => missionPlan?.missions ?? [], [missionPlan]);
   const missionBySubjectId = useMemo(
@@ -367,7 +395,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   };
 
   const handleNext = () => {
-    if (currentIndex < queue.length - 1) {
+    if (currentIndex < filteredQueue.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setCopyStatus("idle");
     } else {
@@ -378,7 +406,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const handleSkip = () => {
     playSynthSkip();
     toast({
-      title: "Missão pausada sem perda de histórico.",
+      title: "Aviso pausado sem perda de histórico.",
       description: `@${currentPerson.username} saiu da vez por agora. A trilha segue com o contexto preservado.`,
     });
     handleNext();
@@ -389,21 +417,48 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       await navigator.clipboard.writeText(currentPerson.suggestedMessage);
       playSynthConfirm();
       toast({ title: "Mensagem preparada", description: "Revise e envie manualmente no Instagram." });
-      await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila"], toast);
+      await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
       setCopyStatus("waiting");
     }
   };
 
   const handleConfirmSent = async () => {
     startTransition(async () => {
-      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila"], toast);
+      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
       if (result.ok) {
         playSynthSuccess();
         setCopyStatus("confirmed");
         if (!result.offline) {
-          toast({ title: "Envio manual confirmado.", description: "Próximo passo salvo e missão em acompanhamento." });
+          toast({ title: "Envio manual confirmado.", description: "Selecione o estado do contato no diálogo." });
         }
         incrementStreak();
+        setShowPostSendDialog(true);
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
+  const handlePostSendResponse = async (kind: PersonResponseKind) => {
+    startTransition(async () => {
+      const result = await executeOrQueueAction("recordResponse", [currentPerson.id, kind], toast);
+      if (result.ok) {
+        playSynthSuccess();
+        showCompletion("response_recorded");
+        if (!result.offline) {
+          toast({ title: "Avanço registrado", description: "O estado do contato foi atualizado." });
+        }
+        setShowPostSendDialog(false);
+        setCopyStatus("idle");
+        incrementStreak();
+        const newQueue = queue.filter((p) => p.id !== currentPerson.id);
+        setQueue(newQueue);
+        const nextFilteredLength = filterQuentes 
+          ? newQueue.filter((p) => p.temperature === "quente").length 
+          : newQueue.length;
+        if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
+          setCurrentIndex(Math.max(0, nextFilteredLength - 1));
+        }
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -424,8 +479,11 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
-        if (currentIndex >= newQueue.length && newQueue.length > 0) {
-          setCurrentIndex(newQueue.length - 1);
+        const nextFilteredLength = filterQuentes 
+          ? newQueue.filter((p) => p.temperature === "quente").length 
+          : newQueue.length;
+        if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
+          setCurrentIndex(Math.max(0, nextFilteredLength - 1));
         }
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
@@ -440,7 +498,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         playSynthSuccess();
         showCompletion("referral_done");
         if (!result.offline) {
-          toast({ title: "Encaminhamento registrado.", description: "A missão ganhou um destino claro com histórico preservado." });
+          toast({ title: "Encaminhamento registrado.", description: "O aviso ganhou um destino claro com histórico preservado." });
         }
         setShowReferralDialog(false);
         incrementStreak();
@@ -451,7 +509,48 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     });
   };
 
-  if (queue.length === 0) {
+  if (filteredQueue.length === 0) {
+    if (queue.length > 0) {
+      return (
+        <div className="mx-auto max-w-5xl px-4 py-10">
+          <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
+            <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <div className="absolute bottom-6 right-6 text-burnt-yellow/45 animate-pulse">
+              <Sparkles className="h-6 w-6" />
+            </div>
+
+            <div className="relative flex flex-col items-center justify-center text-center space-y-6 py-12">
+              <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                <Flame className="h-3.5 w-3.5 fill-burnt-yellow" />
+                Filtro Ativo
+              </div>
+              <div className="space-y-3 max-w-lg">
+                <h2 className="text-3xl font-black uppercase leading-none tracking-tight text-white md:text-5xl">
+                  Sem pessoas quentes
+                </h2>
+                <p className="text-sm font-semibold leading-6 text-zinc-300">
+                  Não há mais nenhuma pessoa classificada como <strong className="text-white">quente 🔥</strong> (mais engajada) na sua fila de hoje. No entanto, ainda restam <strong className="text-white">{queue.length} pessoas</strong> na fila geral.
+                </p>
+              </div>
+
+              <Button
+                className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
+                onClick={() => {
+                  playSynthConfirm();
+                  setFilterQuentes(false);
+                  setCurrentIndex(0);
+                }}
+              >
+                Ver fila completa ({queue.length} pessoas)
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
@@ -481,7 +580,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 {[
                   ["01", "Jogar simulador"],
                   ["02", "Ver guia do operador"],
-                  ["03", "Assumir missão real"],
+                  ["03", "Assumir aviso real"],
                 ].map(([step, label]) => (
                   <div key={step} className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-burnt-yellow">{step}</p>
@@ -499,7 +598,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] font-black uppercase tracking-[0.22em]">Simulador interativo</p>
-                    <h3 className="mt-1 text-2xl font-black tracking-tight">Estação Volta Redonda</h3>
+                    <h3 className="mt-1 text-2xl font-black tracking-tight">Estação VR Abandonada</h3>
                     <p className="mt-2 text-sm font-semibold leading-6 text-charcoal/80">
                       Treine três decisões reais: abordagem manual, privacidade e fechamento de coordenação.
                     </p>
@@ -529,7 +628,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   nativeButton={false}
                   render={<Link href="/abordagem?filter=sem_responsavel" />}
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Assumir missão real
+                  <PlusCircle className="mr-2 h-4 w-4" /> Assumir aviso real
                 </Button>
               </div>
             </div>
@@ -539,9 +638,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     );
   }
 
-  const currentPerson = queue[currentIndex];
+  const currentPerson = filteredQueue[currentIndex];
   const currentMission = missionBySubjectId.get(currentPerson.id) ?? null;
-  const nextFive = queue.slice(currentIndex + 1, currentIndex + 6);
+  const nextFive = filteredQueue.slice(currentIndex + 1, currentIndex + 6);
   const phaseBadge = missionPhaseLabel(currentPerson);
   const holdTone = currentMission?.state === "BLOQUEADA"
     ? "blocked"
@@ -574,24 +673,46 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   return (
     <div className={cn("transition-colors duration-300 w-full min-h-screen", sunMode ? "sun-mode bg-[#FFF7CD] pb-24" : "")}>
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
-        <div className="flex justify-end items-center gap-3 pt-4 border-b border-cement/15 pb-3">
-          <span className="text-[10px] font-black uppercase tracking-widest text-cement">
-            Visualização:
-          </span>
-          <button
-            onClick={() => {
-              playSynthConfirm();
-              setSunMode(!sunMode);
-            }}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-              sunMode
-                ? "border-black bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] animate-pulse"
-                : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-            )}
-          >
-            {sunMode ? "☀️ Modo Sol Ativo" : "🔆 Ativar Modo Sol"}
-          </button>
+        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 pt-4 border-b border-cement/15 pb-3 w-full">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+              Filtro:
+            </span>
+            <button
+              onClick={() => {
+                playSynthConfirm();
+                setFilterQuentes(!filterQuentes);
+                setCurrentIndex(0);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                filterQuentes
+                  ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+              )}
+            >
+              🔥 Foco nas Mais Engajadas
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+              Visualização:
+            </span>
+            <button
+              onClick={() => {
+                playSynthConfirm();
+                setSunMode(!sunMode);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                sunMode
+                  ? "border-black bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] animate-pulse"
+                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+              )}
+            >
+              {sunMode ? "☀️ Modo Sol Ativo" : "🔆 Ativar Modo Sol"}
+            </button>
+          </div>
         </div>
       {focusMode ? (
         /* ==================== IMMERSIVE MODE: HUD PILOTO AUTOMÁTICO ==================== */
@@ -600,26 +721,44 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             <div className="flex items-center justify-between border-b-2 border-cement/20 pb-4">
               <div className="space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow animate-pulse flex items-center gap-2">
-                  <Flame className="h-4 w-4 fill-burnt-yellow animate-bounce" /> Piloto Automático • Modo Foco
+                  <Flame className="h-4 w-4 fill-burnt-yellow animate-bounce" /> Rodada individual • Modo foco
+                  {filterQuentes && <span className="ml-2 px-1.5 py-0.5 border border-burnt-yellow/45 bg-burnt-yellow/10 rounded-[2px] text-[9px] text-burnt-yellow">Foco Quentes 🔥</span>}
                 </span>
                 <h1 className="text-lg font-black uppercase tracking-wider text-white">
-                  Missão {currentIndex + 1} de {queue.length}
+                  Pessoa {currentIndex + 1} de {filteredQueue.length}
                 </h1>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 border-2 border-white/20 text-white bg-transparent hover:bg-white/10 rounded-[2px] text-[10px] font-black uppercase"
-                onClick={() => setFocusMode(false)}
-              >
-                Sair do foco
-              </Button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    playSynthConfirm();
+                    setFilterQuentes(!filterQuentes);
+                    setCurrentIndex(0);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 h-8 px-2.5 border-2 text-[9px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                    filterQuentes
+                      ? "border-black bg-burnt-yellow text-charcoal shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
+                      : "border-white/20 bg-transparent text-zinc-400 hover:border-white hover:text-white"
+                  )}
+                >
+                  🔥 Quentes
+                </button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 border-2 border-white/20 text-white bg-transparent hover:bg-white/10 rounded-[2px] text-[10px] font-black uppercase"
+                  onClick={() => setFocusMode(false)}
+                >
+                  Sair do foco
+                </Button>
+              </div>
             </div>
 
             <div className="w-full h-2.5 border border-black bg-charcoal rounded-none overflow-hidden">
               <div
                 className="h-full bg-burnt-yellow transition-all duration-300"
-                style={{ width: `${((currentIndex + 1) / queue.length) * 100}%` }}
+                style={{ width: `${((currentIndex + 1) / filteredQueue.length) * 100}%` }}
               />
             </div>
 
@@ -629,7 +768,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <div>
                   <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
                   <p className="text-zinc-300 font-semibold mt-1">
-                    O operador <strong className="text-white">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima missão.
+                    O operador <strong className="text-white">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
                   </p>
                 </div>
               </div>
@@ -660,9 +799,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               copyStatus={copyStatus}
               onConfirmSent={handleConfirmSent}
               onCancelCopy={() => setCopyStatus("idle")}
+              focusMode={focusMode}
             />
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-2 pb-24 md:pb-0">
               <Button
                 variant="ghost"
                 className="text-xs font-black uppercase text-zinc-400 hover:text-white"
@@ -678,14 +818,66 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 variant="ghost"
                 className="text-xs font-black uppercase text-zinc-400 hover:text-white"
                 onClick={handleNext}
-                disabled={currentIndex === queue.length - 1}
+                disabled={currentIndex === filteredQueue.length - 1}
               >
                 Avançar
               </Button>
             </div>
 
-            <div className="text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic pt-4">
-              &quot;Calma para organizar, não para aceitar.&quot;
+            <div className="text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic pt-4 hidden md:block">
+              Preparar, enviar manualmente e registrar antes de avançar.
+            </div>
+
+            {/* Sticky Mobile Bottom Bar */}
+            <div className="fixed bottom-0 left-0 right-0 border-t-2 border-black bg-[#1C1C1A] p-3 z-50 flex flex-col gap-2 md:hidden">
+              <div className="flex gap-2">
+                <Button
+                  className="h-12 flex-1 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 font-black uppercase tracking-wider text-xs shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                  onClick={currentBlocked ? handleSkip : copyStatus === "waiting" ? handleConfirmSent : copyStatus === "confirmed" ? handleNext : handleCopyDM}
+                  disabled={!currentBlocked && copyStatus === "idle" && !currentPerson.suggestedMessage}
+                >
+                  {currentBlocked ? (
+                    "Pular Bloqueio"
+                  ) : copyStatus === "waiting" ? (
+                    <>
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Confirmar Envio
+                    </>
+                  ) : copyStatus === "confirmed" ? (
+                    <>
+                      <ChevronRight className="mr-1 h-3.5 w-3.5" /> Próxima Pessoa
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-1 h-3.5 w-3.5" /> Preparar
+                    </>
+                  )}
+                </Button>
+                <Button
+                  className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-zinc-700 hover:bg-zinc-800 font-black uppercase tracking-wider text-xs px-3 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                  onClick={() => window.open(currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${currentPerson.username.replace(/^@+/, "")}/`, "_blank")}
+                  disabled={currentBlocked}
+                >
+                  <Instagram className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="h-10 flex-1 rounded-[2px] border-2 border-black bg-white text-charcoal text-xs font-black uppercase shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
+                  onClick={openResponseDialog}
+                  disabled={currentBlocked}
+                >
+                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Resposta
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-10 flex-1 rounded-[2px] border-2 border-transparent text-xs font-black uppercase text-zinc-400 hover:text-white"
+                  onClick={openReferralDialog}
+                  disabled={currentBlocked}
+                >
+                  <ArrowRight className="mr-1.5 h-3.5 w-3.5" /> Encaminhar
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -695,7 +887,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           <GamefulHero
             eyebrow="Jornada do operador"
             title="Minha Jornada"
-            description={`Missão de hoje: ${currentMissionReason}`}
+            description={`Aviso de hoje: ${currentMissionReason}`}
             variant="dark"
             compact={isCompact}
             titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
@@ -710,9 +902,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             }
             metrics={
               <>
-                <GamefulMetricCard label="Fila" value={`${queue.length}`} tone="dark" detail="Missões abertas no dia." compact layout="split" />
-                <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${queue.length} atravessadas`} compact layout="split" />
-                <GamefulMetricCard label="Missão" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
+                <GamefulMetricCard label="Fila" value={`${filteredQueue.length}`} tone="dark" detail="Avisos abertos no dia." compact layout="split" />
+                <GamefulMetricCard label="Progresso" value={`${progressPercent}%`} tone="dark" detail={`${completedCount} de ${filteredQueue.length} atravessadas`} compact layout="split" />
+                <GamefulMetricCard label="Aviso" value={currentMissionType} tone="dark" detail={currentMissionState} compact layout="split" valueClassName="max-w-[12ch]" />
                 <GamefulMetricCard label="Combo Diário" value={`x${streak} ⚡`} tone="dark" detail="Ações concluídas hoje." compact layout="split" />
                 <GamefulMetricCard label="Combo de Dias" value={multiDayStreak > 0 ? `x${multiDayStreak} 🔥` : "0"} tone="dark" detail={isZenDay ? "Dia Zen: Combo seguro!" : "Mantido com atividade diária."} compact layout="split" />
               </>
@@ -727,7 +919,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   }}
                 >
                   <Flame className="mr-2 h-4 w-4 fill-charcoal text-charcoal" />
-                  Iniciar Piloto Automático
+                  Entrar na rodada focada
                 </Button>
                 <Button
                   variant="outline"
@@ -744,7 +936,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   render={<Link href="/abordagem" />}
                 >
                   <ArrowRight className="mr-2 h-4 w-4" />
-                  Quadro de Missões
+                  Quadro de Avisos
                 </Button>
                 <Button
                   variant="outline"
@@ -755,7 +947,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   Dias de Descanso Zen
                 </Button>
                 {compactHydrated ? (
-                  <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || queue.length > 5} onToggle={setCompact} />
+                  <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || filteredQueue.length > 5} onToggle={setCompact} />
                 ) : null}
               </>
             }
@@ -794,34 +986,53 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
           <OperationalCommandBar
             title="Barra de comando"
-            statusLabel="Missão em foco"
+            statusLabel="Pessoa em foco"
             statusValue={`${currentMissionType} · ${currentMissionState}`}
             statusDetail={currentHoldLabel}
             primaryAction={{
-              label: currentMissionAction,
-              onClick: currentBlocked ? handleSkip : openResponseDialog,
-              icon: MessageSquare,
+              label: currentBlocked
+                ? "Pular Bloqueio"
+                : copyStatus === "waiting"
+                  ? "Registrar Envio"
+                  : copyStatus === "confirmed"
+                    ? "Próxima Pessoa"
+                    : "Preparar Mensagem",
+              onClick: currentBlocked
+                ? handleSkip
+                : copyStatus === "waiting"
+                  ? handleConfirmSent
+                  : copyStatus === "confirmed"
+                    ? handleNext
+                    : handleCopyDM,
+              icon: currentBlocked
+                ? ShieldAlert
+                : copyStatus === "waiting"
+                  ? CheckCircle2
+                  : copyStatus === "confirmed"
+                    ? ChevronRight
+                    : Copy,
+              disabled: !currentBlocked && copyStatus === "idle" && !currentPerson.suggestedMessage,
             }}
             secondaryActions={[
               {
                 label: "Abrir Instagram",
-                onClick: () => window.open(currentPerson.instagramUrl || `https://instagram.com/${currentPerson.username}`, "_blank"),
+                onClick: () => window.open(currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${currentPerson.username.replace(/^@+/, "")}/`, "_blank"),
                 icon: Instagram,
                 disabled: currentBlocked,
-                title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+                title: currentBlocked ? "Ação de contato indisponível enquanto o aviso estiver bloqueado." : undefined,
               },
               {
-                label: "Preparar Mensagem",
-                onClick: handleCopyDM,
-                icon: Copy,
-                disabled: !currentPerson.suggestedMessage || currentBlocked,
-                title: currentBlocked ? "Ação de contato indisponível enquanto a missão estiver bloqueada." : undefined,
+                label: "Registrar Resposta",
+                onClick: openResponseDialog,
+                icon: MessageSquare,
+                disabled: currentBlocked,
+                title: currentBlocked ? "Resposta indisponível enquanto o aviso estiver bloqueado." : undefined,
               },
               {
-                label: "Próxima Missão",
+                label: "Próxima Pessoa",
                 onClick: handleNext,
                 icon: ChevronRight,
-                disabled: currentIndex === queue.length - 1,
+                disabled: currentIndex === filteredQueue.length - 1,
               },
             ]}
             shortcutAction={{
@@ -861,10 +1072,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             <div className="space-y-6">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="space-y-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próxima missão</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próxima pessoa</p>
                   <h3 className="text-2xl font-black tracking-tight text-charcoal">Continuar Jornada</h3>
                   <p className="max-w-2xl text-xs font-semibold text-cement">
-                    A pessoa em foco, a missão explicável e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
+                    A pessoa em foco, o aviso explicável e o próximo passo aparecem primeiro. O restante da trilha entra como apoio.
                   </p>
                 </div>
 
@@ -886,14 +1097,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   <div className="h-3 w-24 overflow-hidden rounded-none border border-black bg-white sm:w-32 xl:w-40">
                     <div
                       className="h-full bg-burnt-yellow transition-all duration-500"
-                      style={{ width: `${Math.max(6, ((currentIndex + 1) / queue.length) * 100)}%` }}
+                      style={{ width: `${Math.max(6, ((currentIndex + 1) / filteredQueue.length) * 100)}%` }}
                     />
                   </div>
                   <Button
                     variant="ghost"
                     className="text-xs font-black uppercase tracking-wider text-cement hover:text-charcoal"
                     onClick={handleNext}
-                    disabled={currentIndex === queue.length - 1}
+                    disabled={currentIndex === filteredQueue.length - 1}
                   >
                     Próxima
                   </Button>
@@ -906,7 +1117,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   <div>
                     <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
                     <p className="text-zinc-700 font-semibold mt-1">
-                      O operador <strong className="text-black">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima missão.
+                      O operador <strong className="text-black">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
                     </p>
                   </div>
                 </div>
@@ -925,6 +1136,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 copyStatus={copyStatus}
                 onConfirmSent={handleConfirmSent}
                 onCancelCopy={() => setCopyStatus("idle")}
+                focusMode={focusMode}
               />
 
               {isCompact ? (
@@ -957,14 +1169,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
             <aside className="space-y-6">
               {isCompact ? (
-                <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
+                <QueueList tasks={filteredQueue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
               ) : null}
               {recommendedMissions.length > 0 ? (
                 <Card className="bloco-concreto relative overflow-hidden py-0">
                   <CardContent className="space-y-4 p-5">
                     <div className="space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Bloco recomendado</p>
-                      <h4 className="text-lg font-black text-charcoal">Próximas 5 missões da engine</h4>
+                      <h4 className="text-lg font-black text-charcoal">Próximos 5 avisos da engine</h4>
                       <p className="text-xs leading-relaxed text-cement">
                         Ajuste o foco do turno sem perder a trilha. O bloco equilibra cuidado, retorno, escuta e encaminhamento.
                       </p>
@@ -994,10 +1206,21 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                           type="button"
                           className="w-full rounded-[2px] border-2 border-black bg-white p-4 text-left transition-all hover:bg-burnt-yellow shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
                           onClick={() => {
-                            const targetIndex = mission.subjectId ? queue.findIndex((person) => person.id === mission.subjectId) : -1;
+                            const targetIndex = mission.subjectId ? filteredQueue.findIndex((person) => person.id === mission.subjectId) : -1;
                             if (targetIndex >= 0) {
                               setCurrentIndex(targetIndex);
                               window.scrollTo({ top: 0, behavior: "smooth" });
+                            } else {
+                              const targetIndexInGeneral = mission.subjectId ? queue.findIndex((person) => person.id === mission.subjectId) : -1;
+                              if (targetIndexInGeneral >= 0) {
+                                setFilterQuentes(false);
+                                setCurrentIndex(targetIndexInGeneral);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                                toast({
+                                  title: "Filtro desativado",
+                                  description: "Exibindo a fila completa para acessar a missão selecionada.",
+                                });
+                              }
                             }
                           }}
                         >
@@ -1031,10 +1254,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                       title={wellness.level === "healthy" ? "Carga saudável" : "Trabalhe em blocos curtos"}
                       description={wellness.recommendation}
                     />
-                    {queue.length > 5 ? (
+                    {filteredQueue.length > 5 ? (
                       <WellbeingLine
                         icon={PauseCircle}
-                        title="Bloco sugerido de 5 missões"
+                        title="Bloco sugerido de 5 avisos"
                         description="Feche um grupo curto, revise o estado da base e só então abra o próximo bloco."
                       />
                     ) : null}
@@ -1060,7 +1283,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               </Card>
 
               <EthicalGuardrailBanner
-                description="Toda conversa é manual, contextual e revisada por quem envia. Nenhuma missão autoriza spam, automação de DM ou pedido direto de voto."
+                description="Toda conversa é manual, contextual e revisada por quem envia. Nenhuma ação autoriza spam, automação de DM ou pedido direto de voto."
                 badgeLabel="Operação humana"
               />
 
@@ -1071,7 +1294,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Pendências antigas</p>
                         <h4 className="mt-1 text-lg font-black text-charcoal">
-                          {oldPendencies.length} missões pedem revisão
+                          {oldPendencies.length} avisos pedem revisão
                         </h4>
                       </div>
                       <Badge variant="outline" className="border-2 border-black bg-white text-charcoal rounded-[2px]">
@@ -1111,7 +1334,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-charcoal">
                     <Route className="h-5 w-5" />
-                    <h3 className="text-2xl font-black tracking-tight">Leitura da missão</h3>
+                    <h3 className="text-2xl font-black tracking-tight">Leitura do aviso</h3>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-charcoal">
@@ -1201,12 +1424,12 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               <CardContent className="space-y-5 p-5 sm:p-6">
                 <div className="flex items-center gap-2 text-charcoal">
                   <MapPinned className="h-5 w-5" />
-                  <h3 className="text-2xl font-black tracking-tight">Trilha das próximas missões</h3>
+                  <h3 className="text-2xl font-black tracking-tight">Trilha dos próximos avisos</h3>
                 </div>
                 <p className="text-xs leading-relaxed text-cement font-semibold">
                   As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
                 </p>
-                {!isCompact ? <QueueList tasks={queue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
+                {!isCompact ? <QueueList tasks={filteredQueue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
               </CardContent>
             </Card>
           </section>
@@ -1214,10 +1437,44 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       )}
 
       {/* ==================== SHARED DIALOGS ==================== */}
+      <Dialog open={showPostSendDialog} onOpenChange={setShowPostSendDialog}>
+        <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[540px]">
+          <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
+            <DialogTitle className="text-xl font-black uppercase">Registrar envio de aviso</DialogTitle>
+            <DialogDescription className="font-bold text-zinc-400">
+              O aviso de pré-candidatura foi enviado no Instagram para @{currentPerson.username}. Qual é o estado do contato agora?
+            </DialogDescription>
+          </div>
+          <div className="grid gap-3 p-6 max-h-[70vh] overflow-y-auto">
+            {POST_SEND_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                disabled={isPending}
+                className={cn(
+                  "w-full rounded-[2px] border-2 border-black p-4 text-left transition-all hover:bg-burnt-yellow hover:text-charcoal bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]",
+                  isPending && "cursor-not-allowed opacity-50",
+                )}
+                onClick={() => handlePostSendResponse(option.id)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-[2px] border border-black bg-charcoal/5 p-2 text-charcoal">
+                    <option.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-wider">{option.label}</p>
+                    <p className="mt-1 text-xs font-semibold text-cement leading-normal">{option.hint}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
         <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[540px]">
           <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
-            <DialogTitle className="text-xl font-black uppercase">Registrar avanço da missão</DialogTitle>
+            <DialogTitle className="text-xl font-black uppercase">Registrar avanço do aviso</DialogTitle>
             <DialogDescription className="font-bold text-zinc-400">
               O que aconteceu na conversa com @{currentPerson.username}?
             </DialogDescription>
@@ -1253,7 +1510,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
             <DialogTitle className="text-xl font-black uppercase">Definir próximo destino</DialogTitle>
             <DialogDescription className="font-bold text-zinc-400">
-              Escolha qual missão ou encaminhamento continua o ciclo de @{currentPerson.username}.
+              Escolha qual aviso ou encaminhamento continua o ciclo de @{currentPerson.username}.
             </DialogDescription>
           </div>
           <div className="grid gap-3 p-6 max-h-[70vh] overflow-y-auto">

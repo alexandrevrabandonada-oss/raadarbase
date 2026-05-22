@@ -10,6 +10,8 @@ import { buildQueueMissionPlan, orderQueueByMissionPlan } from "@/lib/missions/q
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { QueueClient } from "./queue-client";
 import { Metadata } from "next";
+import { shouldUseMockData } from "@/lib/config";
+
 
 export const metadata: Metadata = {
   title: "Minha Jornada | Modo Operador",
@@ -37,9 +39,9 @@ export default async function MinhaFilaPage() {
     );
   }
 
-  // Filtrar pela fila do operador logado
+  // Filtrar pela fila do operador logado. Em modo demonstração/mock, inclui também pessoas sem responsável atribuído.
   const myQueue = (priorityPeople || []).filter(
-    person => person.responsibleId === session.id
+    person => person.responsibleId === session.id || (shouldUseMockData() && (!person.responsibleId || person.responsibleId === "e2e-internal-user"))
   );
 
   const threeDaysAgo = new Date();
@@ -89,7 +91,7 @@ export default async function MinhaFilaPage() {
         compact
         eyebrow="Modo Operador"
         title="Minha Jornada" 
-        description="Seu hub de jornada: uma missão por vez, com próximo passo claro e ritmo sustentável." 
+        description="Uma pessoa por vez: preparar a mensagem, enviar manualmente e registrar o envio sem perder o próximo passo." 
       />
       
       <QueueClient 

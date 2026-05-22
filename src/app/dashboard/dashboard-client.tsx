@@ -14,6 +14,7 @@ import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { AlertBeacon } from "@/components/radar/alert-beacon";
 import { AchievementsSection } from "@/components/radar/achievements-section";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
+import { AnnouncementSeasonProgress } from "@/components/radar/announcement-season-progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +49,7 @@ import {
   Users,
   Flame,
   ChevronRight,
+  Megaphone,
 } from "lucide-react";
 
 type DashboardMissionEvent = {
@@ -254,9 +256,9 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
         statusValue={data.overallStatus.label}
         statusDetail={data.overallStatus.detail}
         primaryAction={{
-          label: "Iniciar Jornada",
-          href: "/treinamento/mini-game",
-          icon: Route,
+          label: "Preparar Comunicado",
+          href: "/mensagens",
+          icon: Megaphone,
         }}
         secondaryActions={[
           {
@@ -276,6 +278,8 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
           icon: ArrowRight,
         }}
       />
+
+      <AnnouncementSeasonProgress />
 
       <OperationStartSection data={data} cycleAlerts={cycleAlerts} />
 
@@ -338,9 +342,9 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       }
       actions={
         <>
-          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/treinamento/mini-game" />}>
-            <Route className="h-4 w-4" />
-            Iniciar Jornada
+          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/mensagens" />}>
+            <Megaphone className="h-4 w-4" />
+            Preparar Comunicado
           </Button>
           <Button variant="outline" className="h-14 rounded-xl border-[#d3b98f] bg-[#f7f0e4] px-6 text-sm font-black text-[#11202a]" nativeButton={false} render={<Link href="/ritmo" />}>
             <TowerControl className="h-4 w-4" />
@@ -353,9 +357,9 @@ function HeroSection({ data }: { data: DashboardViewData }) {
         <>
           <GamefulMetricCard
             icon={<Target className="h-4 w-4" />}
-            label="Rede ativa"
+            label="Retornos"
             value={`${data.missionState.progress}%`}
-            detail="Avanço do bloco principal."
+            detail="Bloco inicial registrado."
             tone="light"
             compact
             layout="split"
@@ -375,9 +379,9 @@ function HeroSection({ data }: { data: DashboardViewData }) {
           />
           <GamefulMetricCard
             icon={<Flag className="h-4 w-4" />}
-            label="Ações hoje"
+            label="Sinais hoje"
             value={data.missionCounts.active}
-            detail="Missões em foco."
+            detail="Retornos em foco."
             tone="light"
             compact
             layout="split"
@@ -477,16 +481,16 @@ function OperationStartSection({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-zinc-950">
               <Sparkles className="h-5 w-5" />
-              <h2 className="text-2xl font-black tracking-tight">Começar Jornada</h2>
+              <h2 className="text-2xl font-black tracking-tight">Abrir Anúncio</h2>
             </div>
             <div className="space-y-2">
               <p className="text-lg font-black text-zinc-950">{data.narrative.today.headline}</p>
               <p className="max-w-2xl text-sm leading-6 text-zinc-600">{data.narrative.today.summary}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <SignalBadge icon={Target} label="Rede ativa" value={data.missionCounts.active} />
-              <SignalBadge icon={MessageSquare} label="Territorios" value={data.quickMap.counts.mobilizacao + data.quickMap.counts.campo + data.quickMap.counts.continuidade} />
-              <SignalBadge icon={Flag} label="Acoes hoje" value={data.missionCounts.replies + data.missionCounts.referrals} />
+              <SignalBadge icon={Target} label="Retornos em foco" value={data.missionCounts.active} />
+              <SignalBadge icon={MessageSquare} label="Respostas" value={data.missionCounts.replies} />
+              <SignalBadge icon={Flag} label="Caminhos abertos" value={data.missionCounts.referrals} />
             </div>
           </div>
 
@@ -496,8 +500,8 @@ function OperationStartSection({
               <p className="mt-2 text-2xl font-black tracking-tight text-[#11202a]">{data.narrative.today.nextStep}</p>
               <Progress value={data.missionState.progress} className="mt-4 h-3 bg-[#d7c7ae]" indicatorClassName="bg-[#11202a]" />
             </div>
-            <Button className="mt-5 h-12 rounded-xl bg-[#0f1b24] font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/minha-fila" />}>
-              Continuar Jornada
+            <Button className="mt-5 h-12 rounded-xl bg-[#0f1b24] font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/mensagens" />}>
+              Preparar fala publica
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -522,8 +526,8 @@ function MissionSection({
     <section className="space-y-4">
       <SectionHeader
         icon={Radar}
-        title="Próximas Missões"
-        description="Contatos que já têm contexto, fase e próximo passo claro."
+        title="Retornos do Anúncio"
+        description="Sinais que chegaram com contexto e precisam de registro antes de qualquer aprofundamento."
         actionHref="/pessoas"
         actionLabel="Abrir fila completa"
       />

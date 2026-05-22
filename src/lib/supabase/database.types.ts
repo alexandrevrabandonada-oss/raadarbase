@@ -1136,6 +1136,7 @@ export type Database = {
           category: string | null
           created_at: string
           id: string
+          is_campaign_default: boolean
           name: string
           theme: string | null
           updated_at: string
@@ -1147,6 +1148,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
+          is_campaign_default?: boolean
           name: string
           theme?: string | null
           updated_at?: string
@@ -1158,6 +1160,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
+          is_campaign_default?: boolean
           name?: string
           theme?: string | null
           updated_at?: string

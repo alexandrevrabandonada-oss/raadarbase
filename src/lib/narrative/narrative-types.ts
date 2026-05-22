@@ -14,6 +14,7 @@ export type WeeklyNarrativeType =
   | "SEMANA_DE_MEMORIA";
 
 export type SeasonNarrativeType =
+  | "ANUNCIO_DA_PRE_CANDIDATURA"
   | "ACENDER_A_BASE"
   | "ESCUTA_E_VINCULO"
   | "ENCAMINHAMENTO_E_PARTICIPACAO"

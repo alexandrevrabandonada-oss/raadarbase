@@ -40,6 +40,7 @@ export async function upsertMessageTemplate(
             whenToUse: payload.whenToUse ?? null,
             active: true,
             updatedAt: new Date().toISOString(),
+            isCampaignDefault: false,
           });
         }
         return;
@@ -64,6 +65,7 @@ export async function upsertMessageTemplate(
           category: payload.category,
           when_to_use: payload.whenToUse,
           active: true,
+          is_campaign_default: false,
         };
         const { error } = await supabase.from("message_templates").insert(insertPayload);
         if (error) throw new Error(error.message);
@@ -92,5 +94,59 @@ export async function removeMessageTemplate(templateId: string): Promise<ActionR
       if (error) throw new Error(error.message);
     },
     revalidate: ["/mensagens"],
+  });
+}
+
+export async function setCampaignDefaultTemplate(templateId: string): Promise<ActionResult> {
+  validateId(templateId, "Modelo");
+  return performAction({
+    action: "message.updated",
+    entityType: "message_templates",
+    entityId: templateId,
+    summary: "Modelo de mensagem de campanha atualizado.",
+    mutate: async () => {
+      await requireRole(["admin", "operador", "comunicacao"]);
+      
+      let wasDefault = false;
+      if (shouldUseMockData()) {
+        const template = mockTemplates.find((item) => item.id === templateId);
+        wasDefault = template?.isCampaignDefault || false;
+        mockTemplates.forEach((item) => {
+          item.isCampaignDefault = item.id === templateId ? !wasDefault : false;
+        });
+        return;
+      }
+      
+      const supabase = getSupabaseAdminClient();
+      
+      // 1. Verificar se o modelo alvo já é o padrão de campanha
+      const { data: targetTemplate, error: fetchError } = await supabase
+        .from("message_templates")
+        .select("is_campaign_default")
+        .eq("id", templateId)
+        .single();
+        
+      if (fetchError) throw new Error(fetchError.message);
+      wasDefault = targetTemplate?.is_campaign_default || false;
+      
+      // 2. Desativar destaque de campanha de todas as mensagens
+      const { error: resetError } = await supabase
+        .from("message_templates")
+        .update({ is_campaign_default: false })
+        .eq("is_campaign_default", true);
+        
+      if (resetError) throw new Error(resetError.message);
+      
+      // 3. Se não era o padrão, definir este como padrão agora
+      if (!wasDefault) {
+        const { error: setError } = await supabase
+          .from("message_templates")
+          .update({ is_campaign_default: true, updated_at: new Date().toISOString() })
+          .eq("id", templateId);
+          
+        if (setError) throw new Error(setError.message);
+      }
+    },
+    revalidate: ["/mensagens", "/minha-fila"],
   });
 }

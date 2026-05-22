@@ -242,14 +242,14 @@ export async function registerManualDm(personId: string): Promise<ActionResult> 
   });
 }
 
-export async function recordDMPreparedAction(personId: string, origin: string): Promise<ActionResult> {
+export async function recordDMPreparedAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
   validateId(personId, "Pessoa");
   return performAction({
     action: "contact.dm_prepared",
     entityType: "ig_people",
     entityId: personId,
     summary: `DM preparada para envio (Origem: ${origin}).`,
-    metadata: { origin },
+    metadata: { origin, template_id: templateId ?? null },
     mutate: async () => {
       await requireRole(["admin", "operador"]);
       // Apenas auditoria/telemetria, não altera estado da pessoa ainda
@@ -257,14 +257,14 @@ export async function recordDMPreparedAction(personId: string, origin: string): 
   });
 }
 
-export async function confirmDMSentAction(personId: string, origin: string): Promise<ActionResult> {
+export async function confirmDMSentAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
   validateId(personId, "Pessoa");
   return performAction({
     action: "contact.dm_sent",
     entityType: "ig_people",
     entityId: personId,
     summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
-    metadata: { origin, auto_status: true },
+    metadata: { origin, auto_status: true, template_id: templateId ?? null },
     mutate: async () => {
       await requireRole(["admin", "operador"]);
 

@@ -291,6 +291,17 @@ export const outreachTasks: OutreachTask[] = [
 
 export const messageTemplates: MessageTemplate[] = [
   {
+    id: "m-campaign",
+    name: "Aviso de Pré-Candidatura e Apoio",
+    theme: "conversao",
+    category: "Mensagem de Campanha",
+    whenToUse: "Mensagem padrão global para avisar sobre a pré-candidatura a Deputado Estadual e convidar para vaquinha/atividades.",
+    body: "Oi, @{username}! Aqui é da equipe do Alexandre VR Abandonada. Ele é pré-candidato a Deputado Estadual pelo Rio de Janeiro e estamos mobilizando pessoas engajadas em todo o estado. Você gostaria de apoiar nossa vaquinha ou participar das atividades?",
+    active: true,
+    updatedAt: "2026-05-22",
+    isCampaignDefault: true,
+  },
+  {
     id: "m-1",
     name: "Responder comentário",
     theme: "escuta",
@@ -299,6 +310,7 @@ export const messageTemplates: MessageTemplate[] = [
     body: "Oi, @{username}! Vi seu comentário sobre {tema}. Obrigado por trazer isso. Se puder, manda mais detalhes por DM para organizarmos essa escuta com cuidado.",
     active: true,
     updatedAt: "2026-04-24",
+    isCampaignDefault: false,
   },
   {
     id: "m-2",
@@ -309,6 +321,7 @@ export const messageTemplates: MessageTemplate[] = [
     body: "Oi, @{username}! A gente está organizando um grupo para avisos e reuniões da comunidade. Você autoriza receber esse convite? Link: {link_grupo}",
     active: true,
     updatedAt: "2026-04-23",
+    isCampaignDefault: false,
   },
   {
     id: "m-3",
@@ -319,6 +332,7 @@ export const messageTemplates: MessageTemplate[] = [
     body: "Oi, @{username}. Para registrar melhor a demanda sobre {tema}, pode preencher este formulário? {link_formulario}. É opcional e usado só para organização comunitária.",
     active: true,
     updatedAt: "2026-04-22",
+    isCampaignDefault: false,
   },
 ];
 

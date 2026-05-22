@@ -269,7 +269,7 @@ function buildVolunteerInsert(input: VolunteerMutationInput, actor?: Actor): Tab
   return {
     display_name: displayName ?? "",
     neighborhood: normalizeText(input.neighborhood),
-    city: normalizeText(input.city) ?? "Volta Redonda",
+    city: normalizeText(input.city),
     contact_email: contactEmail,
     contact_phone: contactPhone,
     contact_preference: hasContact && input.consentToContact ? input.contactPreference ?? "nenhum" : "nenhum",

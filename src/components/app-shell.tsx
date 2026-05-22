@@ -5,9 +5,14 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { ConnectionIndicator } from "@/components/connection-indicator";
+import { AdventureStrip } from "@/components/radar/adventure-strip";
+import { getAdventureProgress } from "@/lib/data/adventure-progress";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
-  const user = await getInternalSession();
+  const [user, adventureProgress] = await Promise.all([
+    getInternalSession(),
+    getAdventureProgress(),
+  ]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -46,6 +51,8 @@ export default async function AppShell({ children }: { children: React.ReactNode
           </Sheet>
         </div>
       </header>
+
+      <AdventureStrip progress={adventureProgress} />
 
       <div className="mx-auto flex w-full max-w-[1680px] flex-1 flex-col xl:flex-row">
         {/* Desktop Sidebar (Hidden on mobile) */}

@@ -27,6 +27,7 @@ function buildPerson(overrides: Partial<PriorityPerson> = {}): PriorityPerson {
     outreachStatusLabel: "Novo",
     suggestedMessage: "Oi @ana, queria continuar essa conversa.",
     suggestedTemplateName: "Escuta",
+    suggestedTemplateId: null,
     instagramUrl: "https://instagram.com/ana",
     hasPendingTask: false,
     isPendingResponse: false,

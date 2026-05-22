@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T17:22:29.782Z",
+  "generatedAt": "2026-05-22T02:14:36.519Z",
   "appUrl": "https://raadarbase.vercel.app",
   "environment": "production-active",
   "health": {
@@ -140,10 +140,10 @@
     {
       "route": "/campo",
       "expectedAccess": "internal",
-      "status": 307,
-      "redirectsToLogin": true,
-      "publiclyAccessible": false,
-      "ok": true,
+      "status": 200,
+      "redirectsToLogin": false,
+      "publiclyAccessible": true,
+      "ok": false,
       "sensitiveMarkersFound": [],
       "secretValuesFound": [],
       "piiFound": []
@@ -209,10 +209,13 @@
     "sensitiveMarkersFound": 0,
     "secretValuesFound": 0,
     "piiFound": 0,
-    "internalRoutesPublic": 0,
+    "internalRoutesPublic": 1,
     "protectedExportLeaks": 0
   },
-  "failures": [],
+  "failures": [
+    "Status inesperado para /campo.",
+    "Rota interna acessível sem sessão: /campo."
+  ],
   "webhookEnabled": true,
-  "recommendation": "ACTIVATION_READY"
+  "recommendation": "ACCESS_BLOCKED"
 }

@@ -36,6 +36,7 @@ interface QueueCardProps {
   onCancelCopy?: () => void;
   compact?: boolean;
   contactDisabled?: boolean;
+  focusMode?: boolean;
 }
 
 function resolvePhaseRibbon(person: PriorityPerson) {
@@ -86,6 +87,7 @@ export function QueueCard({
   onCancelCopy,
   compact = false,
   contactDisabled = false,
+  focusMode = false,
 }: QueueCardProps) {
   const isBlocked = Boolean(contactDisabled || mission?.state === "BLOQUEADA" || mission?.guardrail.blocksContact || person.riskFlags.doNotContact);
   const phase = resolvePhaseRibbon(person);
@@ -105,7 +107,15 @@ export function QueueCard({
       ? "Contato recente. Aguarde a janela ética antes de insistir."
       : person.isPendingResponse
         ? "Aguardando retorno da conversa já iniciada."
-        : "Caminho livre para avançar nesta missão.";
+        : "Caminho livre para avançar nesta pessoa.";
+  const quickStepTone = (active: boolean, done: boolean) => cn(
+    "flex min-w-0 items-start gap-2 border-2 p-3",
+    done
+      ? "border-moss bg-moss/10 text-moss"
+      : active
+        ? "border-black bg-burnt-yellow text-charcoal"
+        : "border-cement bg-white/75 text-charcoal",
+  );
 
   return (
     <Card className="bloco-concreto overflow-hidden py-0">
@@ -143,177 +153,413 @@ export function QueueCard({
             </div>
           </div>
 
-          <div className={cn("grid gap-3", compact ? "sm:grid-cols-3" : "md:grid-cols-3")}>
-            <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
-                Motivo da missão
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-relaxed text-zinc-100">
-                {person.priorityReason}
-              </p>
+          {!focusMode && (
+            <div className={cn("grid gap-3", compact ? "sm:grid-cols-3" : "md:grid-cols-3")}>
+              <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                  Motivo do aviso
+                </p>
+                <p className="mt-2 text-xs font-semibold leading-relaxed text-zinc-100">
+                  {person.priorityReason}
+                </p>
+              </div>
+              <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                  Próxima ação
+                </p>
+                <p className="mt-2 text-xs font-black leading-relaxed text-white">{person.nextAction}</p>
+              </div>
+              <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                  Status do envio
+                </p>
+                <p className="mt-2 text-xs font-semibold leading-relaxed text-zinc-100">{holdLabel}</p>
+              </div>
             </div>
-            <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
-                Próxima ação
-              </p>
-              <p className="mt-2 text-xs font-black leading-relaxed text-white">{person.nextAction}</p>
-            </div>
-            <div className="rounded-[2px] border border-cement/50 bg-[#1C1C1A]/60 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
-                Estado da missão
-              </p>
-              <p className="mt-2 text-xs font-semibold leading-relaxed text-zinc-100">{holdLabel}</p>
-            </div>
-          </div>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className={cn("space-y-5", compact ? "p-4 md:p-5" : "p-6 md:p-8")}>
-        <div className={cn("rounded-[2px] border-2 border-black bg-white p-4")}>
-          <JourneyBar {...phase.journey} />
-        </div>
-
-        <div className={cn("grid gap-5", compact ? "2xl:grid-cols-[1.05fr_0.95fr]" : "xl:grid-cols-[1.05fr_0.95fr]")}>
-          <div className="space-y-4">
-            <div className={cn("rounded-[2px] border-2 border-black bg-burnt-yellow/10 p-4")}>
-              <div className="mb-2 flex items-center gap-2 text-charcoal">
-                <Sparkles className="h-4 w-4 text-burnt-yellow fill-burnt-yellow/20" />
-                <p className="text-[10px] font-black uppercase tracking-[0.24em]">Ação recomendada</p>
-              </div>
-              <p className={cn("font-black leading-tight text-charcoal", compact ? "text-sm" : "text-base")}>
-                {mission?.primaryAction.label || (isBlocked ? "Respeitar a trava ética e revisar contexto." : "Abrir Instagram, personalizar a abordagem e registrar o avanço.")}
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[2px] border-2 border-black bg-white/70 p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">
-                  Última interação
-                </p>
-                <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-charcoal">
-                  <Clock className="h-4 w-4 text-cement" />
-                  {person.latestInteractionLabel}
-                </p>
-              </div>
-              <div className={cn("rounded-[2px] border-2 p-4", holdState === "blocked" ? "border-rust bg-rust/10 text-rust" : holdState === "waiting" ? "border-dark-yellow bg-burnt-yellow/15 text-dark-yellow" : "border-moss bg-moss/10 text-moss")}>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] leading-none mb-2">
-                  {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
-                </p>
-                <p className="text-xs font-bold leading-normal">
-                  {holdLabel}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
-                Modelo de Mensagem Sugerido
-              </label>
-              <div className="relative">
-                <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
-                  {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+        {focusMode ? (
+          <div className="space-y-5">
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                  Mensagem para envio individual
+                </label>
+                <div className="relative">
+                  <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
+                    {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+                  </div>
+                  {person.suggestedMessage && (
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className={cn(
+                        "absolute bottom-3 right-3 h-9 w-9 rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-all",
+                        copyStatus === "waiting" ? "bg-burnt-yellow text-charcoal" : "bg-white text-charcoal hover:bg-burnt-yellow",
+                      )}
+                      onClick={onCopyDM}
+                      disabled={isBlocked}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                {person.suggestedMessage && (
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className={cn(
-                      "absolute bottom-3 right-3 h-9 w-9 rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-all",
-                      copyStatus === "waiting" ? "bg-burnt-yellow text-charcoal" : "bg-white text-charcoal hover:bg-burnt-yellow",
-                    )}
-                    onClick={onCopyDM}
-                    disabled={isBlocked}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                {person.suggestedTemplateName && (
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-cement">
+                    Gabarito: {person.suggestedTemplateName}
+                  </p>
                 )}
               </div>
-              {person.suggestedTemplateName && (
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-cement">
-                  Gabarito: {person.suggestedTemplateName}
-                </p>
+
+              {copyStatus === "waiting" && (
+                <div className="animate-in fade-in slide-in-from-top-2 rounded-[2px] border-2 border-black bg-charcoal p-4 text-white duration-300 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold leading-relaxed text-off-white">
+                        Texto copiado. Abra o Instagram, personalize e confirme apenas depois de mandar manualmente.
+                      </p>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          size="sm"
+                          className="h-8 flex-1 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 font-black uppercase tracking-wider"
+                          onClick={onConfirmSent}
+                        >
+                          <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                          Confirmar envio
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 rounded-[2px] border border-transparent text-white hover:bg-white/10"
+                          onClick={onCancelCopy}
+                        >
+                          Ainda não
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {copyStatus === "confirmed" && (
+                <div className="animate-in zoom-in rounded-[2px] border-2 border-moss bg-moss/10 p-4 duration-300">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-4 w-4 text-moss" />
+                      <p className="text-sm font-black text-charcoal">
+                        Mensagem enviada. A conversa entrou em acompanhamento.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="border-2 border-black rounded-[2px] bg-white text-charcoal hover:bg-burnt-yellow"
+                      onClick={onNext}
+                    >
+                      Próxima pessoa <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {(person.riskFlags.recentOutreach || person.riskFlags.doNotContact) && (
+                <div className="space-y-2">
+                  {person.riskFlags.recentOutreach && (
+                    <EthicalGuardrailBanner
+                      tone="zinc"
+                      eyebrow="Janela ética"
+                      badgeLabel="Aguardar retorno"
+                      description="Houve contato recente. A pessoa segue em espera saudável antes de nova abordagem."
+                      icon={AlertCircle}
+                      className="rounded-[2px] border-2 border-black bg-white p-3"
+                    />
+                  )}
+                  {person.riskFlags.doNotContact && (
+                    <EthicalGuardrailBanner
+                      tone="rose"
+                      eyebrow="Guardrail ético"
+                      badgeLabel="Não abordar"
+                      description="Esta pessoa está bloqueada por cuidado ético. Não abrir novo contato até revisão manual."
+                      icon={ShieldAlert}
+                      className="rounded-[2px] border-2 border-rust bg-rust/10 p-3 text-rust"
+                    />
+                  )}
+                </div>
               )}
             </div>
 
-            {copyStatus === "waiting" && (
-              <div className="animate-in fade-in slide-in-from-top-2 rounded-[2px] border-2 border-black bg-charcoal p-4 text-white duration-300 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold leading-relaxed text-off-white">
-                      Copiar prepara a missão, mas não registra envio. Confirme apenas depois de mandar manualmente no Instagram.
+            <details className="group border-2 border-black bg-white rounded-[2px] p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] [&_summary::-webkit-details-marker]:hidden">
+              <summary className="font-black text-xs uppercase tracking-wider text-charcoal flex justify-between items-center cursor-pointer select-none">
+                <span>Mais Detalhes & Ações Recomendadas</span>
+                <span className="text-[10px] text-cement group-open:hidden">Clique para expandir</span>
+              </summary>
+              <div className="mt-4 space-y-4 pt-4 border-t-2 border-dashed border-cement/30">
+                <div className="rounded-[2px] border-2 border-black bg-white p-4">
+                  <JourneyBar {...phase.journey} />
+                </div>
+
+                {!isBlocked ? (
+                  <div className="rounded-[2px] border-2 border-black bg-[#fff8ed] p-4 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.12)]">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Rodada de envio individual</p>
+                        <h3 className="mt-1 text-lg font-black tracking-tight text-charcoal">Uma pessoa, uma mensagem, um registro.</h3>
+                      </div>
+                      <p className="max-w-md text-xs font-semibold leading-5 text-[#645845]">
+                        Copie a fala, personalize no Instagram e confirme apenas depois do envio manual.
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 md:grid-cols-3">
+                      <div className={quickStepTone(copyStatus === "idle", copyStatus !== "idle")}>
+                        <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">1</span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Preparar texto</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Copiar o modelo desta pessoa.</span>
+                        </span>
+                      </div>
+                      <div className={quickStepTone(copyStatus === "waiting", copyStatus === "confirmed")}>
+                        <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">2</span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Enviar manualmente</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Abrir Instagram e revisar antes de mandar.</span>
+                        </span>
+                      </div>
+                      <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
+                        <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Registrar envio</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Salvar que esta pessoa já recebeu.</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="space-y-4">
+                  <div className="rounded-[2px] border-2 border-black bg-burnt-yellow/10 p-4">
+                    <div className="mb-2 flex items-center gap-2 text-charcoal">
+                      <Sparkles className="h-4 w-4 text-burnt-yellow fill-burnt-yellow/20" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em]">Ação recomendada</p>
+                    </div>
+                    <p className="font-black leading-tight text-charcoal text-sm">
+                      {mission?.primaryAction.label || (isBlocked ? "Respeitar a trava ética e revisar contexto." : "Abrir Instagram, personalizar a abordagem e registrar o avanço.")}
                     </p>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Button
-                        size="sm"
-                        className="h-8 flex-1 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 font-black uppercase tracking-wider"
-                        onClick={onConfirmSent}
-                      >
-                        <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                        Confirmar envio
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 rounded-[2px] border border-transparent text-white hover:bg-white/10"
-                        onClick={onCancelCopy}
-                      >
-                        Ainda não
-                      </Button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[2px] border-2 border-black bg-white/70 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                        Última interação
+                      </p>
+                      <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-charcoal">
+                        <Clock className="h-4 w-4 text-cement" />
+                        {person.latestInteractionLabel}
+                      </p>
+                    </div>
+                    <div className={cn("rounded-[2px] border-2 p-4", holdState === "blocked" ? "border-rust bg-rust/10 text-rust" : holdState === "waiting" ? "border-dark-yellow bg-burnt-yellow/15 text-dark-yellow" : "border-moss bg-moss/10 text-moss")}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] leading-none mb-2">
+                        {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
+                      </p>
+                      <p className="text-xs font-bold leading-normal">
+                        {holdLabel}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+            </details>
+          </div>
+        ) : (
+          <>
+            <div className={cn("rounded-[2px] border-2 border-black bg-white p-4")}>
+              <JourneyBar {...phase.journey} />
+            </div>
 
-            {copyStatus === "confirmed" && (
-              <div className="animate-in zoom-in rounded-[2px] border-2 border-moss bg-moss/10 p-4 duration-300">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-4 w-4 text-moss" />
-                    <p className="text-sm font-black text-charcoal">
-                      Etapa concluída. A conversa entrou em acompanhamento.
-                    </p>
+            {!isBlocked ? (
+              <div className="rounded-[2px] border-2 border-black bg-[#fff8ed] p-4 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.12)]">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Rodada de envio individual</p>
+                    <h3 className="mt-1 text-lg font-black tracking-tight text-charcoal">Uma pessoa, uma mensagem, um registro.</h3>
                   </div>
-                  <Button
-                    size="sm"
-                    className="border-2 border-black rounded-[2px] bg-white text-charcoal hover:bg-burnt-yellow"
-                    onClick={onNext}
-                  >
-                    Próxima missão <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                  </Button>
+                  <p className="max-w-md text-xs font-semibold leading-5 text-[#645845]">
+                    Copie a fala, personalize no Instagram e confirme apenas depois do envio manual.
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-2 md:grid-cols-3">
+                  <div className={quickStepTone(copyStatus === "idle", copyStatus !== "idle")}>
+                    <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">1</span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Preparar texto</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Copiar o modelo desta pessoa.</span>
+                    </span>
+                  </div>
+                  <div className={quickStepTone(copyStatus === "waiting", copyStatus === "confirmed")}>
+                    <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">2</span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Enviar manualmente</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Abrir Instagram e revisar antes de mandar.</span>
+                    </span>
+                  </div>
+                  <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
+                    <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
+                    <span className="min-w-0">
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Registrar envio</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Salvar que esta pessoa já recebeu.</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {(person.riskFlags.recentOutreach || person.riskFlags.doNotContact) && (
-              <div className="space-y-2">
-                {person.riskFlags.recentOutreach && (
-                  <EthicalGuardrailBanner
-                    tone="zinc"
-                    eyebrow="Janela ética"
-                    badgeLabel="Aguardar retorno"
-                    description="Houve contato recente. A missão segue em espera saudável antes de nova abordagem."
-                    icon={AlertCircle}
-                    className="rounded-[2px] border-2 border-black bg-white p-3"
-                  />
+            <div className={cn("grid gap-5", compact ? "2xl:grid-cols-[1.05fr_0.95fr]" : "xl:grid-cols-[1.05fr_0.95fr]")}>
+              <div className="space-y-4">
+                <div className={cn("rounded-[2px] border-2 border-black bg-burnt-yellow/10 p-4")}>
+                  <div className="mb-2 flex items-center gap-2 text-charcoal">
+                    <Sparkles className="h-4 w-4 text-burnt-yellow fill-burnt-yellow/20" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em]">Ação recomendada</p>
+                  </div>
+                  <p className={cn("font-black leading-tight text-charcoal", compact ? "text-sm" : "text-base")}>
+                    {mission?.primaryAction.label || (isBlocked ? "Respeitar a trava ética e revisar contexto." : "Abrir Instagram, personalizar a abordagem e registrar o avanço.")}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[2px] border-2 border-black bg-white/70 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                      Última interação
+                    </p>
+                    <p className="mt-2 flex items-center gap-2 text-xs font-semibold text-charcoal">
+                      <Clock className="h-4 w-4 text-cement" />
+                      {person.latestInteractionLabel}
+                    </p>
+                  </div>
+                  <div className={cn("rounded-[2px] border-2 p-4", holdState === "blocked" ? "border-rust bg-rust/10 text-rust" : holdState === "waiting" ? "border-dark-yellow bg-burnt-yellow/15 text-dark-yellow" : "border-moss bg-moss/10 text-moss")}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] leading-none mb-2">
+                      {holdState === "free" ? "Caminho livre" : "Bloqueio ou espera"}
+                    </p>
+                    <p className="text-xs font-bold leading-normal">
+                      {holdLabel}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                    Mensagem para envio individual
+                  </label>
+                  <div className="relative">
+                    <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
+                      {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+                    </div>
+                    {person.suggestedMessage && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className={cn(
+                          "absolute bottom-3 right-3 h-9 w-9 rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-all",
+                          copyStatus === "waiting" ? "bg-burnt-yellow text-charcoal" : "bg-white text-charcoal hover:bg-burnt-yellow",
+                        )}
+                        onClick={onCopyDM}
+                        disabled={isBlocked}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  {person.suggestedTemplateName && (
+                    <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-cement">
+                      Gabarito: {person.suggestedTemplateName}
+                    </p>
+                  )}
+                </div>
+
+                {copyStatus === "waiting" && (
+                  <div className="animate-in fade-in slide-in-from-top-2 rounded-[2px] border-2 border-black bg-charcoal p-4 text-white duration-300 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
+                      <div className="space-y-3">
+                        <p className="text-xs font-bold leading-relaxed text-off-white">
+                          Texto copiado. Abra o Instagram, personalize e confirme apenas depois de mandar manualmente.
+                        </p>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Button
+                            size="sm"
+                            className="h-8 flex-1 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 font-black uppercase tracking-wider"
+                            onClick={onConfirmSent}
+                          >
+                            <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
+                            Confirmar envio
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 rounded-[2px] border border-transparent text-white hover:bg-white/10"
+                            onClick={onCancelCopy}
+                          >
+                            Ainda não
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {person.riskFlags.doNotContact && (
-                  <EthicalGuardrailBanner
-                    tone="rose"
-                    eyebrow="Guardrail ético"
-                    badgeLabel="Não abordar"
-                    description="A missão está bloqueada por cuidado ético. Não abrir novo contato até revisão manual."
-                    icon={ShieldAlert}
-                    className="rounded-[2px] border-2 border-rust bg-rust/10 p-3 text-rust"
-                  />
+
+                {copyStatus === "confirmed" && (
+                  <div className="animate-in zoom-in rounded-[2px] border-2 border-moss bg-moss/10 p-4 duration-300">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-4 w-4 text-moss" />
+                        <p className="text-sm font-black text-charcoal">
+                          Mensagem enviada. A conversa entrou em acompanhamento.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="border-2 border-black rounded-[2px] bg-white text-charcoal hover:bg-burnt-yellow"
+                        onClick={onNext}
+                      >
+                        Próxima pessoa <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {(person.riskFlags.recentOutreach || person.riskFlags.doNotContact) && (
+                  <div className="space-y-2">
+                    {person.riskFlags.recentOutreach && (
+                      <EthicalGuardrailBanner
+                        tone="zinc"
+                        eyebrow="Janela ética"
+                        badgeLabel="Aguardar retorno"
+                        description="Houve contato recente. A pessoa segue em espera saudável antes de nova abordagem."
+                        icon={AlertCircle}
+                        className="rounded-[2px] border-2 border-black bg-white p-3"
+                      />
+                    )}
+                    {person.riskFlags.doNotContact && (
+                      <EthicalGuardrailBanner
+                        tone="rose"
+                        eyebrow="Guardrail ético"
+                        badgeLabel="Não abordar"
+                        description="Esta pessoa está bloqueada por cuidado ético. Não abrir novo contato até revisão manual."
+                        icon={ShieldAlert}
+                        className="rounded-[2px] border-2 border-rust bg-rust/10 p-3 text-rust"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </CardContent>
 
       <CardFooter className={cn("grid gap-3 border-t-2 border-black bg-charcoal/5", compact ? "px-4 py-4 2xl:grid-cols-[minmax(0,1fr)_auto]" : "px-6 py-5 xl:grid-cols-[minmax(0,1fr)_auto]")}>
@@ -322,16 +568,23 @@ export function QueueCard({
             <Button
               size="lg"
               className="h-12 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
-              onClick={onRegisterResponse}
+              onClick={copyStatus === "waiting" ? onConfirmSent : copyStatus === "confirmed" ? onNext : onCopyDM}
+              disabled={copyStatus === "idle" && (!person.suggestedMessage || isBlocked)}
             >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Iniciar etapa
+              {copyStatus === "waiting" ? (
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+              ) : copyStatus === "confirmed" ? (
+                <ChevronRight className="mr-2 h-4 w-4" />
+              ) : (
+                <Copy className="mr-2 h-4 w-4" />
+              )}
+              {copyStatus === "waiting" ? "Registrar envio" : copyStatus === "confirmed" ? "Próxima pessoa" : "Preparar mensagem"}
             </Button>
 
             <Button
               size="lg"
               className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-black hover:bg-concrete-dark hover:text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
-              onClick={() => window.open(person.instagramUrl || `https://instagram.com/${person.username}`, "_blank")}
+              onClick={() => window.open(person.instagramUrl || `https://www.instagram.com/direct/t/${person.username.replace(/^@+/, "")}/`, "_blank")}
               disabled={isBlocked}
             >
               <Instagram className="mr-2 h-4 w-4" /> Abrir Instagram
@@ -340,15 +593,11 @@ export function QueueCard({
             <Button
               size="lg"
               variant="outline"
-              className={cn(
-                "h-12 rounded-[2px] border-2 border-black px-6 text-xs font-black uppercase tracking-wider transition-all shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]",
-                copyStatus === "waiting" ? "bg-burnt-yellow text-charcoal" : "bg-white text-charcoal hover:bg-burnt-yellow hover:text-charcoal",
-              )}
-              onClick={onCopyDM}
-              disabled={!person.suggestedMessage || isBlocked}
+              className="h-12 rounded-[2px] border-2 border-black bg-white px-6 text-xs font-black uppercase tracking-wider text-charcoal transition-all shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow hover:text-charcoal active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
+              onClick={onRegisterResponse}
             >
-              <Copy className="mr-2 h-4 w-4" />
-              Preparar mensagem
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Registrar resposta
             </Button>
 
             <Button
@@ -378,7 +627,7 @@ export function QueueCard({
             className="h-12 rounded-[2px] border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all"
             onClick={onNext}
           >
-            Próxima missão <ChevronRight className="ml-1 h-4 w-4" />
+            Próxima pessoa <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
       </CardFooter>

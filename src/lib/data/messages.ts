@@ -19,6 +19,7 @@ export async function listMessageTemplates(): Promise<MessageTemplate[]> {
       whenToUse: template.when_to_use ?? null,
       active: template.active,
       updatedAt: template.updated_at,
+      isCampaignDefault: template.is_campaign_default ?? false,
     }));
   } catch (error) {
     handleSupabaseReadError("listMessageTemplates", error);

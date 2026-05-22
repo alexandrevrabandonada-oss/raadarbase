@@ -98,6 +98,7 @@ const basePerson: PriorityPerson = {
   outreachStatusLabel: "Novo",
   suggestedMessage: "Olá!",
   suggestedTemplateName: "Boas vindas",
+  suggestedTemplateId: null,
   instagramUrl: "https://instagram.com",
   hasPendingTask: true,
   isPendingResponse: false,

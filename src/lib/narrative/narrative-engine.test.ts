@@ -72,7 +72,7 @@ describe("narrative engine", () => {
     expect(["SEMANA_DE_CAMPO", "SEMANA_DE_MEMORIA"]).toContain(weekly.type);
   });
 
-  it("gera temporada de Escuta e Vínculo quando há sinais recorrentes", () => {
+  it("mantém a temporada inicial no anúncio da pré-candidatura", () => {
     const narrative = buildSeasonNarrative({
       activeMissions: 12,
       recurringLinks: 6,
@@ -85,7 +85,7 @@ describe("narrative engine", () => {
       urgentCare: 0,
     });
 
-    expect(narrative.type).toBe("ESCUTA_E_VINCULO");
+    expect(narrative.type).toBe("ANUNCIO_DA_PRE_CANDIDATURA");
   });
 
   it("nunca usa palavras proibidas", () => {

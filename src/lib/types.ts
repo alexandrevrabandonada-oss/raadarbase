@@ -301,6 +301,7 @@ export type MessageTemplate = {
   whenToUse: string | null;
   active: boolean;
   updatedAt: string;
+  isCampaignDefault?: boolean;
 };
 
 export type AuditLogEntry = {
@@ -354,6 +355,7 @@ export type PriorityPerson = PersonWithContact & {
   responsibleName: string | null;
   suggestedMessage: string | null;
   suggestedTemplateName: string | null;
+  suggestedTemplateId: string | null;
   instagramUrl: string | null;
   hasPendingTask: boolean;
   isPendingResponse: boolean;
@@ -378,6 +380,7 @@ export type PriorityPerson = PersonWithContact & {
   missionBlocksContact?: boolean;
   missionExplainability?: string | null;
   missionFallbackUsed?: boolean;
+  announcementStatus?: 'nao_iniciado' | 'preparado' | 'enviado' | 'respondeu' | 'revisar_depois';
 };
 
 export type PersonResponseKind =

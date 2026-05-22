@@ -1187,7 +1187,7 @@ export default function GameClient() {
       </Dialog>
 
       <footer className="border-t-2 border-charcoal/10 p-4 text-center text-[10px] font-bold text-[#7E7E70] dark:border-cement/10 dark:text-cement">
-        RADAR DE BASE - VOLTA REDONDA - TREINO DE FLUXO, REGISTRO E CUIDADO
+        RADAR DE BASE - VR ABANDONADA - TREINO DE FLUXO, REGISTRO E CUIDADO
       </footer>
     </div>
   );

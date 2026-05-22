@@ -33,6 +33,7 @@ function buildPriorityPerson(overrides: Partial<PriorityPerson> = {}): PriorityP
     outreachStatusLabel: "Novo",
     suggestedMessage: "Oi @pessoa",
     suggestedTemplateName: "Escuta",
+    suggestedTemplateId: null,
     instagramUrl: "https://instagram.com/pessoa",
     hasPendingTask: false,
     isPendingResponse: false,

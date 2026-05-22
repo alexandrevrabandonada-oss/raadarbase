@@ -111,6 +111,14 @@ const WEEKLY_COPY: Record<WeeklyNarrativeType, NarrativeCopyTemplate<WeeklyNarra
 };
 
 const SEASON_COPY: Record<SeasonNarrativeType, NarrativeCopyTemplate<SeasonNarrativeType>> = {
+  ANUNCIO_DA_PRE_CANDIDATURA: {
+    type: "ANUNCIO_DA_PRE_CANDIDATURA",
+    label: "Anúncio da Pré-Candidatura",
+    headline: "Temporada de Anúncio da Pré-Candidatura",
+    summary: "Agora o foco é fazer a cidade saber que a pré-candidatura começou, com fala pública clara e retornos bem registrados.",
+    support: "A primeira rodada abre conhecimento público. A mobilização personalizada e a construção da base ganham profundidade em uma temporada seguinte.",
+    nextStep: "Publicar o comunicado nos canais abertos e organizar os retornos que chegarem.",
+  },
   ACENDER_A_BASE: {
     type: "ACENDER_A_BASE",
     label: "Acender a Base",

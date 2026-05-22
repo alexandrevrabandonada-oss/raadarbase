@@ -31,12 +31,12 @@ export async function registerManualDm(personId: string): Promise<ActionResult> 
   return contacts.registerManualDm(personId);
 }
 
-export async function recordDMPreparedAction(personId: string, origin: string): Promise<ActionResult> {
-  return contacts.recordDMPreparedAction(personId, origin);
+export async function recordDMPreparedAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
+  return contacts.recordDMPreparedAction(personId, origin, templateId);
 }
 
-export async function confirmDMSentAction(personId: string, origin: string): Promise<ActionResult> {
-  return contacts.confirmDMSentAction(personId, origin);
+export async function confirmDMSentAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
+  return contacts.confirmDMSentAction(personId, origin, templateId);
 }
 
 export async function markResponded(personId: string): Promise<ActionResult> {
@@ -148,6 +148,10 @@ export async function upsertMessageTemplate(
 
 export async function removeMessageTemplate(templateId: string): Promise<ActionResult> {
   return templates.removeMessageTemplate(templateId);
+}
+
+export async function setCampaignDefaultTemplate(templateId: string): Promise<ActionResult> {
+  return templates.setCampaignDefaultTemplate(templateId);
 }
 
 // --- FEEDBACK ---
