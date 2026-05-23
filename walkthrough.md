@@ -69,6 +69,16 @@ Esta seção descreve as melhorias implementadas para aplicar a identidade visua
     *   Tratamento seguro para Server-Side Rendering (SSR) e ambientes Node.js/JSDOM de testes (sem travamento caso `window.indexedDB` não exista).
     *   Atualização assíncrona dos gatilhos no `ConnectionIndicator` para sincronização em background quando online.
 
+### 10. Otimização de Performance de Consultas: Migração 040
+*   **Arquivos Criados**: [040_performance_indices_tuning.sql](file:///c:/Projetos/Radar%20de%20Base/supabase/migrations/040_performance_indices_tuning.sql) e [apply_migration_040.mjs](file:///c:/Projetos/Radar%20de%20Base/scripts/apply_migration_040.mjs).
+*   **O que muda**:
+    *   Adicionados índices de performance para otimizar queries recorrentes na rua e em produção:
+        *   `outreach_tasks(completed_at, created_at desc)` e `outreach_tasks(person_id)` para acelerar a busca e cruzamentos de tarefas ativas da equipe.
+        *   `ig_interactions(occurred_at desc)` para busca instantânea de interações recentes limitadas a janelas temporais de cutoff.
+        *   `audit_logs(entity_type, entity_id, created_at desc)` para alimentar o feed de logs de auditoria de cada pessoa sem fazer full table scans.
+        *   `audit_logs(action, created_at desc)` e `audit_logs(created_at desc)` para carregar painéis globais e telemetria de atividade.
+    *   Migração aplicada com sucesso no banco de dados remoto Supabase via API de gerenciamento.
+
 ---
 
 ## 🧪 Validação Operacional
