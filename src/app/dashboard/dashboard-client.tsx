@@ -317,9 +317,9 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
 
 function HeroSection({ data }: { data: DashboardViewData }) {
   const statusTone = {
-    healthy: "border-emerald-200 bg-emerald-500/12 text-emerald-900",
-    warning: "border-amber-200 bg-amber-500/12 text-amber-900",
-    critical: "border-rose-200 bg-rose-500/12 text-rose-900",
+    healthy: "border-moss bg-moss/10 text-moss",
+    warning: "border-burnt-yellow bg-burnt-yellow/10 text-dark-yellow dark:text-burnt-yellow",
+    critical: "border-rust bg-rust/10 text-rust",
   }[data.overallStatus.tone];
   const weeklyPhaseIndex = {
     preparar: 1,
@@ -346,11 +346,11 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       }
       actions={
         <>
-          <Button className="h-14 rounded-xl bg-[#0f1b24] px-6 text-sm font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/mensagens" />}>
+          <Button className="h-14 rounded-[2px]" variant="secondary" render={<Link href="/mensagens" />}>
             <Megaphone className="h-4 w-4" />
             Preparar Comunicado
           </Button>
-          <Button variant="outline" className="h-14 rounded-xl border-[#d3b98f] bg-[#f7f0e4] px-6 text-sm font-black text-[#11202a]" nativeButton={false} render={<Link href="/ritmo" />}>
+          <Button variant="outline" className="h-14 rounded-[2px] border-charcoal dark:border-off-white text-charcoal dark:text-off-white" render={<Link href="/ritmo" />}>
             <TowerControl className="h-4 w-4" />
             Abrir Central de Ritmo
           </Button>
@@ -407,44 +407,44 @@ function HeroSection({ data }: { data: DashboardViewData }) {
       }
       aside={
         <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.1fr)_220px]">
-          <Card className="radar-outline-card radar-panel-dark border-[#23313b] py-0 text-white shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
+          <Card className="radar-panel-dark border-2 border-black py-0 text-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] rounded-[2px]">
             <CardContent className="space-y-5 p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#d4b678]">Hoje</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Hoje</p>
                   <p className="mt-2 text-2xl font-black tracking-tight text-white">{data.narrative.today.headline}</p>
                 </div>
-                <Target className="h-5 w-5 text-[#f0c15b]" />
+                <Target className="h-5 w-5 text-burnt-yellow" />
               </div>
-              <p className="text-base leading-7 text-zinc-200">{data.narrative.today.summary}</p>
+              <p className="text-base leading-7 text-zinc-300">{data.narrative.today.summary}</p>
               <div className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Leitura do ciclo</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-burnt-yellow">Leitura do ciclo</p>
                 <p className="text-sm font-semibold text-white">{data.narrative.today.support}</p>
               </div>
               <div className="space-y-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#d4b678]">Próximo passo</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-burnt-yellow">Próximo passo</p>
                 <p className="text-sm font-semibold text-white">{data.narrative.today.nextStep}</p>
-                <Progress value={data.missionState.progress} className="h-3 bg-white/10" indicatorClassName="bg-[#f0c15b]" />
+                <Progress value={data.missionState.progress} className="h-3 bg-white/10" indicatorClassName="bg-burnt-yellow" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="radar-outline-card radar-panel-light border-[#d8c7ac] py-0 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+          <Card className="bloco-concreto">
             <CardContent className="space-y-5 p-6">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Semana</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-cement">Semana</p>
                 <div className="mt-2 flex items-end gap-2">
-                  <p className="text-6xl font-black leading-none text-[#11202a]">{String(weeklyPhaseIndex).padStart(2, "0")}</p>
-                  <p className="pb-2 text-sm font-semibold text-zinc-600">de 08</p>
+                  <p className="text-6xl font-black leading-none text-charcoal dark:text-off-white">{String(weeklyPhaseIndex).padStart(2, "0")}</p>
+                  <p className="pb-2 text-sm font-semibold text-cement dark:text-zinc-300">de 08</p>
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-2xl font-black uppercase leading-8 tracking-tight text-[#4b4337]">
+                <p className="text-2xl font-black uppercase leading-8 tracking-tight text-charcoal dark:text-off-white">
                   {data.narrative.week.label}
                 </p>
-                <p className="text-sm leading-6 text-zinc-600">{data.narrative.week.summary}</p>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b7759]">Temporada</p>
-                <p className="text-sm font-semibold text-[#4b4337]">{data.narrative.season.label}</p>
+                <p className="text-sm leading-6 text-cement dark:text-zinc-300">{data.narrative.week.summary}</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cement">Temporada</p>
+                <p className="text-sm font-semibold text-charcoal dark:text-off-white">{data.narrative.season.label}</p>
               </div>
               <div className="flex gap-2">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -453,13 +453,13 @@ function HeroSection({ data }: { data: DashboardViewData }) {
                     className={cn(
                       "h-3 w-3 rounded-full border",
                       index < weeklyPhaseIndex
-                        ? "border-[#11202a] bg-[#11202a]"
-                        : "border-[#bda98a] bg-transparent",
+                        ? "border-charcoal bg-charcoal dark:border-off-white dark:bg-off-white"
+                        : "border-cement bg-transparent",
                     )}
                   />
                 ))}
               </div>
-              <Button variant="ghost" className="h-auto justify-start px-0 text-sm font-black text-[#11202a] hover:bg-transparent" nativeButton={false} render={<Link href="/ritmo" />}>
+              <Button variant="link" className="h-auto justify-start px-0 text-sm font-black text-charcoal dark:text-off-white hover:text-burnt-yellow border-transparent" render={<Link href="/ritmo" />}>
                 Ver leitura da semana
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -480,16 +480,16 @@ function OperationStartSection({
 }) {
   return (
     <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.8fr)]">
-      <Card className="radar-outline-card overflow-hidden border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+      <Card className="bloco-concreto overflow-hidden py-0">
         <CardContent className="grid gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_240px]">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-zinc-950">
+            <div className="flex items-center gap-2 text-charcoal dark:text-off-white">
               <Sparkles className="h-5 w-5" />
               <h2 className="text-2xl font-black tracking-tight">Abrir Anúncio</h2>
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-black text-zinc-950">{data.narrative.today.headline}</p>
-              <p className="max-w-2xl text-sm leading-6 text-zinc-600">{data.narrative.today.summary}</p>
+              <p className="text-lg font-black text-charcoal dark:text-off-white">{data.narrative.today.headline}</p>
+              <p className="max-w-2xl text-sm leading-6 text-cement dark:text-zinc-300">{data.narrative.today.summary}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <SignalBadge icon={Target} label="Retornos em foco" value={data.missionCounts.active} />
@@ -498,13 +498,13 @@ function OperationStartSection({
             </div>
           </div>
 
-          <div className="flex flex-col justify-between rounded-3xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] p-5">
+          <div className="flex flex-col justify-between rounded-[2px] border-2 border-black bg-zinc-50 dark:bg-zinc-800 p-5 shadow-sm">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b7759]">Proximo passo</p>
-              <p className="mt-2 text-2xl font-black tracking-tight text-[#11202a]">{data.narrative.today.nextStep}</p>
-              <Progress value={data.missionState.progress} className="mt-4 h-3 bg-[#d7c7ae]" indicatorClassName="bg-[#11202a]" />
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cement">Proximo passo</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-charcoal dark:text-off-white">{data.narrative.today.nextStep}</p>
+              <Progress value={data.missionState.progress} className="mt-4 h-3 bg-cement/20" indicatorClassName="bg-charcoal dark:bg-off-white" />
             </div>
-            <Button className="mt-5 h-12 rounded-xl bg-[#0f1b24] font-black text-white hover:bg-[#172733]" nativeButton={false} render={<Link href="/mensagens" />}>
+            <Button className="mt-5 h-12 rounded-[2px]" variant="secondary" render={<Link href="/mensagens" />}>
               Preparar fala publica
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -512,7 +512,7 @@ function OperationStartSection({
         </CardContent>
       </Card>
 
-      <div className="radar-outline-card rounded-[24px] border border-[#23313b] bg-[#12202a] p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.18)]">
+      <div className="radar-panel-dark border-2 border-black p-4 text-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] rounded-[2px]">
         <CycleAlertList alerts={cycleAlerts} />
       </div>
     </section>
@@ -547,16 +547,16 @@ function MissionSection({
                 footer={
                   <div className="flex flex-wrap gap-2">
                     {person.mainTheme ? (
-                      <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-xs font-bold text-sky-700">
+                      <Badge variant="secondary">
                         {person.mainTheme}
                       </Badge>
                     ) : null}
                     {person.responsibleName ? (
-                      <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-xs font-bold text-zinc-600">
+                      <Badge variant="outline">
                         {person.responsibleName}
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-xs font-bold text-amber-700">
+                      <Badge variant="destructive">
                         Sem responsável
                       </Badge>
                     )}
@@ -573,7 +573,7 @@ function MissionSection({
             nextActionLabel="preparar a base"
             nextActionHref="/pessoas"
             secondaryAction={
-              <Button variant="outline" className="h-11 rounded-xl border-zinc-200 bg-white text-xs font-black uppercase tracking-[0.18em]" nativeButton={false} render={<Link href="/abordagem" />}>
+              <Button variant="outline" className="h-11 rounded-[2px]" render={<Link href="/abordagem" />}>
                 Abrir mural
               </Button>
             }
@@ -728,7 +728,7 @@ function QuickMapSection({ data }: { data: DashboardViewData }) {
         actionLabel="Ver Mapa"
       />
 
-      <Card className="overflow-hidden border-zinc-200 py-0">
+      <Card className="bloco-concreto overflow-hidden py-0">
           <CardContent className="grid gap-4 p-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
               <QuickMapCard
@@ -754,12 +754,12 @@ function QuickMapSection({ data }: { data: DashboardViewData }) {
               />
             </div>
 
-          <div className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.92))] p-5">
+          <div className="border-2 border-black bg-zinc-50 dark:bg-zinc-800 p-5 rounded-[2px] shadow-sm">
             <div className="flex items-center gap-2">
-              <Landmark className="h-5 w-5 text-zinc-900" />
-              <p className="text-lg font-black tracking-tight text-zinc-950">Mapa da Mobilização</p>
+              <Landmark className="h-5 w-5 text-charcoal dark:text-off-white" />
+              <p className="text-lg font-black tracking-tight text-charcoal dark:text-off-white">Mapa da Mobilização</p>
             </div>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
+            <p className="mt-2 text-sm leading-6 text-cement dark:text-zinc-300">
               Cada território deve parecer parte da mesma campanha: fase visível, próximo passo claro e conexão direta com campo e jornada.
             </p>
             <div className="mt-5 grid gap-3">
@@ -785,7 +785,7 @@ function FieldSection({ data }: { data: DashboardViewData }) {
         actionLabel="Abrir Campo"
       />
 
-      <Card className="radar-outline-card border-[#d8c7ac] bg-[rgba(255,250,242,0.92)] py-0 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
+      <Card className="bloco-concreto">
         <CardContent className="space-y-5 p-6">
           <div className="grid gap-3 sm:grid-cols-3">
             <SignalBadge icon={Route} label="Próximas ações" value={data.field.plannedCount} />
@@ -908,24 +908,24 @@ function QuickMapCard({
   tone: "amber" | "indigo" | "emerald";
 }) {
   const cardTone = tone === "amber" ? "amber" : tone === "emerald" ? "emerald" : "indigo";
-  const textTone = tone === "amber" ? "text-amber-900" : tone === "emerald" ? "text-emerald-900" : "text-indigo-900";
+  const textTone = tone === "amber" ? "text-amber-800 dark:text-burnt-yellow" : tone === "emerald" ? "text-emerald-800 dark:text-emerald-400" : "text-sky-800 dark:text-sky-400";
   return (
-    <div className="rounded-[24px] border border-zinc-200 bg-white/90 p-4">
+    <div className="rounded-[2px] border-2 border-black bg-zinc-50 dark:bg-zinc-800 p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
       <GamefulMetricCard label={title} value={value} tone={cardTone} compact layout="split" className="border-none bg-transparent shadow-none" />
       <p className={cn("mt-4 truncate text-sm font-black", textTone)}>{neighborhood}</p>
-      <p className="mt-1 text-sm leading-6 text-zinc-600">{detail}</p>
+      <p className="mt-1 text-sm leading-6 text-cement dark:text-zinc-350">{detail}</p>
     </div>
   );
 }
 
 function TerritoryLine({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white/80 px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-[2px] border-2 border-black bg-zinc-50 dark:bg-zinc-800 px-4 py-3">
       <div className="flex items-center gap-3">
         <div className={cn("h-2.5 w-2.5 rounded-full", color)} />
-        <p className="text-sm font-bold text-zinc-700">{label}</p>
+        <p className="text-sm font-bold text-cement dark:text-zinc-300">{label}</p>
       </div>
-      <p className="text-sm font-black text-zinc-950">{value}</p>
+      <p className="text-sm font-black text-charcoal dark:text-off-white">{value}</p>
     </div>
   );
 }
@@ -941,31 +941,31 @@ function FieldColumn({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-zinc-500">{title}</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.24em] text-cement dark:text-zinc-450">{title}</p>
       {items.length > 0 ? (
         <div className="space-y-3">
           {items.map((item) => (
-            <Link key={item.id} href={item.href} className="block rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 transition-colors hover:bg-zinc-100">
+            <Link key={item.id} href={item.href} className="block rounded-[2px] border-2 border-black bg-zinc-50 dark:bg-zinc-800 p-4 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-black text-zinc-950">{item.title}</p>
-                  <p className="text-sm text-zinc-500">{item.neighborhood}</p>
+                  <p className="text-sm font-black text-charcoal dark:text-off-white">{item.title}</p>
+                  <p className="text-sm text-cement dark:text-zinc-400">{item.neighborhood}</p>
                 </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400" />
+                <ArrowRight className="h-4 w-4 text-cement" />
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {item.startsAt ? (
-                  <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600">
+                  <Badge variant="outline">
                     {new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(item.startsAt))}
                   </Badge>
                 ) : null}
                 {item.pendingConfirmation > 0 ? (
-                  <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">
+                  <Badge variant="default">
                     {item.pendingConfirmation} aguardando confirmação
                   </Badge>
                 ) : null}
                 {item.confirmed > 0 ? (
-                  <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+                  <Badge variant="secondary">
                     {item.confirmed} confirmados
                   </Badge>
                 ) : null}
@@ -974,7 +974,7 @@ function FieldColumn({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
+        <div className="rounded-[2px] border-2 border-dashed border-cement bg-zinc-50 dark:bg-zinc-800/40 px-4 py-5 text-sm text-cement dark:text-zinc-400">
           {emptyLabel}
         </div>
       )}
@@ -1010,7 +1010,7 @@ function getQuestLogActionStyle(action: string) {
   if (action.startsWith("strategic_memory.")) {
     return {
       icon: BookOpenCheck,
-      colorClass: "bg-[#d4b678]/10 text-[#f0c15b] border-[#d4b678]/20",
+      colorClass: "bg-burnt-yellow/10 text-burnt-yellow border-burnt-yellow/20",
     };
   }
   return {
@@ -1052,10 +1052,10 @@ function QuestLogSection({ logs }: { logs: AuditLogEntry[] }) {
         description="Crônicas e atividades operacionais recentes realizadas pela guilda de base."
       />
 
-      <Card className="border-none shadow-xl bg-gradient-to-br from-[#121c24] to-[#0a1015] border border-[#23323e] overflow-hidden">
+      <Card className="radar-panel-dark border-2 border-black text-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] rounded-[2px]">
         <CardContent className="p-6">
           {logs.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500 font-semibold text-sm">
+            <div className="text-center py-8 text-cement dark:text-zinc-400 font-semibold text-sm">
               Diário de Bordo vazio. Comece a interagir com a base para gerar crônicas!
             </div>
           ) : (
@@ -1064,16 +1064,16 @@ function QuestLogSection({ logs }: { logs: AuditLogEntry[] }) {
                 const style = getQuestLogActionStyle(log.action);
                 const IconComponent = style.icon;
                 return (
-                  <div key={log.id} className="flex items-start gap-4 p-3 rounded-2xl bg-black/25 border border-[#23323e]/40 hover:border-[#23323e] transition-all group">
-                    <div className={cn("mt-0.5 p-2 rounded-xl border flex items-center justify-center shrink-0", style.colorClass)}>
+                  <div key={log.id} className="flex items-start gap-4 p-3 rounded-[2px] bg-black/40 border-2 border-white/10 hover:border-burnt-yellow transition-all group">
+                    <div className={cn("mt-0.5 p-2 rounded-[2px] border-2 flex items-center justify-center shrink-0", style.colorClass)}>
                       <IconComponent className="h-4.5 w-4.5 group-hover:scale-110 transition-transform" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-[#d4b678] truncate">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-burnt-yellow truncate">
                           {log.actorEmail || "Sistema Automático"}
                         </p>
-                        <span className="text-[10px] font-bold text-zinc-500 shrink-0">
+                        <span className="text-[10px] font-bold text-cement shrink-0">
                           {mounted
                             ? formatRelativeTime(log.createdAt)
                             : new Intl.DateTimeFormat("pt-BR", {
@@ -1084,7 +1084,7 @@ function QuestLogSection({ logs }: { logs: AuditLogEntry[] }) {
                               }).format(new Date(log.createdAt))}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm font-semibold text-zinc-100 leading-relaxed">
+                      <p className="mt-1 text-sm font-semibold text-zinc-300 leading-relaxed">
                         {log.summary}
                       </p>
                     </div>
