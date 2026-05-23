@@ -4,10 +4,12 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getPublicListeningReceipt } from "@/lib/data/public-listening-receipt";
 import { getInternalSession } from "@/lib/supabase/auth";
 import { DistributionPanel } from "./distribution-panel";
 import { listReceiptDistributionLogs } from "@/lib/data/public-receipt-distribution";
+import { CopyShareCard } from "./copy-share-card";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +23,18 @@ export default async function PublicListeningReceiptPage() {
   const shareText = `O projeto Radar de Base publicou o Recibo de Escuta! Entre ${receipt.periodStart} e ${receipt.periodEnd}, ouvimos a população e convertemos isso em ações reais. Foram ${receipt.actions.totalActions} ações corretivas criadas a partir das demandas. Veja o que está sendo feito, de forma transparente e segura: [Link]\nParticipe você também: [Link do formulário]`;
   const shareLegend = `Aqui prestamos contas! 📢\nEstes são dados agregados da nossa escuta pública entre ${receipt.periodStart} e ${receipt.periodEnd}. Já criamos ${receipt.actions.totalActions} ações corretivas reais. Veja o que ouvimos e o que está sendo feito, sempre com total segurança aos seus dados.\n👉 Participe você também pelo nosso formulário online (link na bio/stories)!\n\n#EscutaAtiva #RadarDeBase #MissaoELuta #PrestacaoDeContas #ParticipacaoPublica`;
 
-  return (
-    <AppShell>
-      <PageHeader
-        title="Recibo Público da Escuta"
-        description="A prestação de contas transparente do Radar de Base. Veja o que foi ouvido e o que estamos fazendo."
-      />
-
-      <div className="mb-6 rounded-md bg-amber-50 p-4 border border-amber-200">
-        <p className="text-sm font-medium text-amber-800">
+  const pageContent = (
+    <div className="space-y-6">
+      {/* Aviso Brutalista de Privacidade */}
+      <Alert className="border-2 border-black bg-[#FFF7CD] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+        <AlertTitle className="font-black uppercase tracking-wider text-xs">Transparência & Privacidade</AlertTitle>
+        <AlertDescription className="text-xs mt-1">
           Este recibo mostra dados agregados de escuta pública. Não identifica pessoas, não exibe comentários brutos e não usa perfilamento individual.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
-      <div className="mb-6 flex gap-3 flex-wrap">
+      {/* Ações e Downloads */}
+      <div className="flex gap-3 flex-wrap">
         <Button nativeButton={false} variant="outline" render={<Link href="/api/recibo/escuta/card?format=1x1" target="_blank" />} title="Ideal para Feed">
           Baixar card 1:1
         </Button>
@@ -55,55 +55,59 @@ export default async function PublicListeningReceiptPage() {
         </Button>
       </div>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Período de Análise</CardTitle>
+      {/* Grid de Métricas Brutalistas */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bloco-concreto">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[10px] font-black uppercase tracking-wider text-cement">Período de Análise</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{receipt.periodStart} a {receipt.periodEnd}</p>
+            <p className="text-lg font-black text-charcoal">{receipt.periodStart} a {receipt.periodEnd}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Pessoas Alcançadas</CardTitle>
+        <Card className="bloco-concreto">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[10px] font-black uppercase tracking-wider text-cement">Pessoas Alcançadas</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{receipt.topics.uniquePeopleReached}</p>
+            <p className="text-2xl font-black text-charcoal">{receipt.topics.uniquePeopleReached}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Relatos Diretos</CardTitle>
+        <Card className="bloco-concreto">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[10px] font-black uppercase tracking-wider text-cement">Relatos Diretos</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{receipt.territorial?.totalReports ?? 0}</p>
+            <p className="text-2xl font-black text-charcoal">{receipt.territorial?.totalReports ?? 0}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Ações Criadas</CardTitle>
+        <Card className="bloco-concreto">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-[10px] font-black uppercase tracking-wider text-cement">Ações Criadas</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold">{receipt.actions.totalActions}</p>
+            <p className="text-2xl font-black text-charcoal">{receipt.actions.totalActions}</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
-        <Card>
+      {/* Painéis Centrais */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="bloco-concreto">
           <CardHeader>
-            <CardTitle>O que foi ouvido (Principais Temas)</CardTitle>
+            <CardTitle className="text-sm font-black uppercase tracking-wider text-charcoal">O que foi ouvido (Principais Temas)</CardTitle>
           </CardHeader>
           <CardContent>
             {receipt.topics.topics.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum tema destacado no período.</p>
+              <p className="text-xs text-cement italic">Nenhum tema destacado no período.</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {receipt.topics.topics.map((t, idx) => (
-                  <li key={idx} className="flex justify-between items-center border-b pb-2">
-                    <span className="font-medium">{t.name}</span>
-                    <Badge variant="secondary">{t.interactionCount} interações</Badge>
+                  <li key={idx} className="flex justify-between items-center border-b border-cement/20 pb-2">
+                    <span className="font-bold text-xs text-charcoal">{t.name}</span>
+                    <Badge variant="outline" className="border-black font-mono text-[10px]">
+                      {t.interactionCount} interações
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -111,67 +115,87 @@ export default async function PublicListeningReceiptPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bloco-concreto">
           <CardHeader>
-            <CardTitle>O que estamos fazendo (Ações)</CardTitle>
+            <CardTitle className="text-sm font-black uppercase tracking-wider text-charcoal">O que estamos fazendo (Ações)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-2 text-center mb-4">
-              <div className="p-3 bg-slate-50 rounded-md">
-                <p className="text-2xl font-bold text-slate-700">{receipt.actions.plannedActions}</p>
-                <p className="text-xs text-muted-foreground">Planejadas</p>
+            <div className="grid grid-cols-3 gap-3 text-center mb-4">
+              <div className="p-3 border-2 border-black bg-zinc-50 dark:bg-zinc-800 rounded-[2px]">
+                <p className="text-xl font-black text-charcoal dark:text-off-white">{receipt.actions.plannedActions}</p>
+                <p className="text-[9px] font-black uppercase tracking-wider text-cement">Planejadas</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-md">
-                <p className="text-2xl font-bold text-blue-700">{receipt.actions.doingActions}</p>
-                <p className="text-xs text-muted-foreground">Em andamento</p>
+              <div className="p-3 border-2 border-black bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 rounded-[2px]">
+                <p className="text-xl font-black text-amber-700 dark:text-burnt-yellow">{receipt.actions.doingActions}</p>
+                <p className="text-[9px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">Em curso</p>
               </div>
-              <div className="p-3 bg-green-50 rounded-md">
-                <p className="text-2xl font-bold text-green-700">{receipt.actions.doneActions}</p>
-                <p className="text-xs text-muted-foreground">Concluídas</p>
+              <div className="p-3 border-2 border-black bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 rounded-[2px]">
+                <p className="text-xl font-black text-emerald-700 dark:text-emerald-400">{receipt.actions.doneActions}</p>
+                <p className="text-[9px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Concluídas</p>
               </div>
             </div>
             {receipt.actions.totalActions === 0 ? (
-              <p className="text-sm text-muted-foreground">As respostas estruturadas ainda estão em formulação.</p>
+              <p className="text-xs text-cement italic">As respostas estruturadas ainda estão em formulação.</p>
             ) : (
-              <p className="text-sm">As ações corretivas respondem aos principais polos de silêncio e demandas reprimidas identificadas neste recibo.</p>
+              <p className="text-xs text-cement">
+                As ações corretivas respondem aos principais polos de silêncio e demandas territoriais coletadas no período.
+              </p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mb-6">
-        <Card className="bg-slate-900 text-slate-50">
-          <CardHeader>
-            <CardTitle className="text-slate-100">Copiar legenda (Instagram/Facebook)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm mb-4 text-slate-300">Use com as imagens geradas (Cards 1:1 ou 3:4).</p>
-            <div className="p-4 bg-slate-800 rounded-md border border-slate-700 font-mono text-sm break-words whitespace-pre-wrap">
-              {shareLegend}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Copiadores de Legenda/Texto Interativos */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <CopyShareCard
+          title="Copiar legenda (Instagram/Facebook)"
+          description="Use com as imagens geradas (Cards 1:1 ou 3:4)."
+          text={shareLegend}
+          buttonLabel="Copiar Legenda"
+        />
 
-        <Card className="bg-slate-900 text-slate-50">
-          <CardHeader>
-            <CardTitle className="text-slate-100">Copiar texto (WhatsApp)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm mb-4 text-slate-300">Copie o texto abaixo e compartilhe nos grupos para devolver o resultado da escuta à população de forma transparente.</p>
-            <div className="p-4 bg-slate-800 rounded-md border border-slate-700 font-mono text-sm break-words whitespace-pre-wrap">
-              {shareText}
-            </div>
-          </CardContent>
-        </Card>
+        <CopyShareCard
+          title="Copiar texto (WhatsApp)"
+          description="Compartilhe nos grupos para devolver o resultado da escuta à população de forma transparente."
+          text={shareText}
+          buttonLabel="Copiar Texto"
+        />
       </div>
       
-      <p className="text-xs text-center text-muted-foreground mt-8 mb-4">
-        Atualizado em: {new Date(receipt.lastUpdatedAt).toLocaleString("pt-BR")}. Recibo público agregado. Não contém dados pessoais, comentários brutos nem perfilamento individual.
+      <p className="text-[10px] text-center text-cement mt-8">
+        Atualizado em: {new Date(receipt.lastUpdatedAt).toLocaleString("pt-BR")}. Recibo público agregado.
       </p>
+    </div>
+  );
 
-      {isInternal && (
+  if (isInternal) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Recibo Público da Escuta"
+          description="A prestação de contas transparente do Radar de Base. Veja o que foi ouvido e o que estamos fazendo."
+        />
+        
+        {pageContent}
+
         <DistributionPanel logs={distributionLogs} />
-      )}
-    </AppShell>
+      </AppShell>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <div className="mb-8">
+          <p className="text-xs font-black uppercase tracking-widest text-cement">Radar de Base</p>
+          <h1 className="mt-2 text-3xl font-black uppercase tracking-tight text-charcoal">Recibo Público da Escuta</h1>
+          <p className="mt-3 text-cement text-sm">
+            A prestação de contas transparente da pré-campanha de Volta Redonda. Veja o que foi ouvido e o que estamos fazendo.
+          </p>
+        </div>
+
+        {pageContent}
+      </div>
+    </main>
   );
 }
