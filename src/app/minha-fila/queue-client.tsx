@@ -225,6 +225,15 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return 0;
   });
 
+  const [soundPlayed, setSoundPlayed] = useState(false);
+
+  useEffect(() => {
+    if (queue.length === 0 && initialQueue.length > 0 && !soundPlayed) {
+      playSynthSuccess();
+      setSoundPlayed(true);
+    }
+  }, [queue.length, initialQueue.length, soundPlayed]);
+
   const incrementStreak = () => {
     setStreak((prev) => {
       const next = prev + 1;
@@ -545,6 +554,83 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               >
                 Ver fila completa ({queue.length} pessoas)
               </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (initialQueue.length > 0) {
+      return (
+        <div className="mx-auto max-w-5xl px-4 py-10">
+          <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
+            <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div className="absolute bottom-6 right-6 text-burnt-yellow/45 animate-pulse">
+              <Sparkles className="h-6 w-6" />
+            </div>
+
+            <div className="relative flex flex-col items-center justify-center text-center space-y-8 py-12">
+              <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                <Flame className="h-3.5 w-3.5 fill-burnt-yellow" />
+                Fila Limpa • Vitória
+              </div>
+
+              <div className="space-y-3 max-w-2xl">
+                <h2 className="text-4xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
+                  Missão Cumprida!
+                </h2>
+                <p className="text-sm font-semibold leading-6 text-zinc-300 max-w-lg mx-auto">
+                  Excelente trabalho, <span className="text-white font-bold">{operatorName}</span>! Você processou todos os contatos da sua fila de hoje. A base de dados agora está em paz e atualizada.
+                </p>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid gap-4 sm:grid-cols-3 w-full max-w-2xl mt-4">
+                <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
+                  <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Contatos Hoje</span>
+                  <span className="text-3xl font-black text-white mt-2">{initialQueue.length}</span>
+                  <span className="text-[10px] text-zinc-500 font-semibold mt-1">Concluídos na sessão</span>
+                </div>
+                <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/15 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.3)] flex flex-col items-center justify-center">
+                  <span className="text-xs font-black uppercase tracking-[0.15em] text-burnt-yellow flex items-center gap-1"><Flame className="h-3.5 w-3.5 fill-burnt-yellow" /> Ações Diárias</span>
+                  <span className="text-3xl font-black text-burnt-yellow mt-2">{streak}</span>
+                  <span className="text-[10px] text-burnt-yellow/80 font-semibold mt-1">Em sequência diária</span>
+                </div>
+                <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
+                  <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Combo Ativo</span>
+                  <span className="text-3xl font-black text-white mt-2">{multiDayStreak} {multiDayStreak === 1 ? 'Dia' : 'Dias'}</span>
+                  <span className="text-[10px] text-zinc-500 font-semibold mt-1">Frequência mantida 🔥</span>
+                </div>
+              </div>
+
+              {/* Operator Wellness & Zen Check */}
+              <div className="border-2 border-cement bg-charcoal/40 p-4 max-w-md rounded-[2px] text-xs font-semibold leading-normal text-zinc-400">
+                <p className="text-white uppercase font-black tracking-widest text-[10px] mb-1 flex items-center justify-center gap-1.5">
+                  🧘 Ritmo Concreto Zen
+                </p>
+                A consistência protege contra o burnout. Seus dias de descanso programados estão mantendo sua saúde mental e seu combo de dias protegidos. Respire, hidrate-se e descanse!
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button
+                  className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
+                  nativeButton={false}
+                  render={<Link href="/dashboard" />}
+                >
+                  Ir para o Painel
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 shadow-[3px_3px_0px_0px_rgba(255,255,255,0.05)]"
+                  onClick={() => {
+                    playSynthSuccess();
+                  }}
+                >
+                  🔊 Tocar Comemoração
+                </Button>
+              </div>
             </div>
           </div>
         </div>
