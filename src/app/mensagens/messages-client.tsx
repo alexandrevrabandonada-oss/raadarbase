@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { 
   Copy, 
   Plus, 
@@ -91,6 +91,13 @@ const announcementFormats = [
     body: "Quero contar com clareza: estou me apresentando como pre-candidato. Esta primeira fase e para a cidade saber disso, ouvir as pautas que aparecem e organizar os proximos encontros com responsabilidade.",
   },
 ] as const;
+
+interface AnnouncementFormat {
+  id: string;
+  label: string;
+  detail: string;
+  body: string;
+}
 
 // Sub-component for sidebar content to avoid duplicate layouts for mobile vs desktop
 interface SidebarContentProps {
@@ -304,6 +311,38 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [announcementPublications, setAnnouncementPublications] = useState(readAnnouncementPublicationState);
+  const [announcements, setAnnouncements] = useState<AnnouncementFormat[]>(() =>
+    announcementFormats.map((f) => ({ ...f }))
+  );
+
+  useEffect(() => {
+    const saved = localStorage.getItem("radar_announcement_formats:v1");
+    if (saved) {
+      try {
+        setAnnouncements(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved announcements", e);
+      }
+    }
+  }, []);
+
+  const handleAnnouncementChange = (id: string, newBody: string) => {
+    const updated = announcements.map((f) =>
+      f.id === id ? { ...f, body: newBody } : f
+    );
+    setAnnouncements(updated);
+    localStorage.setItem("radar_announcement_formats:v1", JSON.stringify(updated));
+  };
+
+  const handleResetAnnouncements = () => {
+    if (confirm("Deseja realmente restaurar os comunicados originais?")) {
+      const defaults = announcementFormats.map((f) => ({ ...f }));
+      setAnnouncements(defaults);
+      localStorage.removeItem("radar_announcement_formats:v1");
+      setFeedback("Comunicados originais restaurados.");
+      setTimeout(() => setFeedback(null), 2000);
+    }
+  };
 
   const checklistItems = [
     { id: "check-1", label: "Abrir /pessoas e ver a 'Rotina do Dia'." },
@@ -425,22 +464,31 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
         <CardContent className="space-y-5 p-5">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center border-2 border-charcoal bg-burnt-yellow text-charcoal">
-                <Megaphone className="h-5 w-5" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center border-2 border-charcoal bg-burnt-yellow text-charcoal">
+                  <Megaphone className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b7759]">
+                    Preparar primeira fala
+                  </p>
+                  <h2 className="text-xl font-black tracking-tight text-charcoal">
+                    Comunicado publico da temporada
+                  </h2>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b7759]">
-                  Preparar primeira fala
-                </p>
-                <h2 className="text-xl font-black tracking-tight text-charcoal">
-                  Comunicado publico da temporada
-                </h2>
-              </div>
+              <Button
+                type="button"
+                onClick={handleResetAnnouncements}
+                className="self-start sm:self-auto h-8 border-2 border-charcoal bg-transparent hover:bg-red-50 text-[10px] font-black uppercase tracking-[0.15em] text-red-700 hover:text-red-800"
+              >
+                Restaurar Padrão
+              </Button>
             </div>
 
               <p className="max-w-2xl text-sm font-semibold leading-6 text-[#4b4337]">
-                Esta rodada existe para abrir conhecimento publico da pre-candidatura. Publique primeiro; organize os retornos depois.
+                Esta rodada existe para abrir conhecimento publico da pre-candidatura. Edite os textos abaixo para personalizar (salvo automaticamente no seu navegador).
               </p>
             </div>
 
@@ -460,7 +508,7 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="grid gap-3 md:grid-cols-3">
-              {announcementFormats.map((format) => (
+              {announcements.map((format) => (
                 <div key={format.id} className="flex min-w-0 flex-col border-2 border-charcoal bg-white p-3 shadow-[2px_2px_0px_0px_rgba(11,11,11,0.16)]">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div>
@@ -470,9 +518,10 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
                     <Radio className="h-4 w-4 shrink-0 text-burnt-yellow" />
                   </div>
                   <Textarea
-                    readOnly
                     value={format.body}
-                    className="min-h-[150px] flex-1 border-2 border-[#d8c7ac] bg-[#fff8ed] text-xs font-semibold leading-5 text-charcoal"
+                    onChange={(e) => handleAnnouncementChange(format.id, e.target.value)}
+                    className="min-h-[150px] flex-1 border-2 border-[#d8c7ac] bg-[#fff8ed] text-xs font-semibold leading-5 text-charcoal focus-visible:ring-1 focus-visible:ring-charcoal"
+                    placeholder="Escreva o comunicado..."
                   />
                   <Button
                     type="button"
