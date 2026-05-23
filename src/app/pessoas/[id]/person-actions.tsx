@@ -232,7 +232,13 @@ export function PersonActions({
             <Button
               variant="outline"
               className="font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-              onClick={() => window.open(`https://instagram.com/${person.username}`, "_blank")}
+              onClick={() => {
+                const igUsername = person.username.replace(/^@+/, "");
+                const igUrl = profile.priority.instagramUrl?.includes("/direct/t/")
+                  ? profile.priority.instagramUrl
+                  : `https://www.instagram.com/direct/t/${igUsername}/`;
+                window.open(igUrl, "_blank");
+              }}
               disabled={!canApproach}
             >
               <Instagram className="mr-2 h-4 w-4" /> Instagram

@@ -173,7 +173,11 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             className="h-8 w-8 text-zinc-400 hover:bg-pink-50 hover:text-pink-600 disabled:cursor-not-allowed disabled:opacity-40"
             onClick={(e) => {
               e.stopPropagation();
-              window.open(person.instagramUrl || `https://instagram.com/${person.username}`, "_blank");
+              const igUsername = person.username.replace(/^@+/, "");
+              const igUrl = person.instagramUrl?.includes("/direct/t/")
+                ? person.instagramUrl
+                : `https://www.instagram.com/direct/t/${igUsername}/`;
+              window.open(igUrl, "_blank");
             }}
             disabled={isBlocked}
             title={isBlocked ? "Contato bloqueado" : "Abrir Instagram"}

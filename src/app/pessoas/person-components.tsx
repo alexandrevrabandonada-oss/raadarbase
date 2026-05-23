@@ -271,7 +271,10 @@ export function PersonListItem({ person, index, onActionComplete }: PersonCompon
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-pink-600 p-0" onClick={() => window.open(`https://instagram.com/${person.username}`, '_blank')}>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-pink-600 p-0" onClick={() => {
+                  const igUsername = person.username.replace(/^@+/, "");
+                  window.open(`https://www.instagram.com/direct/t/${igUsername}/`, '_blank');
+                }}>
                   <Instagram className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

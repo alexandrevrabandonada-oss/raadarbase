@@ -862,7 +862,11 @@ export function PersonQuickSheet({
                 className="h-12 flex-1 bg-[#13212b] font-black uppercase text-xs tracking-wider text-white shadow-lg shadow-[rgba(15,23,42,0.14)] hover:bg-[#0d1820]"
                 onClick={() => {
                   trackOperationalEvent("instagram_opened", person.id);
-                  window.open(person.instagramUrl || `https://instagram.com/${person.username}`, '_blank');
+                  const igUsername = person.username.replace(/^@+/, "");
+                  const igUrl = person.instagramUrl?.includes("/direct/t/")
+                    ? person.instagramUrl
+                    : `https://www.instagram.com/direct/t/${igUsername}/`;
+                  window.open(igUrl, '_blank');
                 }}
                 disabled={isBlocked}
               >
