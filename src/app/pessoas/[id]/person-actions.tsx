@@ -96,6 +96,7 @@ export function PersonActions({
   const [status, setStatus] = useState<PersonStatus>(person.status);
   const [notes, setNotes] = useState(person.notes);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [copied, setCopied] = useState<"mensagem" | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<PersonReferralType | "">("");
@@ -127,8 +128,23 @@ export function PersonActions({
       : `https://www.instagram.com/direct/t/${igUsername}/`;
     window.open(igUrl, "_blank");
 
-    setCopyStatus("waiting");
-    setShowConfirmDialog(true);
+    const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
+
+    if (expressMode) {
+      toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
+      startTransition(async () => {
+        const result = await confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
+        if (result.ok) {
+          setCopyStatus("confirmed");
+          setStatus("abordado");
+        } else {
+          toast({ title: "Erro", description: result.error, variant: "destructive" });
+        }
+      });
+    } else {
+      setCopyStatus("waiting");
+      setShowConfirmDialog(true);
+    }
   }
 
   function handleConfirmSent() {

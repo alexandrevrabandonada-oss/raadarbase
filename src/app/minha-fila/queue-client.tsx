@@ -207,6 +207,21 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
   const [focusMode, setFocusMode] = useState(false);
+  const [expressMode, setExpressMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("radar_envio_expresso") === "true";
+    }
+    return false;
+  });
+
+  const handleToggleExpressMode = () => {
+    const nextVal = !expressMode;
+    setExpressMode(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("radar_envio_expresso", String(nextVal));
+    }
+  };
+
   const [streak, setStreak] = useState(() => {
     if (typeof window !== "undefined") {
       const today = new Date().toISOString().split("T")[0];
@@ -431,9 +446,35 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       const igUrl = currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${igUsername}/`;
       window.open(igUrl, "_blank");
 
-      toast({ title: "Mensagem copiada e direct aberto", description: "Envie a mensagem no Instagram e confirme." });
-      await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
-      setCopyStatus("waiting");
+      if (expressMode) {
+        toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato avançado!" });
+        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+        
+        startTransition(async () => {
+          const confirmResult = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+          if (confirmResult.ok) {
+            const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
+            if (responseResult.ok) {
+              playSynthSuccess();
+              incrementStreak();
+              
+              const newQueue = queue.filter((p) => p.id !== currentPerson.id);
+              setQueue(newQueue);
+              const nextFilteredLength = filterQuentes 
+                ? newQueue.filter((p) => p.temperature === "quente").length 
+                : newQueue.length;
+              if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
+                setCurrentIndex(Math.max(0, nextFilteredLength - 1));
+              }
+              setCopyStatus("idle");
+            }
+          }
+        });
+      } else {
+        toast({ title: "Mensagem copiada e direct aberto", description: "Envie a mensagem no Instagram e confirme." });
+        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+        setCopyStatus("waiting");
+      }
     }
   };
 
@@ -788,6 +829,25 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+              Envio:
+            </span>
+            <button
+              onClick={() => {
+                playSynthConfirm();
+                handleToggleExpressMode();
+              }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                expressMode
+                  ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+              )}
+            >
+              🚀 Envio Expresso {expressMode ? "Ativo" : "Inativo"}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
               Visualização:
             </span>
             <button
@@ -821,6 +881,20 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </h1>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    playSynthConfirm();
+                    handleToggleExpressMode();
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 h-8 px-2.5 border-2 text-[9px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                    expressMode
+                      ? "border-black bg-burnt-yellow text-charcoal shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
+                      : "border-white/20 bg-transparent text-zinc-400 hover:border-white hover:text-white"
+                  )}
+                >
+                  🚀 Expresso {expressMode ? "On" : "Off"}
+                </button>
                 <button
                   onClick={() => {
                     playSynthConfirm();

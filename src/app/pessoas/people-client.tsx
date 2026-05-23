@@ -67,6 +67,26 @@ export function PeopleClient({
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
+  const [expressMode, setExpressMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("radar_envio_expresso") === "true";
+    }
+    return false;
+  });
+
+  const handleToggleExpressMode = () => {
+    const nextVal = !expressMode;
+    setExpressMode(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("radar_envio_expresso", String(nextVal));
+    }
+    toast({
+      title: nextVal ? "Envio Expresso Ativado 🚀" : "Envio Expresso Desativado 🛑",
+      description: nextVal 
+        ? "DMs serão marcadas como enviadas instantaneamente ao copiar."
+        : "O modal de confirmação será exibido após copiar.",
+    });
+  };
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
@@ -333,7 +353,18 @@ export function PeopleClient({
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between w-full">
+                <button
+                  onClick={handleToggleExpressMode}
+                  className={cn(
+                    "flex items-center gap-1.5 h-9 px-3 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                    expressMode
+                      ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                      : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                  )}
+                >
+                  🚀 Envio Expresso {expressMode ? "On" : "Off"}
+                </button>
                 <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
                   <Button
                     variant={viewMode === "cards" ? "secondary" : "ghost"}
@@ -367,7 +398,18 @@ export function PeopleClient({
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleToggleExpressMode}
+                className={cn(
+                  "flex items-center gap-1.5 h-9 px-3 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                  expressMode
+                    ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                    : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                )}
+              >
+                🚀 Envio Expresso {expressMode ? "Ativo" : "Inativo"}
+              </button>
               <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
                 <Button
                   variant={viewMode === "cards" ? "secondary" : "ghost"}

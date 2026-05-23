@@ -416,25 +416,46 @@ export function PersonQuickSheet({
     
     // 1. Copiar
     await navigator.clipboard.writeText(text);
-    toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
     
-    // 2. Telemetria
-    if (isTraining) {
-      onTrainingAction?.("dm_copied", { location });
-    } else {
-      trackOperationalEvent("dm_copied", person.id, { location });
-      await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
-    }
-    
-    // 3. Abrir Direct do Instagram
+    // 2. Abrir Direct do Instagram
     const igUsername = person.username.replace(/^@+/, "");
     const igUrl = person.instagramUrl?.includes("/direct/t/")
       ? person.instagramUrl
       : `https://www.instagram.com/direct/t/${igUsername}/`;
     window.open(igUrl, "_blank");
 
-    // 4. Entrar em modo de confirmação
-    setCopyStatus("waiting");
+    const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
+
+    if (expressMode) {
+      toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
+      if (isTraining) {
+        onTrainingAction?.("dm_copied", { location });
+        onTrainingAction?.("dm_sent");
+        setCopyStatus("confirmed");
+      } else {
+        trackOperationalEvent("dm_copied", person.id, { location });
+        await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
+        
+        startTransition(async () => {
+          const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
+          if (result.ok) {
+            setCopyStatus("confirmed");
+            onActionComplete?.();
+          } else {
+            toast({ title: "Erro", description: result.error, variant: "destructive" });
+          }
+        });
+      }
+    } else {
+      toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
+      if (isTraining) {
+        onTrainingAction?.("dm_copied", { location });
+      } else {
+        trackOperationalEvent("dm_copied", person.id, { location });
+        await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
+      }
+      setCopyStatus("waiting");
+    }
   };
 
   const handleConfirmSent = async () => {

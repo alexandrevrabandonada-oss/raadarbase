@@ -47,8 +47,6 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     e.stopPropagation();
     if (person.suggestedMessage) {
       await navigator.clipboard.writeText(person.suggestedMessage);
-      toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
-      await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
       
       const igUsername = person.username.replace(/^@+/, "");
       const igUrl = person.instagramUrl?.includes("/direct/t/")
@@ -56,8 +54,25 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         : `https://www.instagram.com/direct/t/${igUsername}/`;
       window.open(igUrl, "_blank");
 
-      setCopyStatus("waiting");
-      setShowConfirmDialog(true);
+      const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
+
+      if (expressMode) {
+        toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
+        await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
+        startTransition(async () => {
+          const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
+          if (result.ok) {
+            setCopyStatus("confirmed");
+          } else {
+            toast({ title: "Erro", description: result.error, variant: "destructive" });
+          }
+        });
+      } else {
+        toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
+        await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
+        setCopyStatus("waiting");
+        setShowConfirmDialog(true);
+      }
     }
   };
 
