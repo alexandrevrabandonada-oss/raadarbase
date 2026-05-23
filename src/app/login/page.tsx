@@ -7,7 +7,7 @@ export default function LoginPage({
   searchParams?: Promise<{ next?: string; reason?: string }>;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4">
       <Suspense fallback={<div className="w-full max-w-md rounded-md border bg-card p-6">Carregando...</div>}>
         <LoginSection searchParams={searchParams} />
       </Suspense>
