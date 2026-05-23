@@ -46,4 +46,9 @@ supabase/.temp
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
+# temporary files & local runs
+/tmp/
+
+# logs & reports
+*lint*
+*.log
