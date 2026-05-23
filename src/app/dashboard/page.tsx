@@ -159,7 +159,7 @@ async function loadDashboardData() {
 
   const missionState = calculateOperatorMission({
     tasksAssumed: pilotStats.responsibleBreakdown.filter((item) => item.openTasks > 0).length,
-    tasksCompleted: pilotStats.funnel.approached,
+    tasksCompleted: pilotStats.summary.dmsConfirmedToday,
     repliesRecorded: pilotStats.summary.responsesRecorded,
     referralsMade: pilotStats.funnel.referred,
     stalePending: pilotStats.summary.staleTasksCount,
@@ -174,6 +174,7 @@ async function loadDashboardData() {
     stalePendenciesCount: pilotStats.summary.staleTasksCount,
     fieldActionsPlannedCount: plannedActions.length,
     weeklyClosureStarted: false,
+    dmsConfirmedThisWeekCount: pilotStats.summary.dmsConfirmedThisWeek,
   });
 
   const overallStatus = getOverallStatus({
@@ -293,6 +294,8 @@ async function loadDashboardData() {
       linksPrepared: collective.progress.linksPrepared,
       responsesRecorded: collective.progress.responsesRecorded,
       fieldActionsCompleted: collective.progress.fieldActionsCompleted,
+      dmsConfirmedToday: pilotStats.summary.dmsConfirmedToday,
+      dmsConfirmedThisWeek: pilotStats.summary.dmsConfirmedThisWeek,
     },
     integrationAlerts: {
       webhookQuarantineCount: operationalAlerts.webhookQuarantineCount,

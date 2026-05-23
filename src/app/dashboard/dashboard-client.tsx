@@ -122,6 +122,8 @@ export type DashboardViewData = {
     linksPrepared: number;
     responsesRecorded: number;
     fieldActionsCompleted: number;
+    dmsConfirmedToday: number;
+    dmsConfirmedThisWeek: number;
   };
   integrationAlerts: {
     webhookQuarantineCount: number;

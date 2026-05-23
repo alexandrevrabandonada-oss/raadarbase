@@ -318,7 +318,8 @@ export default async function RelatoriosPage() {
                   referralsMadeCount: pilotData.funnel.referred,
                   stalePendenciesCount: pilotData.summary.staleTasksCount,
                   fieldActionsPlannedCount: 1,
-                  weeklyClosureStarted: false
+                  weeklyClosureStarted: false,
+                  dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek
                 })}
               />
               <ContextHelpCard 
@@ -338,7 +339,8 @@ export default async function RelatoriosPage() {
                     referralsMadeCount: pilotData.funnel.referred,
                     stalePendenciesCount: pilotData.summary.staleTasksCount,
                     fieldActionsPlannedCount: 1,
-                    weeklyClosureStarted: false
+                    weeklyClosureStarted: false,
+                    dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek
                   })}
                   stats={{
                     topThemes: pilotData.retrospective?.responseRateByTheme.slice(0, 3) || [],

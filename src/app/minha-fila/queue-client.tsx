@@ -425,7 +425,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     if (currentPerson.suggestedMessage) {
       await navigator.clipboard.writeText(currentPerson.suggestedMessage);
       playSynthConfirm();
-      toast({ title: "Mensagem preparada", description: "Revise e envie manualmente no Instagram." });
+      
+      // Open Instagram direct link in a new tab
+      const igUsername = currentPerson.username.replace(/^@+/, "");
+      const igUrl = currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${igUsername}/`;
+      window.open(igUrl, "_blank");
+
+      toast({ title: "Mensagem copiada e direct aberto", description: "Envie a mensagem no Instagram e confirme." });
       await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
       setCopyStatus("waiting");
     }
@@ -926,7 +932,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                     "Pular Bloqueio"
                   ) : copyStatus === "waiting" ? (
                     <>
-                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Confirmar Envio
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Marcar como Enviado
                     </>
                   ) : copyStatus === "confirmed" ? (
                     <>
@@ -934,7 +940,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                     </>
                   ) : (
                     <>
-                      <Copy className="mr-1 h-3.5 w-3.5" /> Preparar
+                      <Copy className="mr-1 h-3.5 w-3.5" /> Copiar e Abrir Direct
                     </>
                   )}
                 </Button>
@@ -1079,10 +1085,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               label: currentBlocked
                 ? "Pular Bloqueio"
                 : copyStatus === "waiting"
-                  ? "Registrar Envio"
+                  ? "Marcar como Enviado"
                   : copyStatus === "confirmed"
                     ? "Próxima Pessoa"
-                    : "Preparar Mensagem",
+                    : "Copiar e Abrir Direct",
               onClick: currentBlocked
                 ? handleSkip
                 : copyStatus === "waiting"
@@ -1499,7 +1505,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                       onClick={handleCopyDM}
                       disabled={!currentPerson.suggestedMessage || currentBlocked}
                     >
-                      {currentBlocked ? "Contato indisponível" : "Preparar mensagem"}
+                      {currentBlocked ? "Contato indisponível" : "Copiar e Abrir Direct"}
                     </Button>
                   </div>
                 </div>

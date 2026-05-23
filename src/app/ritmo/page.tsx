@@ -80,7 +80,7 @@ export default async function RitmoPage() {
 
   const missionState = calculateOperatorMission({
     tasksAssumed: pilotData.responsibleBreakdown.filter((item) => item.openTasks > 0).length,
-    tasksCompleted: pilotData.funnel.approached,
+    tasksCompleted: pilotData.summary.dmsConfirmedToday,
     repliesRecorded: pilotData.summary.responsesRecorded,
     referralsMade: pilotData.funnel.referred,
     stalePending: pilotData.summary.staleTasksCount,
@@ -95,6 +95,7 @@ export default async function RitmoPage() {
     stalePendenciesCount: pilotData.summary.staleTasksCount,
     fieldActionsPlannedCount: plannedActions,
     weeklyClosureStarted: false,
+    dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek,
   });
 
   const legacyTerritoryAlert =

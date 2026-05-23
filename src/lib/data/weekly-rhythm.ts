@@ -23,6 +23,7 @@ export function calculateWeeklyRhythm(data: {
   stalePendenciesCount: number;
   fieldActionsPlannedCount: number;
   weeklyClosureStarted: boolean;
+  dmsConfirmedThisWeekCount: number;
 }): WeeklyRhythmState {
   const weekPhases: Record<number, WeeklyRhythmState["phase"]> = {
     1: { name: "Segunda: Preparar a base", description: "Organizar a fila e distribuir tarefas.", dayType: "preparar" },
@@ -37,12 +38,12 @@ export function calculateWeeklyRhythm(data: {
   const currentPhase = weekPhases[data.dayOfWeek] || weekPhases[1];
 
   const steps: MissionStep[] = [
-    { id: "distribuir_tarefas", label: "Tarefas distribuídas", isCompleted: data.tasksDistributed, isCritical: true },
-    { id: "assumir_tarefas", label: "Pessoas prioritárias revisadas", isCompleted: data.prioritiesReviewed, isCritical: true },
-    { id: "registrar_resposta", label: "Respostas registradas", isCompleted: data.responsesRecordedCount > 10, isCritical: true },
-    { id: "encaminhar_interessados", label: "Encaminhamentos feitos", isCompleted: data.referralsMadeCount > 5, isCritical: false },
-    { id: "revisar_pendencias", label: "Pendências antigas revisadas", isCompleted: data.stalePendenciesCount < 3, isCritical: true },
-    { id: "fechar_relatorio", label: "Ações de campo planejadas", isCompleted: data.fieldActionsPlannedCount > 0, isCritical: false },
+    { id: "registrar_resposta", label: "Mandar 15 DMs na semana", isCompleted: data.dmsConfirmedThisWeekCount >= 15, isCritical: true },
+    { id: "encaminhar_interessados", label: "Mandar 50 DMs na semana", isCompleted: data.dmsConfirmedThisWeekCount >= 50, isCritical: true },
+    { id: "fechar_relatorio", label: "Mandar 100 DMs na semana (Elite)", isCompleted: data.dmsConfirmedThisWeekCount >= 100, isCritical: false },
+    { id: "revisar_pendencias", label: "Pendências da semana sob controle", isCompleted: data.stalePendenciesCount < 3, isCritical: true },
+    { id: "distribuir_tarefas", label: "Ações distribuídas na base", isCompleted: data.tasksDistributed, isCritical: true },
+    { id: "assumir_tarefas", label: "Escuta ativa nos territórios", isCompleted: data.fieldActionsPlannedCount > 0, isCritical: false },
     { id: "finalizar_fila", label: "Fechamento semanal iniciado", isCompleted: data.weeklyClosureStarted, isCritical: false },
   ];
 

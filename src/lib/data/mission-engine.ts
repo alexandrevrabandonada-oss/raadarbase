@@ -38,28 +38,24 @@ export function calculateOperatorMission(data: {
   const steps: MissionStep[] = [
     {
       id: "assumir_tarefas",
-      label: "Assumir tarefas prioritárias",
-      isCompleted: data.tasksAssumed > 0,
+      label: "Mandar 5 DMs hoje (Meta inicial)",
+      isCompleted: data.tasksCompleted >= 5,
       isCritical: true,
-      hint: "Pegue novos vínculos na lista operacional",
+      hint: "Preparar e enviar pelo menos 5 mensagens",
     },
     {
       id: "confirmar_dm",
-      label: "Confirmar envios de DM",
-      isCompleted: data.tasksCompleted > 0,
+      label: "Mandar 15 DMs hoje (Ritmo de base)",
+      isCompleted: data.tasksCompleted >= 15,
       isCritical: true,
+      hint: "Mantenha o contato diário consistente",
     },
     {
       id: "registrar_resposta",
-      label: "Registrar respostas recebidas",
-      isCompleted: data.repliesRecorded > 0,
-      isCritical: true,
-    },
-    {
-      id: "encaminhar_interessados",
-      label: "Fazer encaminhamentos",
-      isCompleted: data.referralsMade > 0,
+      label: "Mandar 30 DMs hoje (Meta de elite)",
+      isCompleted: data.tasksCompleted >= 30,
       isCritical: false,
+      hint: "Alta performance de abordagens",
     },
     {
       id: "revisar_pendencias",
@@ -70,8 +66,8 @@ export function calculateOperatorMission(data: {
     },
     {
       id: "finalizar_fila",
-      label: "Finalizar fila do dia",
-      isCompleted: data.tasksAssumed > 0 && data.stalePending === 0 && data.tasksCompleted > 0,
+      label: "Meta diária concluída",
+      isCompleted: data.tasksCompleted >= 15 && data.stalePending === 0,
       isCritical: false,
     },
   ];

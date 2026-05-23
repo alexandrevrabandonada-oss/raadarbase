@@ -19,6 +19,7 @@ export type PilotDashboardData = {
     archivedWithoutReturnCount: number;
     dmsPreparedToday: number;
     dmsConfirmedToday: number;
+    dmsConfirmedThisWeek: number;
     forgetfulnessRate: number; // 0-100
     territoriesInMobilization: number;
     fieldActionsCompleted: number;
@@ -46,6 +47,7 @@ export type PilotDashboardData = {
     tasksWithoutResponsible: number;
     dmsPreparedWithoutConfirmation: number;
     territoriesWithoutRecentAction: number;
+    dmsConfirmedThisWeek: number;
   };
   ethics: {
     doNotContactRespected: number;
@@ -77,6 +79,7 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
         archivedWithoutReturnCount: 18,
         dmsPreparedToday: 40,
         dmsConfirmedToday: 32,
+        dmsConfirmedThisWeek: 115,
         forgetfulnessRate: 20,
         territoriesInMobilization: 8,
         fieldActionsCompleted: 5,
@@ -101,6 +104,7 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
         tasksWithoutResponsible: 8,
         dmsPreparedWithoutConfirmation: 8,
         territoriesWithoutRecentAction: 2,
+        dmsConfirmedThisWeek: 115,
       },
       ethics: {
         doNotContactRespected: 3,
@@ -141,7 +145,8 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
     { count: waiting7DaysCount },
     { count: archivedWithoutReturnCount },
     { count: dmsPreparedToday },
-    { count: dmsConfirmedToday }
+    { count: dmsConfirmedToday },
+    { count: dmsConfirmedThisWeek }
   ] = await Promise.all([
     supabase.from("ig_people").select("*", { count: "exact", head: true }).gte("created_at", todayIso),
     supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).is("completed_at", null),
@@ -156,6 +161,7 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
     supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("column_key", "nao_insistir").is("completed_at", null),
     supabase.from("audit_logs").select("*", { count: "exact", head: true }).eq("action", "contact.dm_prepared").gte("created_at", todayIso),
     supabase.from("audit_logs").select("*", { count: "exact", head: true }).eq("action", "contact.dm_sent").gte("created_at", todayIso),
+    supabase.from("audit_logs").select("*", { count: "exact", head: true }).eq("action", "contact.dm_sent").gte("created_at", sevenDaysIso),
   ]);
 
   const prepared = dmsPreparedToday || 0;
@@ -267,6 +273,7 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
       archivedWithoutReturnCount: archivedWithoutReturnCount || 0,
       dmsPreparedToday: prepared,
       dmsConfirmedToday: confirmed,
+      dmsConfirmedThisWeek: dmsConfirmedThisWeek || 0,
       forgetfulnessRate: forgetfulnessRate,
       territoriesInMobilization: 0,
       fieldActionsCompleted: 0,
@@ -288,6 +295,7 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
       tasksWithoutResponsible: tasksWithoutResponsible || 0,
       dmsPreparedWithoutConfirmation: (prepared - confirmed),
       territoriesWithoutRecentAction: 0,
+      dmsConfirmedThisWeek: dmsConfirmedThisWeek || 0,
     },
     ethics: {
       doNotContactRespected: doNotContactCount || 0,

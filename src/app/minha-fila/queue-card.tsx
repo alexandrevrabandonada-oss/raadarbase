@@ -220,7 +220,7 @@ export function QueueCard({
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
                     <div className="space-y-3">
                       <p className="text-xs font-bold leading-relaxed text-off-white">
-                        Texto copiado. Abra o Instagram, personalize e confirme apenas depois de mandar manualmente.
+                        Texto copiado e direct aberto. Envie a mensagem no Instagram e marque abaixo.
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <Button
@@ -229,7 +229,7 @@ export function QueueCard({
                           onClick={onConfirmSent}
                         >
                           <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                          Confirmar envio
+                          Marcar como Enviado
                         </Button>
                         <Button
                           size="sm"
@@ -309,7 +309,7 @@ export function QueueCard({
                         <h3 className="mt-1 text-lg font-black tracking-tight text-charcoal">Uma pessoa, uma mensagem, um registro.</h3>
                       </div>
                       <p className="max-w-md text-xs font-semibold leading-5 text-[#645845]">
-                        Copie a fala, personalize no Instagram e confirme apenas depois do envio manual.
+                        Copia a fala, abre o Direct do Instagram em 1 clique e marca como enviado após o envio manual.
                       </p>
                     </div>
 
@@ -317,22 +317,22 @@ export function QueueCard({
                       <div className={quickStepTone(copyStatus === "idle", copyStatus !== "idle")}>
                         <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">1</span>
                         <span className="min-w-0">
-                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Preparar texto</span>
-                          <span className="mt-1 block text-xs font-semibold leading-4">Copiar o modelo desta pessoa.</span>
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Copiar e Abrir</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Copia o texto e abre o direct.</span>
                         </span>
                       </div>
                       <div className={quickStepTone(copyStatus === "waiting", copyStatus === "confirmed")}>
                         <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">2</span>
                         <span className="min-w-0">
-                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Enviar manualmente</span>
-                          <span className="mt-1 block text-xs font-semibold leading-4">Abrir Instagram e revisar antes de mandar.</span>
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Enviar mensagem</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Revisar e enviar no chat do Instagram.</span>
                         </span>
                       </div>
                       <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
                         <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
                         <span className="min-w-0">
-                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Registrar envio</span>
-                          <span className="mt-1 block text-xs font-semibold leading-4">Salvar que esta pessoa já recebeu.</span>
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Marcar Enviado</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">Confirmar e registrar o envio.</span>
                         </span>
                       </div>
                     </div>
@@ -395,22 +395,22 @@ export function QueueCard({
                   <div className={quickStepTone(copyStatus === "idle", copyStatus !== "idle")}>
                     <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">1</span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Preparar texto</span>
-                      <span className="mt-1 block text-xs font-semibold leading-4">Copiar o modelo desta pessoa.</span>
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Copiar texto</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Copia o modelo da abordagem.</span>
                     </span>
                   </div>
                   <div className={quickStepTone(copyStatus === "waiting", copyStatus === "confirmed")}>
                     <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">2</span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Enviar manualmente</span>
-                      <span className="mt-1 block text-xs font-semibold leading-4">Abrir Instagram e revisar antes de mandar.</span>
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Colar e Enviar</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Cole no chat do Instagram.</span>
                     </span>
                   </div>
                   <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
                     <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Registrar envio</span>
-                      <span className="mt-1 block text-xs font-semibold leading-4">Salvar que esta pessoa já recebeu.</span>
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Confirmar envio</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">Marque como enviado no CRM.</span>
                     </span>
                   </div>
                 </div>
@@ -487,7 +487,7 @@ export function QueueCard({
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
                       <div className="space-y-3">
                         <p className="text-xs font-bold leading-relaxed text-off-white">
-                          Texto copiado. Abra o Instagram, personalize e confirme apenas depois de mandar manualmente.
+                          Texto copiado e direct aberto. Envie a mensagem no Instagram e marque abaixo.
                         </p>
                         <div className="flex flex-col gap-2 sm:flex-row">
                           <Button
@@ -496,7 +496,7 @@ export function QueueCard({
                             onClick={onConfirmSent}
                           >
                             <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                            Confirmar envio
+                            Marcar como Enviado
                           </Button>
                           <Button
                             size="sm"
@@ -567,7 +567,7 @@ export function QueueCard({
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button
               size="lg"
-              className="h-12 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
+              className="h-12 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider text-xs"
               onClick={copyStatus === "waiting" ? onConfirmSent : copyStatus === "confirmed" ? onNext : onCopyDM}
               disabled={copyStatus === "idle" && (!person.suggestedMessage || isBlocked)}
             >
@@ -578,7 +578,7 @@ export function QueueCard({
               ) : (
                 <Copy className="mr-2 h-4 w-4" />
               )}
-              {copyStatus === "waiting" ? "Registrar envio" : copyStatus === "confirmed" ? "Próxima pessoa" : "Preparar mensagem"}
+              {copyStatus === "waiting" ? "Marcar como Enviado" : copyStatus === "confirmed" ? "Próxima pessoa" : "Copiar e Abrir Direct"}
             </Button>
 
             <Button
