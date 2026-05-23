@@ -37,6 +37,8 @@ interface QueueCardProps {
   compact?: boolean;
   contactDisabled?: boolean;
   focusMode?: boolean;
+  editedMessage?: string;
+  setEditedMessage?: (text: string) => void;
 }
 
 function resolvePhaseRibbon(person: PriorityPerson) {
@@ -88,6 +90,8 @@ export function QueueCard({
   compact = false,
   contactDisabled = false,
   focusMode = false,
+  editedMessage = "",
+  setEditedMessage,
 }: QueueCardProps) {
   const isBlocked = Boolean(contactDisabled || mission?.state === "BLOQUEADA" || mission?.guardrail.blocksContact || person.riskFlags.doNotContact);
   const phase = resolvePhaseRibbon(person);
@@ -189,9 +193,19 @@ export function QueueCard({
                   Mensagem para envio individual
                 </label>
                 <div className="relative">
-                  <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
-                    {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
-                  </div>
+                  {setEditedMessage ? (
+                    <textarea
+                      value={editedMessage}
+                      onChange={(e) => setEditedMessage(e.target.value)}
+                      className={cn("w-full rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal focus:ring-0 focus:outline-none resize-y", compact ? "min-h-[140px]" : "min-h-[168px]")}
+                      disabled={isBlocked}
+                      placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
+                    />
+                  ) : (
+                    <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
+                      {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+                    </div>
+                  )}
                   {person.suggestedMessage && (
                     <Button
                       size="icon"
@@ -456,9 +470,19 @@ export function QueueCard({
                     Mensagem para envio individual
                   </label>
                   <div className="relative">
-                    <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
-                      {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
-                    </div>
+                    {setEditedMessage ? (
+                      <textarea
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        className={cn("w-full rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal focus:ring-0 focus:outline-none resize-y", compact ? "min-h-[140px]" : "min-h-[168px]")}
+                        disabled={isBlocked}
+                        placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
+                      />
+                    ) : (
+                      <div className={cn("rounded-[2px] border-2 border-black bg-white p-5 text-sm font-medium leading-relaxed text-charcoal", compact ? "min-h-[140px]" : "min-h-[168px]")}>
+                        {person.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
+                      </div>
+                    )}
                     {person.suggestedMessage && (
                       <Button
                         size="icon"

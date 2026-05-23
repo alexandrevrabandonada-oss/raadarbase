@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { 
   Copy, 
   Flag, 
@@ -104,6 +104,11 @@ export function PersonActions({
   const [referralNotes, setReferralNotes] = useState("");
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
+
+  useEffect(() => {
+    setEditedMessage(profile.priority.suggestedMessage || "");
+  }, [profile.priority.suggestedMessage]);
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
   const contactGuardrailCopy =
@@ -114,8 +119,9 @@ export function PersonActions({
       : profile.priority.nextAction;
 
   async function copyMessage() {
-    if (!profile.priority.suggestedMessage) return;
-    await navigator.clipboard.writeText(profile.priority.suggestedMessage);
+    const messageToCopy = editedMessage || profile.priority.suggestedMessage || "";
+    if (!messageToCopy) return;
+    await navigator.clipboard.writeText(messageToCopy);
     setCopied("mensagem");
     
     // Telemetria
@@ -232,7 +238,7 @@ export function PersonActions({
               <Instagram className="mr-2 h-4 w-4" /> Instagram
             </Button>
           )}
-          {profile.priority.suggestedMessage && (
+          {editedMessage && (
             <Button 
               variant="outline" 
               className={cn(
@@ -378,14 +384,18 @@ export function PersonActions({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="bg-white p-4 rounded-[2px] border-2 border-black shadow-inner text-sm font-semibold leading-relaxed mb-4 text-charcoal">
-                  {profile.priority.suggestedMessage || "Sem mensagem sugerida para este contexto."}
-                </div>
+                <textarea
+                  value={editedMessage}
+                  onChange={(e) => setEditedMessage(e.target.value)}
+                  className="w-full min-h-[140px] bg-white p-4 rounded-[2px] border-2 border-black shadow-inner text-sm font-semibold leading-relaxed mb-4 text-charcoal focus:ring-0 focus:outline-none resize-y"
+                  disabled={!canApproach}
+                  placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
+                />
                 <div className="flex items-center justify-between">
                    <p className="text-[10px] font-bold text-burnt-yellow uppercase tracking-widest flex items-center gap-1">
                      <AlertTriangle className="h-3 w-3 text-burnt-yellow" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
-                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage || !canApproach} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+                   <Button onClick={copyMessage} disabled={!editedMessage || !canApproach} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
                      <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado e Aberto" : "Copiar e Abrir Direct"}
                    </Button>
                 </div>

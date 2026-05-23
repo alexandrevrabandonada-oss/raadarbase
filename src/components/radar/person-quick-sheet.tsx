@@ -271,6 +271,7 @@ export function PersonQuickSheet({
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
+  const [editedMessage, setEditedMessage] = React.useState("");
 
   const loadHistory = React.useCallback(async (personId: string) => {
     if (isTraining) {
@@ -308,6 +309,7 @@ export function PersonQuickSheet({
       setNote(person.notes || "");
       loadHistory(person.id);
       loadEvents();
+      setEditedMessage(person.suggestedMessage || "");
     }
   }, [open, person, loadHistory, loadEvents]);
 
@@ -653,23 +655,27 @@ export function PersonQuickSheet({
                   <div className="space-y-4">
                     <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Modelo de conversa</label>
                     <div className="relative group">
-                      <div className={cn(
-                        "min-h-[100px] rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.94)] p-5 text-sm font-medium italic leading-relaxed text-zinc-700 shadow-sm transition-all",
-                        copyStatus === "waiting" && "border-[#d5b378] bg-[rgba(212,182,120,0.08)]"
-                      )}>
-                        {person.suggestedMessage || "Nenhum modelo específico sugerido para este caso."}
-                      </div>
+                      <textarea
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        className={cn(
+                          "w-full min-h-[120px] rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.94)] p-5 text-sm font-medium leading-relaxed text-zinc-700 shadow-sm transition-all focus:ring-0 focus:outline-none resize-y",
+                          copyStatus === "waiting" && "border-[#d5b378] bg-[rgba(212,182,120,0.08)]"
+                        )}
+                        disabled={isBlocked}
+                        placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
+                      />
                       {missionView.manualMessageWarning ? (
                         <p className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">
                           {missionView.manualMessageWarning}
                         </p>
                       ) : null}
-                      {person.suggestedMessage && !isBlocked && copyStatus === "idle" && (
+                      {editedMessage && !isBlocked && copyStatus === "idle" && (
                         <Button 
                           size="icon" 
                           variant="secondary" 
                           className="absolute bottom-3 right-3 h-8 w-8"
-                          onClick={() => handleCopyDM(person.suggestedMessage!, "suggested_message")}
+                          onClick={() => handleCopyDM(editedMessage, "suggested_message")}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -871,8 +877,8 @@ export function PersonQuickSheet({
                       variant={copyStatus === "waiting" ? "default" : "outline"}
                       className={cn("h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]", copyStatus === "waiting" && "border-[#13212b] bg-[#13212b] text-white")} 
                       title="Copiar e Abrir Direct" 
-                      disabled={!person.suggestedMessage || isPending} 
-                      onClick={() => handleCopyDM(person.suggestedMessage!, "floating_footer")}
+                      disabled={!editedMessage || isPending} 
+                      onClick={() => handleCopyDM(editedMessage, "floating_footer")}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>

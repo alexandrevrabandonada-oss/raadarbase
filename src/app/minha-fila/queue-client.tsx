@@ -190,6 +190,46 @@ function missionFeedback(kind: PersonResponseKind) {
   }
 }
 
+function getDailyGoalStatus(streak: number) {
+  if (streak < 5) {
+    return {
+      current: streak,
+      target: 5,
+      label: "Meta Inicial",
+      remaining: 5 - streak,
+      emoji: "🧱",
+      message: `Você enviou ${streak}/5 DMs hoje. Faltam ${5 - streak} para a Meta Inicial!`,
+    };
+  } else if (streak < 15) {
+    return {
+      current: streak,
+      target: 15,
+      label: "Ritmo de Base",
+      remaining: 15 - streak,
+      emoji: "🔥",
+      message: `Você enviou ${streak}/15 DMs hoje. Faltam ${15 - streak} para o Ritmo de Base!`,
+    };
+  } else if (streak < 30) {
+    return {
+      current: streak,
+      target: 30,
+      label: "Meta de Elite",
+      remaining: 30 - streak,
+      emoji: "🏆",
+      message: `Você enviou ${streak}/30 DMs hoje. Faltam ${30 - streak} para a Meta de Elite!`,
+    };
+  } else {
+    return {
+      current: streak,
+      target: 30,
+      label: "Campeão do Dia",
+      remaining: 0,
+      emoji: "👑",
+      message: `Incrível! Você superou todas as metas com ${streak} DMs hoje!`,
+    };
+  }
+}
+
 export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
@@ -200,12 +240,24 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return queue.filter((p) => p.temperature === "quente");
   }, [queue, filterQuentes]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const currentPerson = filteredQueue[currentIndex];
   const [isPending, startTransition] = useTransition();
   const [sunMode, setSunMode] = useState(false);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [showPostSendDialog, setShowPostSendDialog] = useState(false);
   const [showReferralDialog, setShowReferralDialog] = useState(false);
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const [editedMessage, setEditedMessage] = useState("");
+
+  useEffect(() => {
+    if (currentPerson) {
+      setEditedMessage(currentPerson.suggestedMessage || "");
+    } else {
+      setEditedMessage("");
+    }
+  }, [currentPerson, currentIndex]);
+
   const [focusMode, setFocusMode] = useState(false);
   const [expressMode, setExpressMode] = useState(() => {
     if (typeof window !== "undefined") {
@@ -437,8 +489,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   };
 
   const handleCopyDM = async () => {
-    if (currentPerson.suggestedMessage) {
-      await navigator.clipboard.writeText(currentPerson.suggestedMessage);
+    const messageToCopy = editedMessage || currentPerson.suggestedMessage || "";
+    if (messageToCopy) {
+      await navigator.clipboard.writeText(messageToCopy);
       playSynthConfirm();
       
       // Open Instagram direct link in a new tab
@@ -564,6 +617,123 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       }
     });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isEditing = activeEl && (
+        activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.getAttribute("contenteditable") === "true"
+      );
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (copyStatus === "waiting") {
+          handleConfirmSent();
+        } else if (copyStatus === "confirmed") {
+          handleNext();
+        } else if (copyStatus === "idle") {
+          handleCopyDM();
+        }
+        return;
+      }
+
+      if (isEditing) return;
+
+      switch (e.key.toLowerCase()) {
+        case " ":
+        case "enter":
+          e.preventDefault();
+          if (copyStatus === "waiting") {
+            handleConfirmSent();
+          } else if (copyStatus === "confirmed") {
+            handleNext();
+          } else if (copyStatus === "idle") {
+            handleCopyDM();
+          }
+          break;
+        case "s":
+        case "e":
+          if (copyStatus === "waiting") {
+            e.preventDefault();
+            handleConfirmSent();
+          }
+          break;
+        case "escape":
+        case "p":
+          e.preventDefault();
+          handleSkip();
+          break;
+        case "r":
+          e.preventDefault();
+          if (copyStatus === "waiting") {
+            setShowPostSendDialog(true);
+          } else {
+            setShowResponseDialog(true);
+          }
+          break;
+        case "g":
+        case "h":
+          e.preventDefault();
+          setShowReferralDialog(true);
+          break;
+        case "arrowleft":
+        case "v":
+          e.preventDefault();
+          handlePrev();
+          break;
+        case "arrowright":
+        case "n":
+          e.preventDefault();
+          handleNext();
+          break;
+        case "c":
+          e.preventDefault();
+          setCompact(!isCompact);
+          break;
+        case "u":
+        case "o":
+          e.preventDefault();
+          setSunMode(!sunMode);
+          break;
+        case "x":
+          e.preventDefault();
+          handleToggleExpressMode();
+          break;
+        case "?":
+          e.preventDefault();
+          setShowShortcutsDialog(true);
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    copyStatus,
+    currentIndex,
+    filteredQueue,
+    isCompact,
+    sunMode,
+    expressMode,
+    setCompact,
+    handleConfirmSent,
+    handleNext,
+    handleCopyDM,
+    handleSkip,
+    handlePrev,
+    handleToggleExpressMode,
+    setShowPostSendDialog,
+    setShowResponseDialog,
+    setShowReferralDialog,
+    setSunMode,
+    setShowShortcutsDialog
+  ]);
 
   if (filteredQueue.length === 0) {
     if (queue.length > 0) {
@@ -771,7 +941,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     );
   }
 
-  const currentPerson = filteredQueue[currentIndex];
   const currentMission = missionBySubjectId.get(currentPerson.id) ?? null;
   const nextFive = filteredQueue.slice(currentIndex + 1, currentIndex + 6);
   const phaseBadge = missionPhaseLabel(currentPerson);
@@ -865,6 +1034,20 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               {sunMode ? "☀️ Modo Sol Ativo" : "🔆 Ativar Modo Sol"}
             </button>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+              Ajuda:
+            </span>
+            <button
+              onClick={() => {
+                playSynthConfirm();
+                setShowShortcutsDialog(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 border-2 border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all"
+            >
+              ⌨️ Atalhos (?)
+            </button>
+          </div>
         </div>
       {focusMode ? (
         /* ==================== IMMERSIVE MODE: HUD PILOTO AUTOMÁTICO ==================== */
@@ -910,6 +1093,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 >
                   🔥 Quentes
                 </button>
+                <button
+                  onClick={() => {
+                    playSynthConfirm();
+                    setShowShortcutsDialog(true);
+                  }}
+                  className="flex items-center gap-1.5 h-8 px-2.5 border-2 border-white/20 bg-transparent text-zinc-400 hover:border-white hover:text-white text-[9px] font-black uppercase tracking-wider rounded-[2px] transition-all"
+                  title="Atalhos de Teclado (?)"
+                >
+                  ⌨️ Atalhos
+                </button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -927,6 +1120,33 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 style={{ width: `${((currentIndex + 1) / filteredQueue.length) * 100}%` }}
               />
             </div>
+
+            {/* Daily Goal Progress Bar (Focus Mode) */}
+            {(() => {
+              const goal = getDailyGoalStatus(streak);
+              const percent = Math.min(100, Math.round((goal.current / goal.target) * 100));
+              return (
+                <div className="border border-white/10 bg-black/45 p-3 rounded-[2px] space-y-2 text-xs">
+                  <div className="flex justify-between items-center font-bold text-zinc-400">
+                    <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider">
+                      {goal.emoji} Meta: <strong className="text-white">{goal.label}</strong>
+                    </span>
+                    <span className="text-burnt-yellow text-[9px] uppercase font-black tracking-wider">
+                      {goal.current} / {goal.target} DMs ({percent}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-none border border-black bg-charcoal overflow-hidden">
+                    <div 
+                      className="h-full bg-burnt-yellow transition-all duration-500" 
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 font-semibold leading-normal">
+                    {goal.message}
+                  </p>
+                </div>
+              );
+            })()}
 
             {lockState?.lockedByOther && (
               <div className="border-2 border-rust bg-charcoal p-4 flex items-start gap-3 rounded-[2px] text-xs">
@@ -966,6 +1186,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               onConfirmSent={handleConfirmSent}
               onCancelCopy={() => setCopyStatus("idle")}
               focusMode={focusMode}
+              editedMessage={editedMessage}
+              setEditedMessage={setEditedMessage}
             />
 
             <div className="flex items-center justify-between pt-2 pb-24 md:pb-0">
@@ -1233,6 +1455,33 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               </div>
             </div>
           )}
+
+          {/* Daily Goal Progress Card (Standard Mode) */}
+          {(() => {
+            const goal = getDailyGoalStatus(streak);
+            const percent = Math.min(100, Math.round((goal.current / goal.target) * 100));
+            return (
+              <div className="border-2 border-black bg-white p-4 rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] space-y-3 text-charcoal mb-8">
+                <div className="flex justify-between items-center font-bold">
+                  <span className="flex items-center gap-1.5 text-xs uppercase tracking-wider">
+                    {goal.emoji} Meta do Dia: <strong className="text-charcoal">{goal.label}</strong>
+                  </span>
+                  <span className="text-burnt-yellow text-xs font-black uppercase tracking-wider bg-charcoal text-white px-2 py-0.5 rounded-[2px] border border-black shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]">
+                    {goal.current} / {goal.target} DMs ({percent}%)
+                  </span>
+                </div>
+                <div className="w-full h-3 rounded-none border-2 border-black bg-white overflow-hidden shadow-inner">
+                  <div 
+                    className="h-full bg-burnt-yellow border-r-2 border-black transition-all duration-500" 
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-cement font-semibold leading-normal">
+                  {goal.message}
+                </p>
+              </div>
+            );
+          })()}
 
           <div className={cn("grid gap-8", isCompact ? "2xl:grid-cols-[1.3fr_0.7fr]" : "xl:grid-cols-[1.3fr_0.7fr]")}>
             <div className="space-y-6">
@@ -1563,9 +1812,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próximo passo salvo</p>
                     <p className="mt-2 text-sm font-medium leading-relaxed text-charcoal">{currentMissionNextStep}</p>
                   </div>
-                  <div className="min-h-[140px] rounded-[2px] border border-black bg-white p-4 text-sm font-medium leading-relaxed text-charcoal">
-                    {currentPerson.suggestedMessage || "Nenhum modelo ideal encontrado para este contexto. Revise a ficha e siga com abordagem manual."}
-                  </div>
+                  <textarea
+                    value={editedMessage}
+                    onChange={(e) => setEditedMessage(e.target.value)}
+                    className="w-full min-h-[140px] rounded-[2px] border-2 border-black bg-white p-4 text-sm font-medium leading-relaxed text-charcoal focus:ring-0 focus:outline-none resize-y"
+                    disabled={currentBlocked}
+                    placeholder="Nenhum modelo ideal encontrado para este contexto. Digite aqui..."
+                  />
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Button
                       className="h-11 bg-charcoal text-off-white text-xs font-black uppercase tracking-wider hover:bg-concrete-dark rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
@@ -1754,6 +2007,104 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 onClick={() => setShowZenSettings(false)}
               >
                 Concluir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showShortcutsDialog} onOpenChange={setShowShortcutsDialog}>
+        <DialogContent className="overflow-hidden border-2 border-black rounded-[2px] p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-white sm:max-w-[480px]">
+          <div className="bg-charcoal p-6 text-white rounded-t-[2px]">
+            <DialogTitle className="text-xl font-black uppercase flex items-center gap-2">
+              ⌨️ Atalhos de Teclado (Fila)
+            </DialogTitle>
+            <DialogDescription className="font-bold text-zinc-400">
+              Controle a fila e realize envios rápidos sem tirar as mãos do teclado.
+            </DialogDescription>
+          </div>
+          <div className="p-6 space-y-4 bg-white text-charcoal">
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-cement">Fluxo de Envio</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">Ctrl + Enter / Cmd + Enter</span>
+                  <span className="text-cement font-medium">Ação Principal (Copiar/Enviar/Avançar) *Sempre Ativo</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">Enter / Espaço</span>
+                  <span className="text-cement font-medium">Ação Principal (Copiar/Enviar/Avançar)</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">E / S</span>
+                  <span className="text-cement font-medium">Confirmar Envio (Marcar como Enviado)</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">Esc / P</span>
+                  <span className="text-cement font-medium">Pular / Deixar em espera</span>
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-black/10 border-dashed" />
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-cement">Navegação e Ações</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">← (ArrowLeft) / V</span>
+                  <span className="text-cement font-medium">Voltar para pessoa anterior</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">→ (ArrowRight) / N</span>
+                  <span className="text-cement font-medium">Avançar para próxima pessoa</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">R</span>
+                  <span className="text-cement font-medium">Registrar resposta</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">G / H</span>
+                  <span className="text-cement font-medium">Encaminhar interessado</span>
+                </div>
+              </div>
+            </div>
+
+            <hr className="border-black/10 border-dashed" />
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-cement">Preferências e Modos</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">C</span>
+                  <span className="text-cement font-medium">Alternar visualização Compacta</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">U / O</span>
+                  <span className="text-cement font-medium">Alternar Modo Sol (Alto Contraste)</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">X</span>
+                  <span className="text-cement font-medium">Alternar modo Envio Expresso</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold">?</span>
+                  <span className="text-cement font-medium">Abrir esta ajuda de atalhos</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[10px] font-semibold text-cement italic leading-normal pt-2">
+              * Nota: Os atalhos de letra única ficam desativados temporariamente enquanto você digita no campo de texto para evitar disparos acidentais.
+            </p>
+
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="outline"
+                className="h-10 border-2 border-black rounded-[2px] text-xs font-black uppercase"
+                onClick={() => setShowShortcutsDialog(false)}
+              >
+                Entendido
               </Button>
             </div>
           </div>
