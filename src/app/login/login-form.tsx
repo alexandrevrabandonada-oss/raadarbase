@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { playSynthConfirm } from "@/lib/audio";
 
 export function LoginForm({ nextPath, reason }: { nextPath: string; reason: string | null }) {
   const router = useRouter();
@@ -104,8 +105,15 @@ export function LoginForm({ nextPath, reason }: { nextPath: string; reason: stri
     }
   }
 
+  const switchMode = (newMode: "login" | "signup") => {
+    setMode(newMode);
+    playSynthConfirm();
+    setError(null);
+    setSuccess(null);
+  };
+
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md bloco-concreto shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
       <CardHeader>
         <div className="flex flex-col items-center justify-center gap-3 mb-6">
           <div className="flex size-20 items-center justify-center rounded-[4px] border-2 border-burnt-yellow bg-charcoal overflow-hidden shadow-[4px_4px_0px_0px_rgba(242,169,0,0.5)]">
@@ -117,47 +125,74 @@ export function LoginForm({ nextPath, reason }: { nextPath: string; reason: stri
           </div>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant={mode === "login" ? "default" : "outline"} className="flex-1" onClick={() => setMode("login")}>Entrar</Button>
-          <Button type="button" variant={mode === "signup" ? "default" : "outline"} className="flex-1" onClick={() => setMode("signup")}>Cadastrar</Button>
+          <Button 
+            type="button" 
+            variant={mode === "login" ? "default" : "outline"} 
+            className="flex-1 rounded-[2px] border-black" 
+            onClick={() => switchMode("login")}
+          >
+            Entrar
+          </Button>
+          <Button 
+            type="button" 
+            variant={mode === "signup" ? "default" : "outline"} 
+            className="flex-1 rounded-[2px] border-black" 
+            onClick={() => switchMode("signup")}
+          >
+            Cadastrar
+          </Button>
         </div>
-        <CardTitle className="mt-4">{mode === "login" ? "Entrar no Radar de Base" : "Cadastrar acesso interno"}</CardTitle>
+        <CardTitle className="mt-4 text-sm font-black uppercase tracking-wider text-charcoal">
+          {mode === "login" ? "Entrar no Radar de Base" : "Cadastrar acesso interno"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form className="flex flex-col gap-4" onSubmit={mode === "login" ? handleLogin : handleSignup}>
           {mode === "signup" ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="fullName">Nome</Label>
-              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="fullName" className="text-[10px] font-black uppercase tracking-wider text-cement">Nome completo</Label>
+              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} className="border-2 border-black rounded-[2px]" />
             </div>
           ) : null}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-wider text-cement">Email</Label>
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="border-2 border-black rounded-[2px]" />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-wider text-cement">Senha</Label>
+            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="border-2 border-black rounded-[2px]" />
           </div>
           {mode === "signup" ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirmPassword" className="text-[10px] font-black uppercase tracking-wider text-cement">Confirmar senha</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                className="border-2 border-black rounded-[2px]"
               />
             </div>
           ) : null}
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
-          {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
-          {mode === "signup" ? (
-            <p className="text-sm text-muted-foreground">
-              O cadastro cria o usuário no Supabase Auth e um perfil interno com status inicial `pending`.
+          
+          {error ? (
+            <p className="text-xs font-bold text-rust bg-rust/10 border border-rust/35 p-2.5 rounded-[2px] font-mono leading-relaxed">
+              ⚠️ {error}
             </p>
           ) : null}
-          <Button type="submit" disabled={loading}>
-            {loading ? (mode === "login" ? "Entrando..." : "Criando cadastro...") : mode === "login" ? "Entrar" : "Cadastrar"}
+          {success ? (
+            <p className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 p-2.5 rounded-[2px] font-mono leading-relaxed">
+              ✅ {success}
+            </p>
+          ) : null}
+          
+          {mode === "signup" ? (
+            <p className="text-[10px] text-cement leading-normal">
+              O cadastro cria o usuário no Supabase Auth e o perfil interno correspondente. O acesso fica pendente até aprovação de um administrador.
+            </p>
+          ) : null}
+          <Button type="submit" disabled={loading} className="rounded-[2px] border-black mt-2">
+            {loading ? (mode === "login" ? "Conectando..." : "Criando cadastro...") : mode === "login" ? "Entrar" : "Cadastrar"}
           </Button>
         </form>
       </CardContent>
