@@ -163,12 +163,12 @@ export function PersonActions({
           <div className="flex flex-wrap items-center gap-2">
             <Link 
               href="/pessoas" 
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-full sm:w-auto font-bold text-zinc-500")}
+              className={cn(buttonVariants({ variant: "outline" }), "w-full sm:w-auto border-2 border-black bg-white text-charcoal font-black rounded-[2px] hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] h-9 px-4 text-xs")}
             >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Voltar
             </Link>
             {!profile.priority.responsibleName && (
-              <Button size="sm" className="w-full sm:w-auto font-black bg-indigo-600 hover:bg-indigo-700" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
+              <Button size="sm" className="w-full sm:w-auto border-2 border-black bg-burnt-yellow text-charcoal font-black rounded-[2px] hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] h-9 px-4 text-xs" onClick={() => runAction(() => assumePersonResponsible(person.id))}>
                 Assumir Vínculo
               </Button>
             )}
@@ -177,7 +177,7 @@ export function PersonActions({
       />
 
       {/* 1. Cabeçalho da Ficha (Info complementar) */}
-      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-2xl border shadow-sm -mt-4">
+      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-[2px] border-2 border-black bloco-concreto shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] -mt-4">
         <div className="flex items-center gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -189,7 +189,7 @@ export function PersonActions({
                 riskFlags={profile.priority.riskFlags}
               />
               {profile.priority.responsibleName && (
-                <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 font-black text-[10px] uppercase">
+                <Badge variant="outline" className="bg-charcoal text-white border-2 border-black font-black text-[10px] uppercase rounded-[2px]">
                   Responsável: {profile.priority.responsibleName}
                 </Badge>
               )}
@@ -201,7 +201,7 @@ export function PersonActions({
           {person.username && (
             <Button
               variant="outline"
-              className="font-black border-zinc-200"
+              className="font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
               onClick={() => window.open(`https://instagram.com/${person.username}`, "_blank")}
               disabled={!canApproach}
             >
@@ -212,9 +212,9 @@ export function PersonActions({
             <Button 
               variant="outline" 
               className={cn(
-                "font-black border-zinc-200 transition-colors",
-                copyStatus === "waiting" ? "bg-indigo-50 border-indigo-300 text-indigo-700" : 
-                copyStatus === "confirmed" ? "bg-emerald-50 border-emerald-300 text-emerald-700" : ""
+                "font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-colors",
+                copyStatus === "waiting" ? "bg-burnt-yellow border-black text-charcoal" : 
+                copyStatus === "confirmed" ? "bg-moss/20 border-black text-moss" : ""
               )}
               onClick={copyMessage}
               disabled={!canApproach}
@@ -226,32 +226,32 @@ export function PersonActions({
         </div>
 
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md border-2 border-black bg-white rounded-[2px] shadow-[6px_6px_0px_0px_rgba(11,11,11,1)] p-6">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Copy className="h-5 w-5 text-indigo-600" />
+              <DialogTitle className="flex items-center gap-2 font-black text-lg uppercase tracking-tight text-charcoal">
+                <Copy className="h-5 w-5 text-charcoal" />
                 Confirmar Envio Manual
               </DialogTitle>
-              <DialogDescription className="pt-2">
+              <DialogDescription className="pt-2 font-semibold text-xs text-charcoal/80">
                 Você copiou a mensagem para @{person.username}. 
-                <span className="block mt-2 font-bold text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                <span className="block mt-2 font-bold text-charcoal bg-burnt-yellow/15 p-3 rounded-[2px] border-2 border-burnt-yellow">
                   Aviso: Copiar não registra o envio no sistema. Confirme apenas depois de mandar manualmente no Instagram.
                 </span>
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <p className="text-sm font-black uppercase tracking-tight text-zinc-500">Já enviou no Instagram?</p>
+            <div className="py-2">
+              <p className="text-xs font-black uppercase tracking-tight text-cement">Já enviou no Instagram?</p>
             </div>
-            <DialogFooter className="flex sm:justify-between gap-2">
+            <DialogFooter className="flex sm:justify-between gap-2 border-t border-black/10 pt-4">
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 onClick={() => setShowConfirmDialog(false)}
-                className="font-bold text-xs uppercase"
+                className="font-black text-xs uppercase border-2 border-black bg-white hover:bg-charcoal/5 rounded-[2px]"
               >
                 Ainda não / Pular
               </Button>
               <Button 
-                className="bg-indigo-600 hover:bg-indigo-700 font-black uppercase text-xs tracking-wider px-6"
+                className="bg-burnt-yellow text-charcoal hover:bg-burnt-yellow/90 border-2 border-black font-black uppercase text-xs tracking-wider px-6 rounded-[2px] shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
                 onClick={handleConfirmSent}
                 disabled={isPending}
               >
@@ -267,35 +267,35 @@ export function PersonActions({
         <div className="lg:col-span-8 space-y-8">
           
           {/* 2. Próxima Melhor Ação - Card Destaque */}
-          <Card className="border-2 border-indigo-600 shadow-xl overflow-hidden">
-            <div className="bg-indigo-600 px-4 py-2 flex items-center justify-between">
+          <Card className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] overflow-hidden bloco-concreto">
+            <div className="bg-charcoal px-4 py-2 flex items-center justify-between border-b-2 border-black">
               <span className="text-[10px] font-black text-white uppercase tracking-widest">Próxima Melhor Ação</span>
               <div className="flex items-center gap-2">
-                {profile.priority.temperature === "quente" && <Flame className="h-4 w-4 text-orange-400 fill-orange-400" />}
+                {profile.priority.temperature === "quente" && <Flame className="h-4 w-4 text-burnt-yellow fill-burnt-yellow" />}
                 <span className="text-[10px] font-black text-white uppercase tracking-widest">{profile.priority.scoreLabel}</span>
               </div>
             </div>
             <CardContent className="p-6">
-              <div className="text-2xl font-black text-indigo-950 leading-tight mb-4">
+              <div className="text-2xl font-black text-charcoal leading-tight mb-4">
                 {nextActionLabel}
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-zinc-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t-2 border-black">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Motivo</span>
-                  <p className="text-xs font-bold text-zinc-700">{profile.priority.priorityReason}</p>
+                  <span className="text-[10px] font-black text-cement uppercase tracking-widest block">Motivo</span>
+                  <p className="text-xs font-bold text-charcoal">{profile.priority.priorityReason}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Urgência</span>
+                  <span className="text-[10px] font-black text-cement uppercase tracking-widest block">Urgência</span>
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-12 bg-zinc-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-orange-500" style={{ width: `${profile.priority.scoreIntensity}%` }} />
+                    <div className="h-2 w-12 bg-charcoal/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-burnt-yellow" style={{ width: `${profile.priority.scoreIntensity}%` }} />
                     </div>
-                    <span className="text-xs font-black text-orange-600">{Math.round(profile.priority.scoreIntensity)}%</span>
+                    <span className="text-xs font-black text-charcoal">{Math.round(profile.priority.scoreIntensity)}%</span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">Alertas</span>
+                  <span className="text-[10px] font-black text-cement uppercase tracking-widest block">Alertas</span>
                   <div className="flex flex-col gap-2">
                     {profile.priority.riskFlags.recentOutreach && (
                       <OperationalAlert type="contato_recente" />
@@ -307,7 +307,7 @@ export function PersonActions({
                       <OperationalAlert type="precisa_encaminhar" />
                     )}
                     {!profile.priority.riskFlags.recentOutreach && !profile.priority.riskFlags.doNotContact && !profile.priority.riskFlags.noReferralAfterResponse && (
-                      <Badge className="bg-emerald-100 text-emerald-700 border-none text-[9px] font-black w-fit">CAMINHO LIVRE</Badge>
+                      <Badge className="rounded-[2px] border border-black bg-moss/20 text-moss text-[9px] font-black w-fit hover:bg-moss/20">CAMINHO LIVRE</Badge>
                     )}
                   </div>
                 </div>
@@ -323,9 +323,9 @@ export function PersonActions({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {profile.reasons.map((reason, i) => (
-                <div key={i} className="flex items-start gap-3 p-4 bg-zinc-50 rounded-xl border border-zinc-100">
-                  <div className="mt-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
-                  <p className="text-xs font-bold text-zinc-700 leading-relaxed">{reason}</p>
+                <div key={i} className="flex items-start gap-3 p-4 bg-white rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+                  <div className="mt-1 h-2 w-2 rounded-[2px] bg-burnt-yellow border border-black shrink-0" />
+                  <p className="text-xs font-semibold text-charcoal leading-relaxed">{reason}</p>
                 </div>
               ))}
             </div>
@@ -337,16 +337,16 @@ export function PersonActions({
               <MessageSquare className="h-5 w-5 text-indigo-600" />
               Mensagem sugerida
             </h2>
-            <Card className="bg-indigo-50/50 border-indigo-100">
+            <Card className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bloco-concreto">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant="outline" className="font-black bg-white border-indigo-200 text-indigo-700">
+                  <Badge variant="outline" className="font-black bg-white border-2 border-black text-charcoal rounded-[2px]">
                     CATEGORIA: {profile.compatibleTemplate?.name || "PERSONALIZADA"}
                   </Badge>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <AlertTriangle className="h-4 w-4 text-amber-600 cursor-help" />
+                        <AlertTriangle className="h-4 w-4 text-burnt-yellow cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
                         Revise antes de enviar. Nunca automatize.
@@ -354,19 +354,19 @@ export function PersonActions({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm text-sm font-medium leading-relaxed mb-4">
+                <div className="bg-white p-4 rounded-[2px] border-2 border-black shadow-inner text-sm font-semibold leading-relaxed mb-4 text-charcoal">
                   {profile.priority.suggestedMessage || "Sem mensagem sugerida para este contexto."}
                 </div>
                 <div className="flex items-center justify-between">
-                   <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest flex items-center gap-1">
-                     <AlertTriangle className="h-3 w-3" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
+                   <p className="text-[10px] font-bold text-burnt-yellow uppercase tracking-widest flex items-center gap-1">
+                     <AlertTriangle className="h-3 w-3 text-burnt-yellow" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
-                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage || !canApproach} className="bg-black text-white font-black h-9 px-6">
+                   <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage || !canApproach} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
                      <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado" : "Copiar Texto"}
                    </Button>
                 </div>
                 {!canApproach && (
-                  <p className="mt-3 text-[11px] font-bold text-rose-700">
+                  <p className="mt-3 text-[11px] font-bold text-rust">
                     {contactGuardrailCopy}
                   </p>
                 )}
@@ -380,20 +380,20 @@ export function PersonActions({
               <History className="h-5 w-5 text-zinc-400" />
               Histórico do vínculo
             </h2>
-            <div className="relative space-y-4 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-0.5 before:bg-zinc-100">
+            <div className="relative space-y-4 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-black">
               {profile.timeline.map((item) => (
                 <div key={item.id} className="relative pl-12">
-                  <div className="absolute left-0 top-1 h-10 w-10 rounded-full bg-white border-2 border-zinc-100 flex items-center justify-center z-10 text-zinc-500">
+                  <div className="absolute left-0 top-1 h-10 w-10 rounded-[2px] bg-white border-2 border-black flex items-center justify-center z-10 text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
                     {timelineIcon(item.type, item.title)}
                   </div>
-                  <div className="bg-white p-4 rounded-xl border shadow-sm group hover:border-indigo-200 transition-colors">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-black text-zinc-950">{item.title}</p>
-                      <time className="text-[10px] font-bold text-zinc-400 uppercase">{formatDateTime(item.occurredAt)}</time>
+                  <div className="bg-white p-4 rounded-[2px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] group hover:bg-burnt-yellow/5 transition-colors">
+                    <div className="flex items-center justify-between mb-1 border-b border-black/10 pb-1">
+                      <p className="text-sm font-black text-charcoal">{item.title}</p>
+                      <time className="text-[10px] font-bold text-cement uppercase">{formatDateTime(item.occurredAt)}</time>
                     </div>
-                    <p className="text-xs text-zinc-600 leading-relaxed">{item.description}</p>
+                    <p className="text-xs text-charcoal font-semibold leading-relaxed mt-2">{item.description}</p>
                     {item.badge && (
-                      <Badge variant="outline" className="mt-2 text-[9px] font-black tracking-widest uppercase border-zinc-200">
+                      <Badge variant="outline" className="mt-2 text-[9px] font-black tracking-widest uppercase border-2 border-black rounded-[2px] bg-charcoal text-white hover:bg-charcoal">
                         {item.badge}
                       </Badge>
                     )}
@@ -407,17 +407,17 @@ export function PersonActions({
         {/* Right Column */}
         <aside className="lg:col-span-4 space-y-8">
           {/* 6. Ações de Conversa */}
-          <Card className="shadow-lg border-zinc-200">
+          <Card className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bloco-concreto">
             <CardHeader className="pb-4">
-              <CardTitle className="text-base font-black">Resultado da conversa</CardTitle>
-              <CardDescription className="text-xs">Registre o que a pessoa disse.</CardDescription>
+              <CardTitle className="text-base font-black uppercase tracking-tight text-charcoal">Resultado da conversa</CardTitle>
+              <CardDescription className="text-xs font-semibold text-cement">Registre o que a pessoa disse.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2 sm:grid-cols-2">
               {PERSON_RESPONSE_OPTIONS.map((option) => (
                 <Button
                   key={option.key}
                   variant="outline"
-                  className="h-auto flex flex-col items-start p-3 text-left border-zinc-200 hover:border-indigo-500 hover:bg-indigo-50 transition-all group sm:min-h-[84px]"
+                  className="h-auto flex flex-col items-start p-3 text-left border-2 border-black bg-white rounded-[2px] hover:bg-burnt-yellow/10 hover:shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-all group sm:min-h-[84px] text-charcoal"
                   disabled={isPending}
                   onClick={() =>
                     runAction(() => recordPersonResponse(person.id, option.key), {
@@ -431,28 +431,28 @@ export function PersonActions({
                     })
                   }
                 >
-                  <span className="font-black text-sm group-hover:text-indigo-700">{option.label}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">{option.hint}</span>
+                  <span className="font-black text-sm">{option.label}</span>
+                  <span className="text-[10px] text-cement font-medium leading-tight mt-0.5">{option.hint}</span>
                 </Button>
               ))}
             </CardContent>
           </Card>
 
           {/* Ações Rápidas */}
-          <Card className="border-none bg-black text-white shadow-xl">
+          <Card className="border-2 border-black bg-charcoal text-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bloco-concreto">
              <CardHeader>
-               <CardTitle className="text-sm font-black uppercase tracking-widest text-zinc-400">Ações Rápidas</CardTitle>
+               <CardTitle className="text-sm font-black uppercase tracking-widest text-white/60">Ações Rápidas</CardTitle>
              </CardHeader>
              <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                 <Button
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 font-black h-12"
+                  className="w-full border-2 border-black bg-burnt-yellow text-charcoal hover:bg-burnt-yellow/90 font-black h-12 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
                   disabled={!canApproach}
                 >
                   <a
+                    className="flex items-center"
                     href={canApproach ? `https://instagram.com/${person.username}` : undefined}
                     target={canApproach ? "_blank" : undefined}
                     rel={canApproach ? "noreferrer" : undefined}
-                    aria-disabled={!canApproach}
                     onClick={(event) => {
                       if (!canApproach) {
                         event.preventDefault();
@@ -464,7 +464,7 @@ export function PersonActions({
                 </Button>
                 
                 <Button 
-                  className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-black h-12 border-none"
+                  className="w-full border-2 border-white/20 bg-white/10 hover:bg-white/20 text-white font-black h-12 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(255,255,255,0.1)]"
                   onClick={() => runAction(() => registerManualDm(person.id), { nextStatus: "abordado" })}
                   disabled={isPending || !canApproach}
                 >
@@ -473,7 +473,7 @@ export function PersonActions({
 
                 <Button 
                   variant="outline"
-                  className="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black h-12"
+                  className="w-full border-2 border-black bg-white text-charcoal hover:bg-charcoal/5 font-black h-12 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
                   onClick={() => runAction(() => markContactConfirmed(person.id, "Instagram"), { nextStatus: "contato_confirmado" })}
                   disabled={isPending || !canApproach}
                 >
@@ -482,14 +482,14 @@ export function PersonActions({
 
                 <Button 
                    variant="ghost"
-                   className="w-full text-zinc-500 hover:text-white hover:bg-rose-600/20 font-bold text-xs h-10"
+                   className="w-full text-white/50 hover:text-white hover:bg-rust/20 border-2 border-transparent hover:border-rust/45 font-bold text-xs h-10 rounded-[2px]"
                    onClick={() => runAction(() => markDoNotContact(person.id), { nextStatus: "nao_abordar" })}
                    disabled={isPending}
                 >
                   Marcar como não abordar
                 </Button>
                 {!canApproach && (
-                  <p className="text-[11px] font-bold text-amber-300">
+                  <p className="text-[11px] font-bold text-burnt-yellow">
                     {contactGuardrailCopy}
                   </p>
                 )}
@@ -497,151 +497,151 @@ export function PersonActions({
           </Card>
 
           {/* 7. Encaminhamentos Ativos */}
-          <section className="space-y-4">
-             <h2 className="text-base font-black flex items-center gap-2">
-               <Milestone className="h-5 w-5 text-indigo-600" />
-               Encaminhamentos
-             </h2>
-             <div className="space-y-4">
-                <div className="grid gap-2">
-                   <select 
-                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm font-bold shadow-sm"
-                      value={selectedTarget}
-                      onChange={(e) => setSelectedTarget(e.target.value as PersonReferralType)}
-                    >
-                      <option value="">Novo encaminhamento...</option>
-                      <option value="evento_campo">Evento / Ação de Campo</option>
-                      <option value="voluntariado">Voluntariado</option>
-                      <option value="grupo_lista">Grupo / Lista</option>
-                      <option value="missao_eluta">Missão ÉLuta</option>
-                    </select>
+           <section className="space-y-4">
+              <h2 className="text-base font-black flex items-center gap-2 text-charcoal uppercase tracking-tight">
+                <Milestone className="h-5 w-5 text-charcoal" />
+                Encaminhamentos
+              </h2>
+              <div className="space-y-4">
+                 <div className="grid gap-2">
+                    <select 
+                       className="w-full rounded-[2px] border-2 border-black bg-white px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-0 text-charcoal"
+                       value={selectedTarget}
+                       onChange={(e) => setSelectedTarget(e.target.value as PersonReferralType)}
+                     >
+                       <option value="">Novo encaminhamento...</option>
+                       <option value="evento_campo">Evento / Ação de Campo</option>
+                       <option value="voluntariado">Voluntariado</option>
+                       <option value="grupo_lista">Grupo / Lista</option>
+                       <option value="missao_eluta">Missão ÉLuta</option>
+                     </select>
 
-                    {selectedTarget === "evento_campo" && (
-                      <select 
-                        className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm font-bold shadow-sm"
-                        value={selectedEventId}
-                        onChange={(e) => setSelectedEventId(e.target.value)}
-                      >
-                        <option value="">Selecione o evento...</option>
-                        {availableEvents.map(e => (
-                          <option key={e.id} value={e.id}>{e.title}</option>
-                        ))}
-                      </select>
-                    )}
+                     {selectedTarget === "evento_campo" && (
+                       <select 
+                         className="w-full rounded-[2px] border-2 border-black bg-white px-3 py-2 text-sm font-semibold shadow-sm focus:outline-none focus:ring-0 text-charcoal"
+                         value={selectedEventId}
+                         onChange={(e) => setSelectedEventId(e.target.value)}
+                       >
+                         <option value="">Selecione o evento...</option>
+                         {availableEvents.map(e => (
+                           <option key={e.id} value={e.id}>{e.title}</option>
+                         ))}
+                       </select>
+                     )}
 
-                    {selectedTarget && (
-                      <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                        <Textarea 
-                          placeholder="Por que está encaminhando?" 
-                          className={cn(
-                            "text-xs min-h-[80px] rounded-xl border-zinc-200",
-                            containsForbiddenMemoryTerm(referralNotes).length > 0 && "border-amber-400 bg-amber-50/30"
-                          )}
-                          value={referralNotes}
-                          onChange={(e) => setReferralNotes(e.target.value)}
-                        />
-                        {containsForbiddenMemoryTerm(referralNotes).length > 0 && (
-                          <div className="flex items-center gap-2 text-amber-600 animate-in fade-in slide-in-from-top-1">
-                            <AlertCircle className="h-3 w-3" />
-                            <p className="text-[9px] font-bold uppercase tracking-tight">
-                              Evite termos de perfilamento: {containsForbiddenMemoryTerm(referralNotes).join(", ")}
-                            </p>
-                          </div>
-                        )}
-                        <Button 
-                          className="w-full font-black bg-black h-10"
-                          onClick={() => {
-                            runAction(() => recordPersonReferral(person.id, selectedTarget as PersonReferralType, { 
-                              targetId: selectedEventId, 
-                              notes: referralNotes 
-                            }), { successText: "Encaminhamento registrado." });
-                            setSelectedTarget("");
-                            setSelectedEventId("");
-                            setReferralNotes("");
-                          }}
-                          disabled={isPending || (selectedTarget === "evento_campo" && !selectedEventId)}
-                        >
-                          Confirmar
-                        </Button>
-                      </div>
-                    )}
-                </div>
+                     {selectedTarget && (
+                       <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
+                         <Textarea 
+                           placeholder="Por que está encaminhando?" 
+                           className={cn(
+                             "text-xs min-h-[80px] rounded-[2px] border-2 border-black bg-white text-charcoal",
+                             containsForbiddenMemoryTerm(referralNotes).length > 0 && "border-burnt-yellow bg-burnt-yellow/5"
+                           )}
+                           value={referralNotes}
+                           onChange={(e) => setReferralNotes(e.target.value)}
+                         />
+                         {containsForbiddenMemoryTerm(referralNotes).length > 0 && (
+                           <div className="flex items-center gap-2 text-burnt-yellow animate-in fade-in slide-in-from-top-1">
+                             <AlertCircle className="h-3 w-3 text-burnt-yellow" />
+                             <p className="text-[9px] font-bold uppercase tracking-tight">
+                               Evite termos de perfilamento: {containsForbiddenMemoryTerm(referralNotes).join(", ")}
+                             </p>
+                           </div>
+                         )}
+                         <Button 
+                           className="w-full border-2 border-black bg-burnt-yellow text-charcoal font-black rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] h-10 hover:bg-burnt-yellow/90"
+                           onClick={() => {
+                             runAction(() => recordPersonReferral(person.id, selectedTarget as PersonReferralType, { 
+                               targetId: selectedEventId, 
+                               notes: referralNotes 
+                             }), { successText: "Encaminhamento registrado." });
+                             setSelectedTarget("");
+                             setSelectedEventId("");
+                             setReferralNotes("");
+                           }}
+                           disabled={isPending || (selectedTarget === "evento_campo" && !selectedEventId)}
+                         >
+                           Confirmar
+                         </Button>
+                       </div>
+                     )}
+                 </div>
 
-                {referrals.map(ref => (
-                  <Card key={ref.id} className="border-indigo-100 bg-indigo-50/20 overflow-hidden">
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black uppercase text-indigo-700 tracking-widest">
-                          {ref.targetType.replace("_", " ")}
-                        </span>
-                        <Badge className="bg-indigo-600 text-[9px] font-black h-4">
-                          {ref.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                      
-                      {ref.targetId && (
-                        <p className="text-xs font-bold text-zinc-900 mb-1">
-                          {availableEvents.find(e => e.id === ref.targetId)?.title || "Carregando..."}
-                        </p>
-                      )}
-                      
-                      {ref.notes && <p className="text-[11px] text-zinc-500 italic leading-relaxed mb-3">&quot;{ref.notes}&quot;</p>}
-                      
-                      <div className="flex flex-wrap gap-1 mt-2 border-t border-indigo-100 pt-3">
-                        {(ref.targetType === "missao_eluta" 
-                          ? ["recebeu_link", "acessou", "fez_primeira_missao", "colaborador"]
-                          : ["convidado", "confirmou", "compareceu", "recusou"]
-                        ).map(s => (
-                          <Button 
-                            key={s}
-                            variant="ghost" 
-                            className={cn(
-                              "h-7 px-2 text-[9px] font-black uppercase tracking-tighter",
-                              ref.status === s ? "bg-indigo-600 text-white hover:bg-indigo-700" : "text-indigo-600 hover:bg-indigo-100"
-                            )}
-                            onClick={() => runAction(() => updatePersonReferralStatus(ref.id, person.id, s as PersonReferralStatus))}
-                            disabled={isPending}
-                          >
-                            {s.replace("_", " ")}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-             </div>
-          </section>
+                 {referrals.map(ref => (
+                   <Card key={ref.id} className="border-2 border-black bg-white rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] overflow-hidden bloco-concreto">
+                     <div className="p-4">
+                       <div className="flex justify-between items-start mb-2 border-b border-black/10 pb-1">
+                         <span className="text-[10px] font-black uppercase text-charcoal tracking-widest">
+                           {ref.targetType.replace("_", " ")}
+                         </span>
+                         <Badge className="bg-charcoal text-white rounded-[2px] text-[9px] font-black h-5 border border-black hover:bg-charcoal">
+                           {ref.status.toUpperCase()}
+                         </Badge>
+                       </div>
+                       
+                       {ref.targetId && (
+                         <p className="text-xs font-bold text-charcoal mb-1">
+                           {availableEvents.find(e => e.id === ref.targetId)?.title || "Carregando..."}
+                         </p>
+                       )}
+                       
+                       {ref.notes && <p className="text-[11px] text-cement font-medium italic leading-relaxed mb-3">&quot;{ref.notes}&quot;</p>}
+                       
+                       <div className="flex flex-wrap gap-1 mt-2 border-t border-black/10 pt-3">
+                         {(ref.targetType === "missao_eluta" 
+                           ? ["recebeu_link", "acessou", "fez_primeira_missao", "colaborador"]
+                           : ["convidado", "confirmou", "compareceu", "recusou"]
+                         ).map(s => (
+                           <Button 
+                             key={s}
+                             variant="ghost" 
+                             className={cn(
+                               "h-7 px-2 text-[9px] font-black uppercase tracking-tighter rounded-[2px] border",
+                               ref.status === s ? "bg-charcoal text-white hover:bg-charcoal border-black" : "border-black/10 text-charcoal hover:bg-charcoal/5"
+                             )}
+                             onClick={() => runAction(() => updatePersonReferralStatus(ref.id, person.id, s as PersonReferralStatus))}
+                             disabled={isPending}
+                           >
+                             {s.replace("_", " ")}
+                           </Button>
+                         ))}
+                       </div>
+                     </div>
+                   </Card>
+                 ))}
+              </div>
+           </section>
 
           {/* 8. Notas e Cuidado */}
-          <Card className="border-dashed border-zinc-300 bg-zinc-50/50">
+          <Card className="border-2 border-black bg-white rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] bloco-concreto">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-black flex items-center gap-2">
-                <ClipboardCheck className="h-4 w-4 text-zinc-400" />
+              <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tight text-charcoal">
+                <ClipboardCheck className="h-4 w-4 text-charcoal" />
                 Cuidado da base
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-[10px] font-bold text-zinc-500 leading-tight">
+              <p className="text-[10px] font-bold text-cement leading-tight">
                 Anote apenas o necessário para o vínculo. Proibido registrar dados sensíveis ou inferências pessoais.
               </p>
               <Textarea
                 className={cn(
-                  "min-h-[120px] bg-white text-xs font-medium border-zinc-200 focus:ring-black",
-                  containsForbiddenMemoryTerm(notes).length > 0 && "border-amber-400 bg-amber-50/30"
+                  "min-h-[120px] bg-white text-xs font-semibold border-2 border-black rounded-[2px] focus:ring-0",
+                  containsForbiddenMemoryTerm(notes).length > 0 && "border-burnt-yellow bg-burnt-yellow/5"
                 )}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Ex: Teve interesse na plenária de amanhã..."
               />
               {containsForbiddenMemoryTerm(notes).length > 0 && (
-                <div className="flex items-center gap-2 text-amber-600 animate-in fade-in slide-in-from-top-1">
-                  <AlertCircle className="h-3 w-3" />
+                <div className="flex items-center gap-2 text-burnt-yellow animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="h-3 w-3 text-burnt-yellow" />
                   <p className="text-[10px] font-bold uppercase tracking-tight">
                     Evite termos de perfilamento: {containsForbiddenMemoryTerm(notes).join(", ")}
                   </p>
                 </div>
               )}
-              <Button onClick={saveNotes} disabled={isPending} variant="secondary" className="w-full font-black h-10 border shadow-sm">
+              <Button onClick={saveNotes} disabled={isPending} variant="outline" className="w-full border-2 border-black bg-white text-charcoal font-black rounded-[2px] hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] h-10">
                 Salvar Histórico
               </Button>
             </CardContent>

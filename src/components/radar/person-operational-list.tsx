@@ -70,8 +70,8 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   return (
     <tr
       className={cn(
-        "group h-16 cursor-pointer border-b border-[#d8c7ac] transition-colors hover:bg-[rgba(17,32,42,0.03)]",
-        isBlocked && "bg-zinc-50",
+        "group h-16 cursor-pointer border-b border-black/10 transition-colors hover:bg-charcoal/5",
+        isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
       )}
       onClick={() => onOpenDetails?.(person)}
     >
@@ -85,11 +85,11 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       <td className="px-2 py-3">
         <div className="flex flex-wrap gap-1.5">
           {missionTypeLabel ? (
-            <Badge className="rounded-full border border-[#d3b98f] bg-[#f7f0e4] text-[9px] font-black uppercase tracking-widest text-[#8f6e2e] hover:bg-[#f7f0e4]">
+            <Badge className="rounded-[2px] border-2 border-black bg-burnt-yellow/10 text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/20">
               {missionTypeLabel}
             </Badge>
           ) : null}
-          <Badge className="rounded-full border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] text-[9px] font-black uppercase tracking-widest text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]">
+          <Badge className="rounded-[2px] border-2 border-black bg-white text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-white">
             {missionPhaseLabel}
           </Badge>
         </div>
@@ -192,7 +192,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           )}
           <Button
             size="sm"
-            className="h-8 bg-[#0f1b24] px-3 text-[10px] font-black uppercase tracking-wider text-white hover:bg-[#172733]"
+            className="h-8 border-2 border-black bg-burnt-yellow px-3 text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 rounded-[2px]"
             onClick={(e) => {
               e.stopPropagation();
               onOpenDetails?.(person);
@@ -203,18 +203,18 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         </div>
 
         <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md border-2 border-black bg-white rounded-[2px] shadow-[6px_6px_0px_0px_rgba(11,11,11,1)] p-6">
             <DialogHeader>
-              <DialogTitle>Confirmar envio manual</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="font-black text-lg uppercase tracking-tight text-charcoal">Confirmar envio manual</DialogTitle>
+              <DialogDescription className="font-semibold text-xs text-charcoal/80">
                 Copiar não registra o envio. Confirme apenas depois de mandar manualmente a mensagem para @{person.username}.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="gap-2">
-              <Button variant="ghost" onClick={() => setShowConfirmDialog(false)}>
+            <DialogFooter className="gap-2 border-t border-black/10 pt-4">
+              <Button variant="outline" onClick={() => setShowConfirmDialog(false)} className="border-2 border-black rounded-[2px] font-black text-charcoal bg-white hover:bg-charcoal/5">
                 Ainda não
               </Button>
-              <Button onClick={handleConfirmSent} disabled={isPending}>
+              <Button onClick={handleConfirmSent} disabled={isPending} className="border-2 border-black bg-burnt-yellow text-charcoal rounded-[2px] font-black hover:bg-burnt-yellow/90 shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]">
                 {isPending ? "Processando..." : "Confirmar envio"}
               </Button>
             </DialogFooter>
@@ -235,20 +235,20 @@ interface PersonOperationalListProps {
 
 export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className }: PersonOperationalListProps) {
   return (
-    <div className={cn("radar-outline-card relative overflow-x-auto rounded-[28px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.94)] shadow-sm", className)}>
+    <div className={cn("bloco-concreto relative overflow-x-auto rounded-[2px] border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", className)}>
       <table className="w-full min-w-[980px] border-collapse text-left xl:min-w-[1080px]">
-        <thead className="sticky top-0 z-20 border-b border-[#d8c7ac] bg-[rgba(247,240,228,0.98)]">
+        <thead className="sticky top-0 z-20 border-b-2 border-black bg-charcoal text-white">
           <tr>
-            <th className="w-10 px-3 py-3 text-center text-[10px] font-black uppercase tracking-widest text-zinc-400">#</th>
-            <th className="min-w-[160px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Pessoa</th>
-            <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Fase</th>
-            <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Aviso</th>
-            <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:min-w-[220px]">Motivo</th>
-            <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:min-w-[220px]">Próxima ação</th>
-            <th className="min-w-[140px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Progresso</th>
-            <th className="min-w-[150px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:min-w-[180px]">Espera ou bloqueio</th>
-            <th className="w-16 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Sinais</th>
-            <th className="w-44 px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400 xl:w-56">Ações</th>
+            <th className="w-10 px-3 py-3 text-center text-[10px] font-black uppercase tracking-widest text-white">#</th>
+            <th className="min-w-[160px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white">Pessoa</th>
+            <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white">Fase</th>
+            <th className="w-36 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white">Aviso</th>
+            <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white xl:min-w-[220px]">Motivo</th>
+            <th className="min-w-[180px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white xl:min-w-[220px]">Próxima ação</th>
+            <th className="min-w-[140px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white">Progresso</th>
+            <th className="min-w-[150px] px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white xl:min-w-[180px]">Espera ou bloqueio</th>
+            <th className="w-16 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-white">Sinais</th>
+            <th className="w-44 px-4 py-3 text-right text-[10px] font-black uppercase tracking-widest text-white xl:w-56">Ações</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-zinc-50">

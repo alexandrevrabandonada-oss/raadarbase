@@ -57,14 +57,14 @@ export function PersonPriorityCard({
     return (
       <div
         className={cn(
-          "group radar-outline-card flex flex-col gap-4 rounded-[28px] border border-[#d8c7ac] bg-[linear-gradient(180deg,_rgba(255,252,247,0.98),_rgba(244,236,223,0.92))] p-5 shadow-sm transition-all hover:border-[#d39b2a]/45 hover:shadow-md md:flex-row md:items-center md:justify-between",
-          isBlocked && "bg-zinc-50",
+          "group bloco-concreto flex flex-col gap-4 rounded-[2px] border-2 border-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] transition-all hover:bg-burnt-yellow/5 md:flex-row md:items-center md:justify-between",
+          isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
           className,
         )}
       >
         <div className="flex min-w-0 flex-1 items-start gap-4">
           {index !== undefined && (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] text-[10px] font-black text-[#6f6250]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[2px] border-2 border-black bg-charcoal text-[10px] font-black text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
               {index + 1}
             </div>
           )}
@@ -72,15 +72,15 @@ export function PersonPriorityCard({
           <div className="min-w-0 flex-1 cursor-pointer space-y-3" onClick={() => onOpenDetails?.(person)}>
             <div className="flex flex-wrap items-center gap-2">
               {missionTypeLabel ? (
-                <Badge className="rounded-full border border-[#d3b98f] bg-[#f7f0e4] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#8f6e2e] hover:bg-[#f7f0e4]">
+                <Badge className="rounded-[2px] border-2 border-black bg-burnt-yellow px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow">
                   {missionTypeLabel}
                 </Badge>
               ) : null}
-              <Badge className="rounded-full border border-[#d8c7ac] bg-[rgba(17,32,42,0.05)] px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-[#11202a] hover:bg-[rgba(17,32,42,0.05)]">
+              <Badge className="rounded-[2px] border-2 border-black bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-white">
                 Fase: {phaseLabel}
               </Badge>
               {person.responsibleName ? (
-                <Badge variant="outline" className="rounded-full border-zinc-200 text-[9px] font-black uppercase tracking-widest text-zinc-600">
+                <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-charcoal px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white hover:bg-charcoal">
                   {person.responsibleName}
                 </Badge>
               ) : null}
@@ -95,11 +95,11 @@ export function PersonPriorityCard({
 
             <div className="grid gap-3 lg:grid-cols-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Motivo</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Motivo</p>
                 <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-zinc-600" title={missionReason}>{missionReason}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#8b7759]">Próxima ação</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Próxima ação</p>
                 <p className="mt-1 line-clamp-2 text-xs font-black text-[#11202a]" title={missionNextStep}>{missionNextStep}</p>
               </div>
               <div>
@@ -116,11 +116,11 @@ export function PersonPriorityCard({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-zinc-100 pt-4 md:border-0 md:pt-0">
+        <div className="flex flex-wrap items-center gap-2 border-t border-black pt-4 md:border-0 md:pt-0">
           {!person.responsibleId && !isBlocked && (
             <Button
               variant="outline"
-              className="h-10 border-zinc-200 text-xs font-black uppercase tracking-wider"
+              className="h-10 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
               onClick={handleAssume}
               disabled={isPending}
             >
@@ -129,7 +129,7 @@ export function PersonPriorityCard({
             </Button>
           )}
           <Button
-              className="h-10 bg-[#0f1b24] px-5 text-xs font-black uppercase tracking-wider text-white hover:bg-[#172733]"
+              className="h-10 border-2 border-black bg-burnt-yellow px-5 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
             onClick={() => onOpenDetails?.(person)}
           >
             Iniciar etapa <ChevronRight className="ml-1 h-4 w-4" />
@@ -144,31 +144,31 @@ export function PersonPriorityCard({
       person={person}
       primaryActionLabel="Iniciar etapa"
       onPrimaryAction={onOpenDetails}
-      className={cn("group h-full rounded-[30px] transition-all hover:-translate-y-0.5 hover:border-[#d39b2a]/45 hover:shadow-xl", isBlocked && "bg-zinc-50", className)}
+      className={cn("group h-full rounded-[2px] border-2 border-black transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", isBlocked && "bg-zinc-50 opacity-75", className)}
       footer={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 mt-2">
           {index !== undefined ? (
-            <Badge variant="outline" className="rounded-full border-zinc-200 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+            <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-white text-[9px] font-black uppercase tracking-widest text-charcoal">
               Missão {index + 1}
             </Badge>
           ) : null}
           {person.responsibleName ? (
-            <Badge variant="outline" className="rounded-full border-zinc-300 bg-white text-[9px] font-black uppercase tracking-widest text-zinc-600">
+            <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-charcoal text-[9px] font-black uppercase tracking-widest text-white">
               {person.responsibleName}
             </Badge>
           ) : (
-            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-[9px] font-black uppercase tracking-widest text-amber-700">
+            <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-burnt-yellow/10 text-[9px] font-black uppercase tracking-widest text-charcoal">
               Sem responsável
             </Badge>
           )}
           {!person.responsibleId && !isBlocked ? (
             <Button
               variant="outline"
-              className="h-10 border-zinc-200 text-xs font-black uppercase tracking-wider"
+              className="h-8 border-2 border-black bg-white text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] px-3 shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
               onClick={handleAssume}
               disabled={isPending}
             >
-              <UserPlus className="mr-2 h-4 w-4" />
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
               Assumir
             </Button>
           ) : null}

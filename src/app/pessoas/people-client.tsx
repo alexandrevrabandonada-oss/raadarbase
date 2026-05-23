@@ -207,7 +207,7 @@ export function PeopleClient({
         actions={
           <>
             <Button
-              className="h-12 bg-[#0f1b24] px-6 text-xs font-black uppercase tracking-[0.18em] text-white hover:bg-[#172733]"
+              className="h-12 border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-[0.18em] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow/90 hover:-translate-y-0.5 transition-all rounded-[2px]"
               nativeButton={false}
               render={<Link href="/minha-fila?rodada=foco" />}
             >
@@ -216,7 +216,7 @@ export function PeopleClient({
             </Button>
             <Button
               variant="outline"
-              className="h-12 border-[#d8c7ac] bg-[#f7f0e4] px-6 text-xs font-black uppercase tracking-[0.18em] text-[#11202a]"
+              className="h-12 border-2 border-black bg-white px-6 text-xs font-black uppercase tracking-[0.18em] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-charcoal/5 hover:-translate-y-0.5 transition-all rounded-[2px]"
               onClick={() => setPriorityFilter("sem_responsavel")}
             >
               <UserPlus className="mr-2 h-4 w-4" />
@@ -224,7 +224,7 @@ export function PeopleClient({
             </Button>
             <Button
               variant="outline"
-              className="h-12 border-[#d8c7ac] bg-[#f7f0e4] px-6 text-xs font-black uppercase tracking-[0.18em] text-[#11202a]"
+              className="h-12 border-2 border-black bg-white px-6 text-xs font-black uppercase tracking-[0.18em] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-charcoal/5 hover:-translate-y-0.5 transition-all rounded-[2px]"
               nativeButton={false}
               render={<Link href="/pessoas/importar" />}
             >
@@ -262,7 +262,7 @@ export function PeopleClient({
         }}
       />
 
-      <section className="radar-outline-card border-2 border-black bg-[#fff8ed] p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,0.12)] sm:p-5">
+      <section className="bloco-concreto border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] sm:p-5 rounded-[2px]">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
           <div className="space-y-3">
             <div className="flex items-start gap-3">
@@ -280,7 +280,7 @@ export function PeopleClient({
                 { icon: Instagram, title: "Enviar", detail: "Personalizar e mandar manualmente." },
                 { icon: CheckCircle2, title: "Registrar", detail: "Salvar que o aviso foi enviado." },
               ].map(({ icon: Icon, title, detail }) => (
-                <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-[#d8c7ac] bg-white/80 p-3">
+                <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-black bg-white p-3 rounded-[2px]">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-charcoal" />
                   <span className="min-w-0">
                     <span className="block text-xs font-black uppercase tracking-[0.14em] text-charcoal">{title}</span>
@@ -292,7 +292,7 @@ export function PeopleClient({
           </div>
 
           <Button
-            className="h-12 border-2 border-black bg-charcoal px-6 text-xs font-black uppercase tracking-[0.18em] text-off-white shadow-[3px_3px_0px_0px_rgba(242,169,0,0.5)] hover:bg-charcoal/90"
+            className="h-12 border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-[0.18em] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-burnt-yellow/90 hover:-translate-y-0.5 transition-all rounded-[2px]"
             nativeButton={false}
             render={<Link href="/minha-fila?rodada=foco" />}
           >
@@ -304,7 +304,7 @@ export function PeopleClient({
 
       <div className="sticky top-24 z-20 space-y-3">
         <OperationalStatusBar
-          className="border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] backdrop-blur"
+          className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]"
           activeFilter={priorityFilter}
           onFilter={(id) => setPriorityFilter(id)}
           metrics={[
@@ -319,22 +319,22 @@ export function PeopleClient({
         />
 
         {isCompact ? (
-          <details className="radar-outline-card rounded-[20px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] backdrop-blur">
+          <details className="radar-outline-card rounded-[2px] border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
             <summary className="cursor-pointer list-none px-3 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#7d6f59]">
               Filtros e busca
             </summary>
-            <div className="space-y-3 border-t border-[#d8c7ac] p-3">
+            <div className="space-y-3 border-t border-black p-3">
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
                 <Input
                   placeholder="Buscar username..."
-                  className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
+                  className="h-8 border-2 border-black bg-white pl-9 text-xs"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
+                <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
                   <Button
                     variant={viewMode === "cards" ? "secondary" : "ghost"}
                     size="icon"
@@ -356,19 +356,19 @@ export function PeopleClient({
             </div>
           </details>
         ) : (
-          <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-xl border border-[#d8c7ac] bg-[rgba(255,250,242,0.96)] p-2 backdrop-blur md:flex-row">
+          <div className="radar-outline-card flex flex-col items-center justify-between gap-4 rounded-[2px] border-2 border-black bg-white p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] md:flex-row">
             <div className="relative w-full md:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
               <Input
                 placeholder="Buscar username..."
-                className="h-8 border-[#d8c7ac] bg-white/80 pl-9 text-xs"
+                className="h-8 border-2 border-black bg-white pl-9 text-xs"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-lg border border-[#d8c7ac] bg-white/80 p-1 shadow-sm">
+              <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
                 <Button
                   variant={viewMode === "cards" ? "secondary" : "ghost"}
                   size="icon"
@@ -430,7 +430,7 @@ export function PeopleClient({
       </div>
 
       {isCompact ? (
-        <details className="radar-outline-card rounded-[24px] border border-[#d8c7ac] bg-[rgba(255,250,242,0.92)]">
+        <details className="radar-outline-card rounded-[2px] border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
           <summary className="cursor-pointer list-none px-5 py-4 text-sm font-black text-[#11202a]">
             Abrir leitura complementar da operação
           </summary>
@@ -483,13 +483,13 @@ export function PeopleClient({
       />
 
       {/* Governance Banner */}
-      <footer className="radar-panel-dark mt-12 flex flex-col items-center gap-6 rounded-2xl border border-[#23313b] p-6 text-indigo-50 md:flex-row">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10">
+      <footer className="bloco-concreto mt-12 flex flex-col items-center gap-6 rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] md:flex-row">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20">
           <Info className="h-6 w-6" />
         </div>
         <div className="space-y-1">
           <h4 className="font-bold text-lg">Diretrizes de Engajamento Ético</h4>
-          <p className="text-indigo-200/80 text-sm leading-relaxed">
+          <p className="text-white/80 text-sm leading-relaxed">
             O Radar de Base utiliza sinais de interação pública para sugerir a melhor conversa. 
             É proibido o uso destes dados para profiling ideológico ou pressão eleitoral. 
             Toda conversa deve ser manual e respeitar o pedido de privacidade (&quot;Não Abordar&quot;).
