@@ -47,8 +47,15 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     e.stopPropagation();
     if (person.suggestedMessage) {
       await navigator.clipboard.writeText(person.suggestedMessage);
-      toast({ title: "Mensagem preparada", description: "Revise e envie manualmente." });
+      toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
       await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
+      
+      const igUsername = person.username.replace(/^@+/, "");
+      const igUrl = person.instagramUrl?.includes("/direct/t/")
+        ? person.instagramUrl
+        : `https://www.instagram.com/direct/t/${igUsername}/`;
+      window.open(igUrl, "_blank");
+
       setCopyStatus("waiting");
       setShowConfirmDialog(true);
     }
@@ -171,7 +178,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             )}
             onClick={handleCopyDM}
             disabled={!person.suggestedMessage || isBlocked}
-            title="Preparar mensagem"
+            title="Copiar e Abrir Direct"
           >
             <Copy className="h-4 w-4" />
           </Button>
@@ -207,7 +214,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             <DialogHeader>
               <DialogTitle className="font-black text-lg uppercase tracking-tight text-charcoal">Confirmar envio manual</DialogTitle>
               <DialogDescription className="font-semibold text-xs text-charcoal/80">
-                Copiar não registra o envio. Confirme apenas depois de mandar manualmente a mensagem para @{person.username}.
+                A mensagem sugerida foi copiada e o Direct foi aberto. Confirme abaixo somente após enviar para @{person.username}.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 border-t border-black/10 pt-4">

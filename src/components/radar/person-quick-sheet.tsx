@@ -416,7 +416,7 @@ export function PersonQuickSheet({
     
     // 1. Copiar
     await navigator.clipboard.writeText(text);
-    toast({ title: "Mensagem copiada", description: "Use como base. Personalize antes de enviar manualmente." });
+    toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
     
     // 2. Telemetria
     if (isTraining) {
@@ -426,7 +426,14 @@ export function PersonQuickSheet({
       await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
     }
     
-    // 3. Entrar em modo de confirmação
+    // 3. Abrir Direct do Instagram
+    const igUsername = person.username.replace(/^@+/, "");
+    const igUrl = person.instagramUrl?.includes("/direct/t/")
+      ? person.instagramUrl
+      : `https://www.instagram.com/direct/t/${igUsername}/`;
+    window.open(igUrl, "_blank");
+
+    // 4. Entrar em modo de confirmação
     setCopyStatus("waiting");
   };
 
@@ -653,7 +660,7 @@ export function PersonQuickSheet({
                         <div className="flex items-start gap-3">
                           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                           <p className="text-[11px] font-bold leading-tight">
-                            Copiar não registra o envio. Confirme apenas depois de mandar manualmente no Instagram.
+                            A mensagem sugerida foi copiada e o Direct foi aberto. Confirme abaixo somente após enviar no Instagram.
                           </p>
                         </div>
                         <p className="text-xs font-black uppercase tracking-tight">Já enviou no Instagram?</p>
@@ -842,7 +849,7 @@ export function PersonQuickSheet({
                       size="icon" 
                       variant={copyStatus === "waiting" ? "default" : "outline"}
                       className={cn("h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]", copyStatus === "waiting" && "border-[#13212b] bg-[#13212b] text-white")} 
-                      title="Copiar DM" 
+                      title="Copiar e Abrir Direct" 
                       disabled={!person.suggestedMessage || isPending} 
                       onClick={() => handleCopyDM(person.suggestedMessage!, "floating_footer")}
                     >

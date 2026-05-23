@@ -116,11 +116,19 @@ export function PersonActions({
     if (!profile.priority.suggestedMessage) return;
     await navigator.clipboard.writeText(profile.priority.suggestedMessage);
     setCopied("mensagem");
-    setCopyStatus("waiting");
-    setShowConfirmDialog(true);
     
     // Telemetria
     await recordDMPreparedAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
+
+    // Abrir Direct do Instagram
+    const igUsername = person.username.replace(/^@+/, "");
+    const igUrl = profile.priority.instagramUrl?.includes("/direct/t/")
+      ? profile.priority.instagramUrl
+      : `https://www.instagram.com/direct/t/${igUsername}/`;
+    window.open(igUrl, "_blank");
+
+    setCopyStatus("waiting");
+    setShowConfirmDialog(true);
   }
 
   function handleConfirmSent() {
@@ -220,7 +228,7 @@ export function PersonActions({
               disabled={!canApproach}
             >
               <Copy className="mr-2 h-4 w-4" /> 
-              {copyStatus === "waiting" ? "Preparado..." : copyStatus === "confirmed" ? "Enviado!" : "Copiar DM"}
+              {copyStatus === "waiting" ? "Preparado..." : copyStatus === "confirmed" ? "Enviado!" : "Copiar e Abrir Direct"}
             </Button>
           )}
         </div>
@@ -233,9 +241,9 @@ export function PersonActions({
                 Confirmar Envio Manual
               </DialogTitle>
               <DialogDescription className="pt-2 font-semibold text-xs text-charcoal/80">
-                Você copiou a mensagem para @{person.username}. 
+                A mensagem sugerida foi copiada e o Direct foi aberto para @{person.username}. 
                 <span className="block mt-2 font-bold text-charcoal bg-burnt-yellow/15 p-3 rounded-[2px] border-2 border-burnt-yellow">
-                  Aviso: Copiar não registra o envio no sistema. Confirme apenas depois de mandar manualmente no Instagram.
+                  Aviso: Confirme abaixo somente após enviar a mensagem manualmente no Instagram.
                 </span>
               </DialogDescription>
             </DialogHeader>
@@ -362,7 +370,7 @@ export function PersonActions({
                      <AlertTriangle className="h-3 w-3 text-burnt-yellow" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
                    <Button onClick={copyMessage} disabled={!profile.priority.suggestedMessage || !canApproach} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
-                     <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado" : "Copiar Texto"}
+                     <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado e Aberto" : "Copiar e Abrir Direct"}
                    </Button>
                 </div>
                 {!canApproach && (
