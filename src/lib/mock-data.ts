@@ -296,7 +296,7 @@ export const messageTemplates: MessageTemplate[] = [
     theme: "conversao",
     category: "Mensagem de Campanha",
     whenToUse: "Mensagem padrão global para avisar sobre a pré-candidatura a Deputado Estadual e convidar para vaquinha/atividades.",
-    body: "Oi, @{username}! Aqui é da equipe do Alexandre VR Abandonada. Ele é pré-candidato a Deputado Estadual pelo Rio de Janeiro e estamos mobilizando pessoas engajadas em todo o estado. Você gostaria de apoiar nossa vaquinha ou participar das atividades?",
+    body: "Oi! Tudo bem?\n\nQueria te contar em primeira mão: estou colocando meu nome à disposição como *pré-candidato a deputado estadual* pelo projeto *Alexandre VR Abandonada*.\n\nEssa pré-campanha nasce com alguns valores muito claros: escutar quem vive os problemas de verdade, cuidar das pessoas, defender justiça social e ambiental, enfrentar o abandono do nosso estado e construir organização popular de baixo para cima.\n\nA gente sabe que política não pode ser só promessa, palanque e propaganda. Por isso estamos criando o *App Missão ÉLuta*, uma ferramenta para organizar essa luta: formação, missões simples, escuta nos bairros, mobilização e participação coletiva.\n\nSe você tiver interesse em conhecer melhor ou participar dessa construção, me responde aqui com *“quero entrar”* que eu te mando o convite do app.\n\n*Ajude a gente a mudar o estado.*\nEscutar • Cuidar • Organizar",
     active: true,
     updatedAt: "2026-05-22",
     isCampaignDefault: true,
