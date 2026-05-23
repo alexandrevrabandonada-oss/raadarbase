@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { submitNeighborhoodListenAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { playSynthConfirm, playSynthSuccess } from "@/lib/audio";
 import { executeOrQueueAction } from "@/lib/offline-queue";
 
 const TOPIC_OPTIONS = [
@@ -28,6 +29,20 @@ export function BairroListenForm({ sourceReportId, topicPreset }: { sourceReport
   const [wantsContact, setWantsContact] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const [isOnline, setIsOnline] = useState(() => typeof window !== "undefined" ? navigator.onLine : true);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const shareMessage = "Contribua em 30 segundos: diga seu bairro + pauta + relato curto em /escuta/bairro";
 
@@ -65,6 +80,11 @@ export function BairroListenForm({ sourceReportId, topicPreset }: { sourceReport
               : { type: "error", text: result.error || "Falha ao registrar escuta." }
           );
           if (result.ok) {
+            if (result.offline) {
+              playSynthConfirm();
+            } else {
+              playSynthSuccess();
+            }
             event.currentTarget.reset();
             setSelectedTopic(topicPreset ?? "");
             setRelato("");
@@ -73,6 +93,20 @@ export function BairroListenForm({ sourceReportId, topicPreset }: { sourceReport
         });
       }}
     >
+      {!isOnline && (
+        <div className="border-2 border-charcoal bg-burnt-yellow text-charcoal px-4 py-3 rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] flex items-center gap-3 animate-pulse">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center border-2 border-charcoal rounded-[2px] bg-charcoal text-burnt-yellow font-black text-sm">
+            💾
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs font-black uppercase tracking-wider">Modo Offline Ativo</p>
+            <p className="text-[11px] font-bold text-charcoal/90 leading-relaxed">
+              Você está sem sinal, mas pode continuar coletando relatos. Suas escutas serão salvas localmente e sincronizadas assim que a internet voltar.
+            </p>
+          </div>
+        </div>
+      )}
+
       <input type="hidden" name="source_report_id" value={sourceReportId ?? ""} />
       {isQuickMode ? <input type="hidden" name="modo_relato" value="rapido" /> : <input type="hidden" name="modo_relato" value="completo" />}
 
