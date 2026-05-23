@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronRight, Info, AlertTriangle, Instagram, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TrainingScenario } from "@/lib/data/training-phases";
+import { playSynthConfirm } from "@/lib/audio";
 
 interface TrainingScenarioViewProps {
   scenario: TrainingScenario;
@@ -51,73 +52,76 @@ export function TrainingScenarioView({ scenario, onScenarioComplete }: TrainingS
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Context Card */}
-      <Card className="border-indigo-200 bg-indigo-50/50 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-        <CardContent className="p-8">
+      <Card className="bloco-concreto shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] bg-amber-50/50 dark:bg-concrete-dark">
+        <CardContent className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-start justify-between gap-6">
-            <div className="space-y-4 max-w-2xl">
+            <div className="space-y-4 max-w-2xl text-charcoal dark:text-off-white">
               <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-xl font-black text-indigo-950 uppercase tracking-tight">O Cenário</h3>
+                <Target className="h-5 w-5 text-burnt-yellow" />
+                <h3 className="text-lg font-black uppercase tracking-wider">O Cenário</h3>
               </div>
-              <p className="text-indigo-900 font-medium leading-relaxed">
+              <p className="font-bold text-sm leading-relaxed text-cement dark:text-zinc-300">
                 {scenario.context}
               </p>
-              <div className="p-4 bg-white/60 rounded-2xl border border-indigo-100">
-                <p className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-1">Seu Desafio:</p>
-                <p className="text-sm font-bold text-indigo-900">{scenario.challenge}</p>
+              <div className="p-4 bg-zinc-100 dark:bg-zinc-850 border-2 border-black rounded-[2px]">
+                <p className="text-[10px] font-black text-cement uppercase tracking-widest mb-1">Seu Desafio:</p>
+                <p className="text-xs font-black text-charcoal dark:text-off-white">{scenario.challenge}</p>
               </div>
             </div>
 
             {allStepsDone && (
               <Button 
-                onClick={onScenarioComplete}
+                onClick={() => {
+                  onScenarioComplete();
+                }}
                 size="lg"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs tracking-wider h-14 px-8 shadow-xl shadow-indigo-200 animate-in zoom-in duration-300"
+                className="w-full md:w-auto bg-burnt-yellow text-charcoal border-black rounded-[2px] font-black uppercase text-xs tracking-widest h-12 px-8 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
               >
-                Concluir Fase <ChevronRight className="ml-2 h-5 w-5" />
+                Concluir Fase <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             )}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-12 gap-8">
+      <div className="grid lg:grid-cols-12 gap-6">
         {/* Left: Simulation Environment */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-800">
-            <AlertTriangle className="h-5 w-5 shrink-0" />
-            <p className="text-[10px] font-black uppercase tracking-widest leading-none">Simulação Ativa • Dados Reais Protegidos</p>
+          <div className="bg-[#FFF7CD] border-2 border-black p-4 rounded-[2px] flex items-center gap-3 text-charcoal shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-charcoal" />
+            <p className="text-[9px] font-black uppercase tracking-widest leading-none">Simulação Ativa • Dados Reais Protegidos</p>
           </div>
 
-          <Card className="border-zinc-200 shadow-xl bg-white overflow-hidden rounded-3xl min-h-[400px] flex items-center justify-center">
-            <CardContent className="p-12 text-center space-y-8">
+          <Card className="bloco-concreto min-h-[380px] flex items-center justify-center">
+            <CardContent className="p-8 text-center space-y-6">
               <div className="space-y-4">
-                <div className="h-24 w-24 rounded-full bg-zinc-100 mx-auto flex items-center justify-center text-4xl font-black text-zinc-400 border-4 border-white shadow-inner">
+                <div className="h-20 w-20 rounded-[2px] border-2 border-black bg-zinc-100 mx-auto flex items-center justify-center text-3xl font-black text-charcoal">
                   {simulatedPerson.username.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="space-y-1">
-                  <h2 className="text-3xl font-black tracking-tight text-zinc-900">@{simulatedPerson.username}</h2>
-                  <p className="text-zinc-500 font-medium">{simulatedPerson.displayName}</p>
+                  <h2 className="text-2xl font-black tracking-tight text-charcoal dark:text-off-white">@{simulatedPerson.username}</h2>
+                  <p className="text-xs font-bold text-cement">{simulatedPerson.displayName}</p>
                 </div>
               </div>
 
               <div className="flex justify-center gap-4">
                 <Button 
-                  size="lg"
+                  size="default"
                   className={cn(
-                    "font-black uppercase text-xs tracking-wider h-14 px-10 rounded-2xl transition-all",
-                    simulatedPerson.status === "nao_abordar" ? "bg-rose-100 text-rose-600 border-rose-200 cursor-not-allowed" : "bg-zinc-950 hover:bg-zinc-800 text-white shadow-xl"
+                    "font-black uppercase text-xs tracking-widest h-12 px-8 rounded-[2px] border-2 border-black",
+                    simulatedPerson.status === "nao_abordar" ? "bg-rose-100 text-rose-600 border-rose-300 cursor-not-allowed" : "bg-burnt-yellow text-charcoal hover:bg-burnt-yellow/90"
                   )}
                   onClick={() => {
                     if (simulatedPerson.status !== "nao_abordar") {
+                      playSynthConfirm();
                       setIsSheetOpen(true);
                       handleAction("view");
                     }
                   }}
                 >
-                  <Instagram className="mr-3 h-5 w-5" />
+                  <Instagram className="mr-2 h-4 w-4" />
                   {simulatedPerson.status === "nao_abordar" ? "Ação Bloqueada" : "Abrir Ficha Rápida"}
                 </Button>
               </div>
@@ -127,39 +131,45 @@ export function TrainingScenarioView({ scenario, onScenarioComplete }: TrainingS
 
         {/* Right: Step List */}
         <div className="lg:col-span-5 space-y-4">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400 px-1">Passos para completar</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-cement px-1">Passos para completar</h4>
           <div className="space-y-2">
-            {scenario.steps.map((step) => (
-              <div 
-                key={step.id}
-                className={cn(
-                  "flex items-center gap-4 p-5 rounded-2xl border-2 transition-all duration-300",
-                  completedStepIds.includes(step.id) 
-                    ? "bg-emerald-50 border-emerald-100 text-emerald-800" 
-                    : "bg-white border-zinc-100"
-                )}
-              >
-                <div className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center shrink-0 border-2",
-                  completedStepIds.includes(step.id) ? "bg-emerald-500 border-emerald-500 text-white" : "border-zinc-100 text-zinc-300"
-                )}>
-                  {completedStepIds.includes(step.id) ? <CheckCircle2 className="h-5 w-5" /> : <Info className="h-5 w-5" />}
+            {scenario.steps.map((step) => {
+              const isDone = completedStepIds.includes(step.id);
+              return (
+                <div 
+                  key={step.id}
+                  className={cn(
+                    "flex items-center gap-4 p-4 rounded-[2px] border-2 transition-all duration-300",
+                    isDone 
+                      ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-600 text-emerald-800 dark:text-emerald-300" 
+                      : "bg-zinc-50 dark:bg-zinc-900 border-cement text-charcoal dark:text-off-white"
+                  )}
+                >
+                  <div className={cn(
+                    "h-8 w-8 rounded-[2px] flex items-center justify-center shrink-0 border-2",
+                    isDone ? "bg-emerald-500 border-black text-white" : "border-cement text-cement"
+                  )}>
+                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1">
+                     <p className="text-xs font-black">{step.label}</p>
+                     {step.type === "info" && !isDone && (
+                       <Button 
+                         variant="ghost" 
+                         size="sm" 
+                         className="p-0 h-auto text-[9px] font-black uppercase text-burnt-yellow hover:text-dark-yellow hover:bg-transparent mt-1"
+                         onClick={() => {
+                           handleAction(step.id);
+                           playSynthConfirm();
+                         }}
+                       >
+                         Marcar como Lido
+                       </Button>
+                     )}
+                  </div>
                 </div>
-                <div className="flex-1">
-                   <p className="text-sm font-bold">{step.label}</p>
-                   {step.type === "info" && !completedStepIds.includes(step.id) && (
-                     <Button 
-                       variant="ghost" 
-                       size="sm" 
-                       className="p-0 h-auto text-[10px] font-black uppercase text-indigo-600 hover:bg-transparent"
-                       onClick={() => handleAction(step.id)}
-                     >
-                       Marcar como Lido
-                     </Button>
-                   )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
