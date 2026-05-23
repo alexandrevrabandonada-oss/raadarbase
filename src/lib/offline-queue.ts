@@ -22,49 +22,106 @@ export type OfflineTask = {
   timestamp: number;
 };
 
-const STORAGE_KEY = "radar_offline_tasks_queue";
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB is not supported in this environment"));
+      return;
+    }
+    const request = window.indexedDB.open("radar_offline_db", 1);
 
-// Get tasks from localStorage
-export function getOfflineTasks(): OfflineTask[] {
-  if (typeof window === "undefined") return [];
+    request.onerror = () => {
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("tasks")) {
+        db.createObjectStore("tasks", { keyPath: "id" });
+      }
+    };
+  });
+}
+
+// Get tasks from IndexedDB (ordered chronologically)
+export async function getOfflineTasks(): Promise<OfflineTask[]> {
+  if (typeof window === "undefined" || !window.indexedDB) return [];
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction("tasks", "readonly");
+      const store = transaction.objectStore("tasks");
+      const request = store.getAll();
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+
+      request.onsuccess = () => {
+        const results = request.result || [];
+        resolve(results.sort((a, b) => a.timestamp - b.timestamp));
+      };
+    });
   } catch (err) {
-    console.error("Failed to parse offline tasks", err);
+    console.error("Failed to read from IndexedDB", err);
     return [];
   }
 }
 
-// Save tasks to localStorage
-function saveOfflineTasks(tasks: OfflineTask[]) {
-  if (typeof window === "undefined") return;
+// Add a task to the queue
+export async function addOfflineTask(action: OfflineTaskType, args: any[]): Promise<void> {
+  if (typeof window === "undefined" || !window.indexedDB) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    const db = await openDB();
+    const newTask: OfflineTask = {
+      id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      action,
+      args,
+      timestamp: Date.now(),
+    };
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction("tasks", "readwrite");
+      const store = transaction.objectStore("tasks");
+      const request = store.add(newTask);
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+
+      request.onsuccess = () => {
+        resolve();
+      };
+    });
   } catch (err) {
-    console.error("Failed to save offline tasks", err);
+    console.error("Failed to add task to IndexedDB", err);
   }
 }
 
-// Add a task to the queue
-export function addOfflineTask(action: OfflineTaskType, args: any[]) {
-  if (typeof window === "undefined") return;
-  const tasks = getOfflineTasks();
-  const newTask: OfflineTask = {
-    id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    action,
-    args,
-    timestamp: Date.now(),
-  };
-  tasks.push(newTask);
-  saveOfflineTasks(tasks);
-}
-
 // Remove a task from the queue by ID
-export function removeOfflineTask(id: string) {
-  const tasks = getOfflineTasks();
-  const filtered = tasks.filter((t) => t.id !== id);
-  saveOfflineTasks(filtered);
+export async function removeOfflineTask(id: string): Promise<void> {
+  if (typeof window === "undefined" || !window.indexedDB) return;
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction("tasks", "readwrite");
+      const store = transaction.objectStore("tasks");
+      const request = store.delete(id);
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+
+      request.onsuccess = () => {
+        resolve();
+      };
+    });
+  } catch (err) {
+    console.error("Failed to delete task from IndexedDB", err);
+  }
 }
 
 // Execute the actual server action mapped to the key
@@ -90,7 +147,7 @@ export async function syncOfflineTasks(
   onProgress?: (current: number, total: number) => void,
   onComplete?: (successCount: number, errorCount: number) => void
 ) {
-  const tasks = getOfflineTasks();
+  const tasks = await getOfflineTasks();
   if (tasks.length === 0) {
     if (onComplete) onComplete(0, 0);
     return;
@@ -100,12 +157,8 @@ export async function syncOfflineTasks(
   let errorCount = 0;
   const total = tasks.length;
 
-  // Process tasks in sequence (chronologically)
-  // We make a shallow copy to iterate, modifying the actual storage as we succeed
-  const sortedTasks = [...tasks].sort((a, b) => a.timestamp - b.timestamp);
-
-  for (let i = 0; i < sortedTasks.length; i++) {
-    const task = sortedTasks[i];
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
     if (onProgress) {
       onProgress(i + 1, total);
     }
@@ -115,18 +168,18 @@ export async function syncOfflineTasks(
       if (result && result.ok) {
         successCount++;
         // Remove from the queue immediately upon success
-        removeOfflineTask(task.id);
+        await removeOfflineTask(task.id);
       } else {
         console.error(`Offline action ${task.action} failed with server error:`, result?.error);
         errorCount++;
         // In case of error (e.g. database validation), we keep it or discard it depending on business logic.
         // For state-wide campaign, we discard to prevent blocking the queue with dead tasks, but log it.
-        removeOfflineTask(task.id);
+        await removeOfflineTask(task.id);
       }
     } catch (err) {
       console.error(`Offline action ${task.action} failed to execute:`, err);
       errorCount++;
-      removeOfflineTask(task.id);
+      await removeOfflineTask(task.id);
     }
   }
 
@@ -142,7 +195,7 @@ export async function executeOrQueueAction(
   toast: any
 ): Promise<{ ok: boolean; offline: boolean; error?: string }> {
   if (typeof window !== "undefined" && !navigator.onLine) {
-    addOfflineTask(action, args);
+    await addOfflineTask(action, args);
     toast({
       title: "Registrado Offline 💾",
       description: "Ação salva localmente. Será sincronizada quando o sinal voltar.",
@@ -158,7 +211,7 @@ export async function executeOrQueueAction(
     return { ok: false, offline: false, error: result?.error || "Erro desconhecido" };
   } catch (err) {
     // If the network request failed mid-execution (looks like offline)
-    addOfflineTask(action, args);
+    await addOfflineTask(action, args);
     toast({
       title: "Falha de rede - Salvo Offline 💾",
       description: "Houve uma instabilidade. A ação foi salva localmente para sincronização.",

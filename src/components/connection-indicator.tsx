@@ -20,11 +20,11 @@ export function ConnectionIndicator({ variant = "desktop" }: ConnectionIndicator
     if (typeof window !== "undefined") {
       setIsOnline(navigator.onLine);
       
-      const handleOnline = () => {
+      const handleOnline = async () => {
         setIsOnline(true);
         
         // Sync tasks in background when back online
-        const tasks = getOfflineTasks();
+        const tasks = await getOfflineTasks();
         if (tasks.length > 0) {
           toast({
             title: "Sinal recuperado! ⚡",
@@ -58,20 +58,21 @@ export function ConnectionIndicator({ variant = "desktop" }: ConnectionIndicator
       window.addEventListener("offline", handleOffline);
 
       // Check on initial load if we have pending tasks to sync
-      const pendingTasks = getOfflineTasks();
-      if (navigator.onLine && pendingTasks.length > 0) {
-        syncOfflineTasks(
-          undefined,
-          (success) => {
-            if (success > 0) {
-              toast({
-                title: "Sincronização pendente resolvida ✅",
-                description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
-              });
+      getOfflineTasks().then((pendingTasks) => {
+        if (navigator.onLine && pendingTasks.length > 0) {
+          syncOfflineTasks(
+            undefined,
+            (success) => {
+              if (success > 0) {
+                toast({
+                  title: "Sincronização pendente resolvida ✅",
+                  description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
+                });
+              }
             }
-          }
-        );
-      }
+          );
+        }
+      });
 
       return () => {
         window.removeEventListener("online", handleOnline);
