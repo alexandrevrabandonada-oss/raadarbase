@@ -62,6 +62,13 @@ Esta seção descreve as melhorias implementadas para aplicar a identidade visua
     *   Otimiza a leitura da fila de contatos prioritários (evitando scans completos) e acelera o processamento de painéis operacionais, equipe e estatísticas.
     *   Migração aplicada com sucesso no banco de dados remoto Supabase via API de gerenciamento seguro.
 
+### 9. Resiliência Local: Migração da Fila Offline para IndexedDB
+*   **Arquivos Modificados**: [offline-queue.ts](file:///c:/Projetos/Radar%20de%20Base/src/lib/offline-queue.ts) e [connection-indicator.tsx](file:///c:/Projetos/Radar%20de%20Base/src/components/connection-indicator.tsx).
+*   **O que muda**:
+    *   Substituição completa do `localStorage` (síncrono e limitado a 5MB) pela API assíncrona do `IndexedDB` nativa (`radar_offline_db` e object store `tasks`).
+    *   Tratamento seguro para Server-Side Rendering (SSR) e ambientes Node.js/JSDOM de testes (sem travamento caso `window.indexedDB` não exista).
+    *   Atualização assíncrona dos gatilhos no `ConnectionIndicator` para sincronização em background quando online.
+
 ---
 
 ## 🧪 Validação Operacional
