@@ -1,15 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Instagram, Copy, UserPlus, FileText, ShieldAlert, Clock, ChevronRight } from "lucide-react";
+import { Instagram, Copy, UserPlus, FileText, ShieldAlert, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
+import { useRouter } from "next/navigation";
 import { JourneyProgress } from "@/components/radar/journey-progress";
 import { AnnouncementStatusBadge } from "@/components/radar/announcement-status-badge";
 import {
@@ -28,13 +28,14 @@ interface PersonOperationalRowProps {
   onOpenDetails?: (person: PriorityPerson) => void;
   onAssume?: (personId: string) => void;
   isAssuming?: boolean;
+  onActionComplete?: (personId?: string, options?: { openNext?: boolean }) => void;
 }
 
-export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, isAssuming }: PersonOperationalRowProps) {
+export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, isAssuming, onActionComplete }: PersonOperationalRowProps) {
   const { toast } = useToast();
+  const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
-  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "confirmed">("idle");
   const isBlocked = getPriorityPersonHoldState(person) === "blocked";
   const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
   const missionPhaseLabel = getPriorityPersonMissionPhaseLabel(person);
@@ -52,45 +53,27 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       const igUrl = `https://www.instagram.com/${igUsername}/`;
       window.open(igUrl, "_blank");
 
-      const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
-
-      if (expressMode) {
-        toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
-        await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
-        startTransition(async () => {
-          const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
-          if (result.ok) {
-            setCopyStatus("confirmed");
-          } else {
-            toast({ title: "Erro", description: result.error, variant: "destructive" });
-          }
-        });
-      } else {
-        toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
-        await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
-        setCopyStatus("waiting");
-        setShowConfirmDialog(true);
-      }
+      toast({ title: "Mensagem copiada", description: "Direct aberto. O contato vai direto para esperando resposta." });
+      await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
+      startTransition(async () => {
+        const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
+        if (result.ok) {
+          setCopyStatus("confirmed");
+          toast({ title: "Envio registrado", description: "Contato movido para esperando resposta." });
+          onActionComplete?.(person.id);
+          router.refresh();
+        } else {
+          toast({ title: "Erro", description: result.error, variant: "destructive" });
+        }
+      });
     }
   };
 
-  const handleConfirmSent = () => {
-    startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
-      if (result.ok) {
-        setCopyStatus("confirmed");
-        setShowConfirmDialog(false);
-        toast({ title: "Etapa confirmada", description: "A missão entrou em acompanhamento." });
-      } else {
-        toast({ title: "Erro", description: result.error, variant: "destructive" });
-      }
-    });
-  };
-
   return (
+    <>
     <tr
       className={cn(
-        "group h-16 cursor-pointer border-b border-black/10 transition-colors hover:bg-charcoal/5",
+        "group hidden h-16 cursor-pointer border-b border-black/10 transition-colors hover:bg-charcoal/5 md:table-row",
         isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
       )}
       onClick={() => onOpenDetails?.(person)}
@@ -185,11 +168,9 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             variant="ghost"
             className={cn(
               "h-8 w-8",
-              copyStatus === "waiting"
-                ? "bg-indigo-50 text-indigo-600"
-                : copyStatus === "confirmed"
-                  ? "bg-emerald-50 text-emerald-600"
-                  : "text-zinc-400 hover:bg-[#11202a]/5 hover:text-[#11202a]",
+              copyStatus === "confirmed"
+                ? "bg-emerald-50 text-emerald-600"
+                : "text-zinc-400 hover:bg-[#11202a]/5 hover:text-[#11202a]",
             )}
             onClick={handleCopyDM}
             disabled={!person.suggestedMessage || isBlocked}
@@ -223,27 +204,111 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             Iniciar <ChevronRight className="ml-1 h-3 w-3" />
           </Button>
         </div>
-
-        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="sm:max-w-md border-2 border-black bg-white rounded-[2px] shadow-[6px_6px_0px_0px_rgba(11,11,11,1)] p-6">
-            <DialogHeader>
-              <DialogTitle className="font-black text-lg uppercase tracking-tight text-charcoal">Confirmar envio manual</DialogTitle>
-              <DialogDescription className="font-semibold text-xs text-charcoal/80">
-                A mensagem sugerida foi copiada e o Direct foi aberto. Confirme abaixo somente após enviar para @{person.username}.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="gap-2 border-t border-black/10 pt-4">
-              <Button variant="outline" onClick={() => setShowConfirmDialog(false)} className="border-2 border-black rounded-[2px] font-black text-charcoal bg-white hover:bg-charcoal/5">
-                Ainda não
-              </Button>
-              <Button onClick={handleConfirmSent} disabled={isPending} className="border-2 border-black bg-burnt-yellow text-charcoal rounded-[2px] font-black hover:bg-burnt-yellow/90 shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]">
-                {isPending ? "Processando..." : "Confirmar envio"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </td>
     </tr>
+    <div
+      className={cn(
+        "border-b border-black/10 p-4 md:hidden",
+        isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
+      )}
+      onClick={() => onOpenDetails?.(person)}
+    >
+      <div className="space-y-4 rounded-[2px] border-2 border-black bg-white p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-black text-zinc-950">{person.displayName || `@${person.username}`}</p>
+            <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-zinc-400">@{person.username}</p>
+          </div>
+          <span className="text-[10px] font-black text-zinc-400">{index + 1}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {missionTypeLabel ? (
+            <Badge className="rounded-[2px] border-2 border-black bg-burnt-yellow/10 text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/20">
+              {missionTypeLabel}
+            </Badge>
+          ) : null}
+          <Badge className="rounded-[2px] border-2 border-black bg-white text-[9px] font-black uppercase tracking-wider text-charcoal hover:bg-white">
+            {missionPhaseLabel}
+          </Badge>
+          <AnnouncementStatusBadge status={person.announcementStatus} />
+        </div>
+
+        <div className="space-y-2">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cement">Motivo</p>
+            <p className="text-sm font-medium text-zinc-700">{missionReason}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cement">Próxima ação</p>
+            <p className="text-sm font-black text-[#11202a]">{missionNextStep}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cement">Espera ou bloqueio</p>
+            <p className="text-sm font-medium text-zinc-600">{holdText}</p>
+          </div>
+        </div>
+
+        <JourneyProgress {...journey} compact />
+
+        <div className="flex items-center gap-2">
+          {person.riskFlags?.recentOutreach ? <Clock className="h-4 w-4 text-amber-500" /> : null}
+          {isBlocked ? <ShieldAlert className="h-4 w-4 text-rose-500" /> : null}
+          {copyStatus === "confirmed" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : null}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            className="h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDetails?.(person);
+            }}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Abrir
+          </Button>
+          <Button
+            variant="outline"
+            className="h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              const igUsername = person.username.replace(/^@+/, "");
+              const igUrl = `https://www.instagram.com/${igUsername}/`;
+              window.open(igUrl, "_blank");
+            }}
+            disabled={isBlocked}
+          >
+            <Instagram className="mr-2 h-4 w-4" />
+            Instagram
+          </Button>
+          <Button
+            className="col-span-2 h-11 border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
+            onClick={handleCopyDM}
+            disabled={!person.suggestedMessage || isBlocked || isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {isPending ? "Registrando..." : copyStatus === "confirmed" ? "Enviado para esperando resposta" : "Copiar, abrir e marcar enviado"}
+          </Button>
+          {!person.responsibleId && !isBlocked ? (
+            <Button
+              variant="outline"
+              className="col-span-2 h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssume?.(person.id);
+              }}
+              disabled={isAssuming}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Assumir missão
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+    </>
   );
 }
 
@@ -253,11 +318,26 @@ interface PersonOperationalListProps {
   onAssume?: (personId: string) => void;
   isAssuming?: boolean;
   className?: string;
+  onActionComplete?: (personId?: string, options?: { openNext?: boolean }) => void;
 }
 
-export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className }: PersonOperationalListProps) {
+export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className, onActionComplete }: PersonOperationalListProps) {
   return (
-    <div className={cn("bloco-concreto relative overflow-x-auto rounded-[2px] border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", className)}>
+    <div className={cn("bloco-concreto relative overflow-hidden rounded-[2px] border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", className)}>
+      <div className="md:hidden">
+        {people.map((person, index) => (
+          <PersonOperationalRow
+            key={person.id}
+            person={person}
+            index={index}
+            onOpenDetails={onOpenDetails}
+            onAssume={onAssume}
+            isAssuming={isAssuming}
+            onActionComplete={onActionComplete}
+          />
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="w-full min-w-[980px] border-collapse text-left xl:min-w-[1080px]">
         <thead className="sticky top-0 z-20 border-b-2 border-black bg-charcoal text-white">
           <tr>
@@ -282,10 +362,12 @@ export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssum
               onOpenDetails={onOpenDetails}
               onAssume={onAssume}
               isAssuming={isAssuming}
+              onActionComplete={onActionComplete}
             />
           ))}
         </tbody>
       </table>
+      </div>
       {people.length === 0 && (
         <div className="py-20 text-center text-zinc-400">
           Nenhuma missão encontrada neste filtro.

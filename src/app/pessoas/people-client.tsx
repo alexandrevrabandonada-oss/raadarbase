@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useTransition } from "react";
 import type { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Search, 
   Flame, 
   CheckCircle2, 
   Users, 
-  LayoutGrid, 
   List, 
   AlertCircle,
   Clock,
@@ -49,68 +50,46 @@ type Operator = { id: string; email: string; full_name: string | null; role: str
 export function PeopleClient({
   priorityPeople,
   operators = [],
+  currentOperatorId,
+  currentOperatorName,
 }: {
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
+  currentOperatorId: string;
+  currentOperatorName: string | null;
 }) {
+  const router = useRouter();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("todos");
+  const [priorityFilter, setPriorityFilter] = useState<string>("minhas_pendencias");
   const [isPending, startTransition] = useTransition();
-  const [viewMode, setViewMode] = useState<"cards" | "list">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("radar_pessoas_view_mode");
-      if (saved === "list" || saved === "cards") return saved;
-    }
-    return "cards";
-  });
+  const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const [dismissedPersonIds, setDismissedPersonIds] = useState<string[]>([]);
 
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
-  const [expressMode, setExpressMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("radar_envio_expresso") === "true";
-    }
-    return false;
-  });
-
-  const handleToggleExpressMode = () => {
-    const nextVal = !expressMode;
-    setExpressMode(nextVal);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("radar_envio_expresso", String(nextVal));
-    }
-    toast({
-      title: nextVal ? "Envio Expresso Ativado 🚀" : "Envio Expresso Desativado 🛑",
-      description: nextVal 
-        ? "DMs serão marcadas como enviadas instantaneamente ao copiar."
-        : "O modal de confirmação será exibido após copiar.",
-    });
-  };
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
     setIsSheetOpen(true);
   };
 
-  const toggleViewMode = (mode: "cards" | "list") => {
-    setViewMode(mode);
-    localStorage.setItem("radar_pessoas_view_mode", mode);
-  };
+  const normalizedQuery = query.trim().toLowerCase();
+  const visiblePriorityPeople = useMemo(
+    () => priorityPeople.filter((person) => !dismissedPersonIds.includes(person.id)),
+    [dismissedPersonIds, priorityPeople],
+  );
 
-  const filteredPriorityPeople = useMemo(() => {
-    return priorityPeople
+  const teamPriorityPeople = useMemo(() => {
+    return visiblePriorityPeople
       .filter((person) => {
         if (!person.priorityEligible) return false;
-        
-        // Separação rigorosa dos contatos esperando retorno:
-        // Só mostramos contatos marcados como esperando retorno no filtro específico "pendente_resposta"
-        const isWaiting = person.isPendingResponse;
-        if (priorityFilter === "pendente_resposta") {
-          if (!isWaiting) return false;
-        } else {
-          if (isWaiting) return false;
+        if (person.isPendingResponse) return false;
+
+        if (normalizedQuery) {
+          const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();
+          if (!searchTarget.includes(normalizedQuery)) return false;
         }
         
         switch (priorityFilter) {
@@ -122,9 +101,10 @@ export function PeopleClient({
             return person.status === "respondeu" && !person.hasReferral;
           case "prontas_aviso":
             return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
+          case "minhas_pendencias":
+            return person.responsibleId === currentOperatorId;
           case "pendente_resposta":
-            // Já garantido pelo check acima
-            return true;
+            return false;
           case "quer_evento":
             return person.themes.includes("quer_evento_campo");
           case "quer_voluntariado":
@@ -139,10 +119,34 @@ export function PeopleClient({
         }
       })
       .slice(0, 100);
-  }, [operators, priorityFilter, priorityPeople]);
+  }, [currentOperatorId, normalizedQuery, operators, priorityFilter, visiblePriorityPeople]);
+
+  const waitingPeople = useMemo(() => {
+    return visiblePriorityPeople
+      .filter((person) => {
+        if (!person.priorityEligible) return false;
+        if (!person.isPendingResponse) return false;
+
+        if (normalizedQuery) {
+          const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();
+          if (!searchTarget.includes(normalizedQuery)) return false;
+        }
+
+        if (priorityFilter !== "todos" && priorityFilter !== "pendente_resposta" && priorityFilter !== "minhas_pendencias") {
+          return false;
+        }
+
+        if (priorityFilter === "minhas_pendencias" && person.responsibleId !== currentOperatorId) {
+          return false;
+        }
+
+        return true;
+      })
+      .slice(0, 100);
+  }, [currentOperatorId, normalizedQuery, priorityFilter, visiblePriorityPeople]);
 
   useEffect(() => {
-    const active = priorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
+    const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
     const totalActive = active.length;
     const totalSent = active.filter(p => p.isPendingResponse).length;
 
@@ -172,7 +176,7 @@ export function PeopleClient({
         });
       }
     }
-  }, [priorityPeople, toast]);
+  }, [toast, visiblePriorityPeople]);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -191,18 +195,17 @@ export function PeopleClient({
     setCompact,
   } = useCompactMode({
     storageKey: "radar_pessoas_compacto",
-    autoCompact: isNotebookViewport || filteredPriorityPeople.length > 20,
+    autoCompact: isNotebookViewport || teamPriorityPeople.length > 20,
   });
 
   // Auto-switch to list mode if many results
   useEffect(() => {
-    const hasExplicitPreference = localStorage.getItem("radar_pessoas_view_mode");
-    if (!hasExplicitPreference && filteredPriorityPeople.length > 20 && viewMode === "cards") {
+    if (teamPriorityPeople.length > 20 && viewMode === "cards") {
       startTransition(() => {
         setViewMode("list");
       });
     }
-  }, [filteredPriorityPeople.length, viewMode]);
+  }, [teamPriorityPeople.length, viewMode]);
 
   function handleAssume(personId: string) {
     startTransition(async () => {
@@ -218,26 +221,77 @@ export function PeopleClient({
   }
 
   const stats = useMemo(() => {
-    const active = priorityPeople.filter(p => p.status !== "nao_abordar");
+    const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar");
     const esperando = active.filter(p => p.isPendingResponse);
     const naoEsperando = active.filter(p => !p.isPendingResponse);
     return {
       total: naoEsperando.length,
+      minhasPendencias: naoEsperando.filter(p => p.responsibleId === currentOperatorId).length,
       quentes: naoEsperando.filter(p => p.temperature === "quente").length,
       semResponsavel: naoEsperando.filter(p => !p.responsibleName).length,
       esperando: esperando.length,
       aEncaminhar: naoEsperando.filter(p => p.status === "respondeu" && !p.hasReferral).length,
-      naoAbordar: priorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
+      naoAbordar: visiblePriorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
       prontasAviso: naoEsperando.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
     };
-  }, [priorityPeople]);
+  }, [currentOperatorId, visiblePriorityPeople]);
+
+  useEffect(() => {
+    if (priorityFilter === "minhas_pendencias" && stats.minhasPendencias === 0 && stats.total > 0) {
+      setPriorityFilter("todos");
+    }
+  }, [priorityFilter, stats.minhasPendencias, stats.total]);
+
+  function removePersonFromCurrentList(personId: string) {
+    setDismissedPersonIds((current) => (current.includes(personId) ? current : [...current, personId]));
+  }
+
+  function openNextAfterCompletion(personId: string) {
+    const currentIndex = teamPriorityPeople.findIndex((person) => person.id === personId);
+    const nextPerson = currentIndex >= 0 ? teamPriorityPeople[currentIndex + 1] ?? null : null;
+    removePersonFromCurrentList(personId);
+    if (nextPerson) {
+      setSelectedPerson(nextPerson);
+      setIsSheetOpen(true);
+      return;
+    }
+    setIsSheetOpen(false);
+    setSelectedPerson(null);
+    toast({ title: "Rodada concluída", description: "Não há outra pendência neste filtro agora." });
+  }
+
+  function handleActionComplete(personId?: string, options?: { openNext?: boolean }) {
+    if (!personId) {
+      router.refresh();
+      return;
+    }
+    if (options?.openNext) openNextAfterCompletion(personId);
+    else removePersonFromCurrentList(personId);
+    router.refresh();
+  }
+
+  function handleAssumeNextUnassigned() {
+    const nextUnassigned = teamPriorityPeople.find((person) => !person.responsibleId);
+    if (!nextUnassigned) {
+      toast({ title: "Sem pendência sem dono", description: "Todas as missões deste filtro já têm responsável." });
+      return;
+    }
+
+    startTransition(async () => {
+      await assumePersonResponsible(nextUnassigned.id);
+      setPriorityFilter("minhas_pendencias");
+      setSelectedPerson(nextUnassigned);
+      setIsSheetOpen(true);
+      router.refresh();
+    });
+  }
 
 
   const handleNextPerson = () => {
     if (!selectedPerson) return;
-    const currentIndex = filteredPriorityPeople.findIndex(p => p.id === selectedPerson.id);
-    if (currentIndex !== -1 && currentIndex < filteredPriorityPeople.length - 1) {
-      setSelectedPerson(filteredPriorityPeople[currentIndex + 1]);
+    const currentIndex = teamPriorityPeople.findIndex(p => p.id === selectedPerson.id);
+    if (currentIndex !== -1 && currentIndex < teamPriorityPeople.length - 1) {
+      setSelectedPerson(teamPriorityPeople[currentIndex + 1]);
     } else {
       setIsSheetOpen(false);
       setSelectedPerson(null);
@@ -258,13 +312,13 @@ export function PeopleClient({
         badges={
           <>
             <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
-            <GamefulHeroBadge light>{stats.semResponsavel} sem dono</GamefulHeroBadge>
+            <GamefulHeroBadge light>{stats.minhasPendencias} minhas</GamefulHeroBadge>
           </>
         }
         metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         metrics={
           <>
-            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Vínculos operacionais no radar."} />
+            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Pendências de primeiro envio."} />
             <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail={isCompact ? undefined : "Missões com maior calor."} />
             <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail={isCompact ? undefined : "Conversas pedindo retorno."} />
             <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail={isCompact ? undefined : "Interesses prontos para destino."} />
@@ -283,10 +337,10 @@ export function PeopleClient({
             <Button
               variant="outline"
               className="h-12 border-2 border-black bg-white px-6 text-xs font-black uppercase tracking-[0.18em] text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:bg-charcoal/5 hover:-translate-y-0.5 transition-all rounded-[2px]"
-              onClick={() => setPriorityFilter("sem_responsavel")}
+              onClick={handleAssumeNextUnassigned}
             >
               <UserPlus className="mr-2 h-4 w-4" />
-              Assumir missões
+              Assumir próxima
             </Button>
             <Button
               variant="outline"
@@ -298,7 +352,7 @@ export function PeopleClient({
               Importar base
             </Button>
             {compactHydrated ? (
-              <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || filteredPriorityPeople.length > 20} onToggle={setCompact} />
+              <CompactModeToggle enabled={manualCompact} autoCompact={isNotebookViewport || teamPriorityPeople.length > 20} onToggle={setCompact} />
             ) : null}
           </>
         }
@@ -307,8 +361,8 @@ export function PeopleClient({
       <OperationalCommandBar
         title="Barra de comando"
         statusLabel="Rodada manual"
-        statusValue={`${stats.total} missões ativas`}
-        statusDetail="A jornada trabalha uma pessoa por vez: prepara a fala, abre o canal e registra o envio."
+        statusValue={`${stats.minhasPendencias} minhas pendências`}
+        statusDetail="A lista principal fica só com quem ainda não recebeu mensagem. Quem já foi abordado sai automaticamente para esperando retorno."
         primaryAction={{
           label: "Começar Rodada",
           href: "/minha-fila?rodada=foco",
@@ -316,8 +370,8 @@ export function PeopleClient({
         }}
         secondaryActions={[
           {
-            label: "Assumir Sem Dono",
-            onClick: focusUnassignedMissions,
+            label: "Assumir Próxima Sem Dono",
+            onClick: handleAssumeNextUnassigned,
             icon: UserPlus,
           },
         ]}
@@ -344,7 +398,7 @@ export function PeopleClient({
               {[
                 { icon: Copy, title: "Preparar", detail: "Copiar a mensagem da pessoa." },
                 { icon: Instagram, title: "Enviar", detail: "Personalizar e mandar manualmente." },
-                { icon: CheckCircle2, title: "Registrar", detail: "Salvar que o aviso foi enviado." },
+              { icon: CheckCircle2, title: "Registrar", detail: "Marcar envio e mover direto para esperando resposta." },
               ].map(({ icon: Icon, title, detail }) => (
                 <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-black bg-white p-3 rounded-[2px]">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-charcoal" />
@@ -375,6 +429,7 @@ export function PeopleClient({
           onFilter={(id) => setPriorityFilter(id)}
           metrics={[
             { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
+            { id: "minhas_pendencias", label: "Minhas", value: stats.minhasPendencias, tone: "info", icon: List, filterable: true },
             { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
             { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
             { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
@@ -399,36 +454,26 @@ export function PeopleClient({
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
-              <div className="flex items-center justify-between w-full">
-                <button
-                  onClick={handleToggleExpressMode}
-                  className={cn(
-                    "flex items-center gap-1.5 h-9 px-3 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-                    expressMode
-                      ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                      : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-                  )}
-                >
-                  🚀 Envio Expresso {expressMode ? "On" : "Off"}
-                </button>
-                <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "minhas_pendencias", label: "Minhas", count: stats.minhasPendencias },
+                  { id: "todos", label: "Primeiro envio", count: stats.total },
+                  { id: "quentes", label: "Urgentes", count: stats.quentes },
+                  { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
+                ].map((item) => (
                   <Button
-                    variant={viewMode === "cards" ? "secondary" : "ghost"}
-                    size="icon"
-                    className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
-                    onClick={() => toggleViewMode("cards")}
+                    key={item.id}
+                    variant="outline"
+                    className={cn(
+                      "h-10 justify-between border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]",
+                      priorityFilter === item.id && "bg-burnt-yellow"
+                    )}
+                    onClick={() => setPriorityFilter(item.id)}
                   >
-                    <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
+                    <span>{item.label}</span>
+                    <span>{item.count}</span>
                   </Button>
-                  <Button
-                    variant={viewMode === "list" ? "secondary" : "ghost"}
-                    size="icon"
-                    className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
-                    onClick={() => toggleViewMode("list")}
-                  >
-                    <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
-                  </Button>
-                </div>
+                ))}
               </div>
             </div>
           </details>
@@ -444,36 +489,11 @@ export function PeopleClient({
               />
             </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleToggleExpressMode}
-                className={cn(
-                  "flex items-center gap-1.5 h-9 px-3 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-                  expressMode
-                    ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                    : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-                )}
-              >
-                🚀 Envio Expresso {expressMode ? "Ativo" : "Inativo"}
-              </button>
-              <div className="flex items-center gap-1 rounded-[2px] border-2 border-black bg-white p-1">
-                <Button
-                  variant={viewMode === "cards" ? "secondary" : "ghost"}
-                  size="icon"
-                  className={cn("h-7 w-7", viewMode === "cards" && "bg-[#11202a]/8")}
-                  onClick={() => toggleViewMode("cards")}
-                >
-                  <LayoutGrid className={cn("h-3.5 w-3.5", viewMode === "cards" ? "text-[#11202a]" : "text-zinc-400")} />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "secondary" : "ghost"}
-                  size="icon"
-                  className={cn("h-7 w-7", viewMode === "list" && "bg-[#11202a]/8")}
-                  onClick={() => toggleViewMode("list")}
-                >
-                  <List className={cn("h-3.5 w-3.5", viewMode === "list" ? "text-[#11202a]" : "text-zinc-400")} />
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white">
+                <List className="mr-2 h-3.5 w-3.5" />
+                Lista operacional
+              </Badge>
             </div>
           </div>
         )}
@@ -481,33 +501,34 @@ export function PeopleClient({
 
       {/* Conteúdo Principal */}
       <div className="space-y-6">
-        {filteredPriorityPeople.length > 0 ? (
+        {teamPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
             <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
-              {filteredPriorityPeople.slice(0, 15).map((person, index) => (
+              {teamPriorityPeople.slice(0, 15).map((person, index) => (
                 <PersonPriorityCard 
                   key={person.id} 
                   person={person} 
                   index={index} 
                   layout="card"
                   onOpenDetails={handleOpenDetails}
-                  onActionComplete={() => window.location.reload()}
+                  onActionComplete={() => router.refresh()}
                 />
               ))}
             </div>
           ) : (
             <PersonOperationalList 
-              people={filteredPriorityPeople}
+              people={teamPriorityPeople}
               onOpenDetails={handleOpenDetails}
               onAssume={(id) => handleAssume(id)}
               isAssuming={isPending}
+              onActionComplete={handleActionComplete}
             />
           )
         ) : (
           <EmptyState 
             type="empty_filter"
-            title="Ninguém encontrado"
-            description="Tente ajustar sua busca ou mudar o filtro de prioridade."
+            title="Nenhuma pendência de primeiro envio"
+            description="A equipe já limpou a rodada principal deste filtro. Veja abaixo quem está esperando retorno."
             primaryAction={
               <Button variant="outline" onClick={() => { setQuery(""); setPriorityFilter("todos"); }}>
                 Limpar filtros
@@ -515,6 +536,27 @@ export function PeopleClient({
             }
           />
         )}
+
+        {waitingPeople.length > 0 ? (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Lista separada</p>
+                <h3 className="text-xl font-black text-charcoal">Pessoas esperando retorno</h3>
+              </div>
+              <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white">
+                {waitingPeople.length} aguardando
+              </Badge>
+            </div>
+            <PersonOperationalList
+              people={waitingPeople}
+              onOpenDetails={handleOpenDetails}
+              onAssume={(id) => handleAssume(id)}
+              isAssuming={isPending}
+              onActionComplete={handleActionComplete}
+            />
+          </section>
+        ) : null}
       </div>
 
       {isCompact ? (
@@ -567,7 +609,7 @@ export function PeopleClient({
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
         onNextPerson={handleNextPerson}
-        onActionComplete={() => window.location.reload()}
+        onActionComplete={(personId, options) => handleActionComplete(personId, options)}
       />
 
       {/* Governance Banner */}

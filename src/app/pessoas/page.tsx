@@ -8,7 +8,7 @@ import { PeopleClient } from "./people-client";
 export const dynamic = "force-dynamic";
 
 export default async function PessoasPage() {
-  await requireInternalPageSession("/pessoas");
+  const session = await requireInternalPageSession("/pessoas");
 
   let people;
   let operators;
@@ -37,7 +37,12 @@ export default async function PessoasPage() {
         title="Pessoas"
         description="Missões ativas da base, organizadas por urgência, dono e próximo passo."
       />
-      <PeopleClient priorityPeople={people} operators={operators} />
+      <PeopleClient
+        priorityPeople={people}
+        operators={operators}
+        currentOperatorId={session.internalUser.id}
+        currentOperatorName={session.internalUser.full_name}
+      />
     </AppShell>
   );
 }

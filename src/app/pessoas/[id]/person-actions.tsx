@@ -102,8 +102,7 @@ export function PersonActions({
   const [selectedTarget, setSelectedTarget] = useState<PersonReferralType | "">("");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [referralNotes, setReferralNotes] = useState("");
-  const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
 
   useEffect(() => {
@@ -131,32 +130,16 @@ export function PersonActions({
     const igUrl = `https://www.instagram.com/${igUsername}/`;
     window.open(igUrl, "_blank");
 
-    const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
-
-    if (expressMode) {
-      toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
-      startTransition(async () => {
-        const result = await confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
-        if (result.ok) {
-          setCopyStatus("confirmed");
-          setStatus("abordado");
-        } else {
-          toast({ title: "Erro", description: result.error, variant: "destructive" });
-        }
-      });
-    } else {
-      setCopyStatus("waiting");
-      setShowConfirmDialog(true);
-    }
-  }
-
-  function handleConfirmSent() {
-    runAction(() => confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId), {
-      successText: "Status atualizado para 'Aguardando Retorno'.",
-      nextStatus: "abordado"
+    toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
+    startTransition(async () => {
+      const result = await confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
+      if (result.ok) {
+        setCopyStatus("confirmed");
+        setStatus("abordado");
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
     });
-    setCopyStatus("confirmed");
-    setShowConfirmDialog(false);
   }
 
   function applyResult(result: ActionResult, successText?: string, nextStatus?: PersonStatus) {
@@ -244,53 +227,16 @@ export function PersonActions({
               variant="outline" 
               className={cn(
                 "font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-colors",
-                copyStatus === "waiting" ? "bg-burnt-yellow border-black text-charcoal" : 
                 copyStatus === "confirmed" ? "bg-moss/20 border-black text-moss" : ""
               )}
               onClick={copyMessage}
               disabled={!canApproach}
             >
               <Copy className="mr-2 h-4 w-4" /> 
-              {copyStatus === "waiting" ? "Preparado..." : copyStatus === "confirmed" ? "Enviado!" : "Copiar e Abrir Direct"}
+              {copyStatus === "confirmed" ? "Enviado!" : "Copiar e Abrir Direct"}
             </Button>
           )}
         </div>
-
-        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <DialogContent className="sm:max-w-md border-2 border-black bg-white rounded-[2px] shadow-[6px_6px_0px_0px_rgba(11,11,11,1)] p-6">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 font-black text-lg uppercase tracking-tight text-charcoal">
-                <Copy className="h-5 w-5 text-charcoal" />
-                Confirmar Envio Manual
-              </DialogTitle>
-              <DialogDescription className="pt-2 font-semibold text-xs text-charcoal/80">
-                A mensagem sugerida foi copiada e o Direct foi aberto para @{person.username}. 
-                <span className="block mt-2 font-bold text-charcoal bg-burnt-yellow/15 p-3 rounded-[2px] border-2 border-burnt-yellow">
-                  Aviso: Confirme abaixo somente após enviar a mensagem manualmente no Instagram.
-                </span>
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-2">
-              <p className="text-xs font-black uppercase tracking-tight text-cement">Já enviou no Instagram?</p>
-            </div>
-            <DialogFooter className="flex sm:justify-between gap-2 border-t border-black/10 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowConfirmDialog(false)}
-                className="font-black text-xs uppercase border-2 border-black bg-white hover:bg-charcoal/5 rounded-[2px]"
-              >
-                Ainda não / Pular
-              </Button>
-              <Button 
-                className="bg-burnt-yellow text-charcoal hover:bg-burnt-yellow/90 border-2 border-black font-black uppercase text-xs tracking-wider px-6 rounded-[2px] shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
-                onClick={handleConfirmSent}
-                disabled={isPending}
-              >
-                {isPending ? "Processando..." : "Sim, eu já enviei"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

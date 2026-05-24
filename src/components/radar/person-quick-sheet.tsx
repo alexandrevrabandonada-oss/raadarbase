@@ -40,6 +40,7 @@ import { AnnouncementStatusBadge } from "./announcement-status-badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCompletion } from "@/hooks/use-completion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   assumePersonResponsible, 
   recordPersonResponse, 
@@ -143,7 +144,7 @@ interface PersonQuickSheetProps {
   person: PriorityPerson | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onActionComplete?: () => void;
+  onActionComplete?: (personId?: string, options?: { openNext?: boolean }) => void;
   onNextPerson?: () => void;
   isTraining?: boolean;
   onTrainingAction?: (action: string, payload?: unknown) => void;
@@ -245,6 +246,7 @@ export function PersonQuickSheet({
   onTrainingAction 
 }: PersonQuickSheetProps) {
   const [isMobile, setIsMobile] = React.useState(false);
+  const router = useRouter();
 
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -270,7 +272,7 @@ export function PersonQuickSheet({
   const [createConfirmationTask, setCreateConfirmationTask] = React.useState<boolean>(true);
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = React.useState("");
 
   const loadHistory = React.useCallback(async (personId: string) => {
@@ -330,7 +332,7 @@ export function PersonQuickSheet({
       if (result.ok) {
         trackOperationalEvent("task_assumed", person.id);
         toast({ title: "Sucesso", description: "Você assumiu o vínculo com esta pessoa." });
-        onActionComplete?.();
+        onActionComplete?.(person.id);
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -349,7 +351,7 @@ export function PersonQuickSheet({
       if (result.ok) {
         trackOperationalEvent("note_saved", person.id);
         toast({ title: "Nota salva", description: "A nota interna foi atualizada com sucesso." });
-        onActionComplete?.();
+        onActionComplete?.(person.id);
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -379,7 +381,7 @@ export function PersonQuickSheet({
         }
         setActiveModal(null);
         setIsResolved(true);
-        onActionComplete?.();
+        onActionComplete?.(person.id);
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -406,7 +408,7 @@ export function PersonQuickSheet({
         showCompletion("referral_done");
         setActiveModal(null);
         setIsResolved(true);
-        onActionComplete?.();
+        onActionComplete?.(person.id);
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -424,53 +426,23 @@ export function PersonQuickSheet({
     const igUrl = `https://www.instagram.com/${igUsername}/`;
     window.open(igUrl, "_blank");
 
-    const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
-
-    if (expressMode) {
-      toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato marcado como enviado!" });
-      if (isTraining) {
-        onTrainingAction?.("dm_copied", { location });
-        onTrainingAction?.("dm_sent");
-        setCopyStatus("confirmed");
-      } else {
-        trackOperationalEvent("dm_copied", person.id, { location });
-        await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
-        
-        startTransition(async () => {
-          const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
-          if (result.ok) {
-            setCopyStatus("confirmed");
-            onActionComplete?.();
-          } else {
-            toast({ title: "Erro", description: result.error, variant: "destructive" });
-          }
-        });
-      }
-    } else {
-      toast({ title: "Mensagem copiada", description: "Enviando você ao Direct do Instagram..." });
-      if (isTraining) {
-        onTrainingAction?.("dm_copied", { location });
-      } else {
-        trackOperationalEvent("dm_copied", person.id, { location });
-        await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
-      }
-      setCopyStatus("waiting");
-    }
-  };
-
-  const handleConfirmSent = async () => {
+    toast({ title: "Mensagem copiada", description: "Direct aberto. O envio foi registrado e o contato foi para esperando resposta." });
     if (isTraining) {
+      onTrainingAction?.("dm_copied", { location });
       onTrainingAction?.("dm_sent");
       setCopyStatus("confirmed");
-      toast({ title: "Status Atualizado (Treino)", description: "Simulação de envio concluída." });
       return;
     }
+
+    trackOperationalEvent("dm_copied", person.id, { location });
+    await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
+
     startTransition(async () => {
       const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
       if (result.ok) {
         setCopyStatus("confirmed");
-        toast({ title: "Status Atualizado", description: "Tarefa movida para 'Aguardando Retorno'." });
-        onActionComplete?.();
+        onActionComplete?.(person.id, { openNext: true });
+        router.refresh();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -658,7 +630,7 @@ export function PersonQuickSheet({
                         onChange={(e) => setEditedMessage(e.target.value)}
                         className={cn(
                           "w-full min-h-[120px] rounded-xl border border-[#dccdaf] bg-[rgba(255,252,247,0.94)] p-5 text-sm font-medium leading-relaxed text-zinc-700 shadow-sm transition-all focus:ring-0 focus:outline-none resize-y",
-                          copyStatus === "waiting" && "border-[#d5b378] bg-[rgba(212,182,120,0.08)]"
+                          copyStatus === "confirmed" && "border-emerald-200 bg-emerald-50/60"
                         )}
                         disabled={isBlocked}
                         placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
@@ -680,37 +652,6 @@ export function PersonQuickSheet({
                       )}
                     </div>
 
-                    {copyStatus === "waiting" && (
-                      <div className="radar-panel-dark space-y-3 rounded-xl border border-[#24313b] p-4 text-white animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="flex items-start gap-3">
-                          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                          <p className="text-[11px] font-bold leading-tight">
-                            A mensagem sugerida foi copiada e o Direct foi aberto. Confirme abaixo somente após enviar no Instagram.
-                          </p>
-                        </div>
-                        <p className="text-xs font-black uppercase tracking-tight">Já enviou no Instagram?</p>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            className="h-8 flex-1 bg-[#d4b678] font-black uppercase tracking-wider text-[10px] text-[#13212b] hover:bg-[#c9aa66]"
-                            onClick={handleConfirmSent}
-                            disabled={isPending}
-                          >
-                            {isPending ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <CheckCircle className="h-3 w-3 mr-2" />}
-                            Sim, registrar
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-white hover:bg-white/10 font-bold text-[10px] uppercase h-8"
-                            onClick={() => setCopyStatus("idle")}
-                          >
-                            Ainda não
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
                     {copyStatus === "confirmed" && (
                       <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-3 animate-in zoom-in duration-300">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -725,6 +666,16 @@ export function PersonQuickSheet({
                           <p className="text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Ação primária</p>
                           <p className="mt-1 text-sm font-black text-[#13212b]">{missionView.primaryActionLabel}</p>
                         </div>
+                        {!isBlocked && editedMessage ? (
+                          <Button
+                            className="h-11 w-full border border-[#13212b] bg-[#13212b] text-xs font-black uppercase tracking-[0.16em] text-white hover:bg-[#0d1820]"
+                            onClick={() => handleCopyDM(editedMessage, "mission_primary_action")}
+                            disabled={isPending}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            {isPending ? "Registrando envio..." : copyStatus === "confirmed" ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
+                          </Button>
+                        ) : null}
                         {missionView.secondaryActionLabels.length > 0 ? (
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ações secundárias</p>
@@ -874,8 +825,8 @@ export function PersonQuickSheet({
                   <>
                     <Button 
                       size="icon" 
-                      variant={copyStatus === "waiting" ? "default" : "outline"}
-                      className={cn("h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]", copyStatus === "waiting" && "border-[#13212b] bg-[#13212b] text-white")} 
+                      variant="outline"
+                      className="h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]"
                       title="Copiar e Abrir Direct" 
                       disabled={!editedMessage || isPending} 
                       onClick={() => handleCopyDM(editedMessage, "floating_footer")}
