@@ -56,8 +56,10 @@ function computePriorityScore(person: PersonWithContact, interactions: Interacti
   const storyReplies7d = countRecentInteractions(interactions, now, 7, "resposta_story");
   const mentions14d = countRecentInteractions(interactions, now, 14, "mencao");
   const likes14d = countRecentInteractions(interactions, now, 14, "curtida");
+  const comments14d = countRecentInteractions(interactions, now, 14, "comentario");
   const recent14d = interactions.filter((interaction) => daysBetween(interaction.occurredAt, now) <= 14).length;
   const recent3d = latest ? daysBetween(latest.occurredAt, now) <= 3 : false;
+  const recent7d = latest ? daysBetween(latest.occurredAt, now) <= 7 : false;
   const hasNarrativeComment = interactions.some(
     (interaction) =>
       (interaction.type === "comentario" || interaction.type === "resposta_story") &&
@@ -67,25 +69,29 @@ function computePriorityScore(person: PersonWithContact, interactions: Interacti
 
   let score = 0;
 
-  if (recent3d) score += 3;
-  if (comments7d > 0) score += Math.min(comments7d, 4);
-  if (storyReplies7d > 0) score += 4;
-  if (mentions14d > 0) score += 2;
+  if (storyReplies7d > 0) score += 6 + Math.min(storyReplies7d - 1, 2);
+  if (comments7d > 0) score += Math.min(comments7d * 2, 8);
+  if (hasNarrativeComment) score += 4;
+  if (mentions14d > 0) score += Math.min(mentions14d * 2, 4);
+  if (comments14d >= 3) score += 2;
   if (likes14d >= 2) score += 1;
-  if (recent14d >= 3) score += 3;
-  if (hasNarrativeComment) score += 3;
+  if (likes14d >= 5) score += 1;
+  if (recent3d) score += 3;
+  else if (recent7d) score += 1;
+  if (recent14d >= 4) score += 2;
   if (task && !task.completedAt) score += 3;
   if (task?.dueAt && daysBetween(task.dueAt, now) >= 0) score += 1;
   if (person.status === "respondeu") score += 3;
   if (person.contact?.consent_status === "confirmed" || person.status === "contato_confirmado") score += 2;
   if (!hasReferral) score += 2;
-  if (person.status === "abordado") score -= 1;
+  if (person.status === "abordado") score -= 2;
+  if (latest?.type === "curtida" && comments7d === 0 && storyReplies7d === 0 && mentions14d === 0) score -= 1;
 
   return score;
 }
 
 function toTemperature(score: number): PriorityPerson["temperature"] {
-  if (score >= 10) return "quente";
+  if (score >= 12) return "quente";
   if (score >= 6) return "morno";
   return "frio";
 }
@@ -275,16 +281,24 @@ function buildPriorityPerson(
 ): PriorityPerson {
   const mainTheme = pickMainTheme(person, interactions);
   const latest = latestInteraction(interactions);
+  const comments7d = countRecentInteractions(interactions, now, 7, "comentario");
+  const storyReplies7d = countRecentInteractions(interactions, now, 7, "resposta_story");
+  const hasNarrativeComment = interactions.some(
+    (interaction) =>
+      (interaction.type === "comentario" || interaction.type === "resposta_story") &&
+      daysBetween(interaction.occurredAt, now) <= 14 &&
+      hasNarrative(interaction.text),
+  );
   const hasPendingTask = Boolean(task && !task.completedAt);
   const isPendingResponse = boardColumnIsPendingResponse(task?.column) || person.status === "abordado";
   const hasReferral = person.status === "contato_confirmado" || person.themes.some(t => t.startsWith("quer_"));
   const priorityScore = computePriorityScore(person, interactions, task, hasReferral, now);
   
-  const scoreLabel = priorityScore >= 12 ? "Muito quente" : 
-                    priorityScore >= 8 ? "Quente" : 
+  const scoreLabel = priorityScore >= 14 ? "Muito quente" : 
+                    priorityScore >= 9 ? "Quente" : 
                     priorityScore >= 4 ? "Morno" : "Observar";
   
-  const scoreIntensity = Math.min(100, Math.max(0, (priorityScore / 15) * 100));
+  const scoreIntensity = Math.min(100, Math.max(0, (priorityScore / 18) * 100));
 
   const riskFlags = {
     noReferralAfterResponse: (person.status === "respondeu" || task?.column === "precisa_encaminhar") && !hasReferral,
@@ -295,6 +309,9 @@ function buildPriorityPerson(
   const scoreTooltip = [
     `Score: ${priorityScore}`,
     latest ? `Última interação: ${latest.type}` : null,
+    storyReplies7d > 0 ? `Story recente (+${6 + Math.min(storyReplies7d - 1, 2)})` : null,
+    comments7d > 0 ? `Comentários recentes (+${Math.min(comments7d * 2, 8)})` : null,
+    hasNarrativeComment ? "Comentário com contexto (+4)" : null,
     hasPendingTask ? "Possui tarefa aberta (+3)" : null,
     !hasReferral ? "Sem encaminhamento (+2)" : null,
     riskFlags.recentOutreach ? "Penalização: contato recente" : null
@@ -422,7 +439,7 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
     const supabase = getSupabaseAdminClient();
     const cutoff = new Date(now.getTime() - RECENT_DAYS * DAY_MS).toISOString();
     const [people, tasksResult, templatesResult, interactionsResult] = await Promise.all([
-      listPeople(cutoff),
+      listPeople(),
       supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
       supabase
