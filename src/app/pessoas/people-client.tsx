@@ -46,6 +46,7 @@ import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
+const MAIN_QUEUE_LIMIT = 50;
 
 export function PeopleClient({
   priorityPeople,
@@ -83,7 +84,7 @@ export function PeopleClient({
     [dismissedPersonIds, priorityPeople],
   );
 
-  const teamPriorityPeople = useMemo(() => {
+  const mainQueuePeople = useMemo(() => {
     return visiblePriorityPeople
       .filter((person) => {
         if (!person.priorityEligible) return false;
@@ -94,34 +95,44 @@ export function PeopleClient({
           if (!searchTarget.includes(normalizedQuery)) return false;
         }
         
-        switch (priorityFilter) {
-          case "quentes":
-            return person.temperature === "quente";
-          case "sem_responsavel":
-            return !person.responsibleName;
-          case "sem_encaminhamento":
-            return person.status === "respondeu" && !person.hasReferral;
-          case "prontas_aviso":
-            return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
-          case "minhas_pendencias":
-            return person.responsibleId === currentOperatorId;
-          case "pendente_resposta":
-            return false;
-          case "quer_evento":
-            return person.themes.includes("quer_evento_campo");
-          case "quer_voluntariado":
-            return person.themes.includes("quer_voluntariado");
-          case "quer_eluta":
-            return person.themes.includes("quer_missao_eluta");
-          default:
-            if (operators.some(op => op.id === priorityFilter)) {
-              return person.responsibleId === priorityFilter;
-            }
-            return true;
-        }
+        return true;
       })
-      .slice(0, 100);
-  }, [currentOperatorId, normalizedQuery, operators, priorityFilter, visiblePriorityPeople]);
+      .slice(0, MAIN_QUEUE_LIMIT);
+  }, [normalizedQuery, visiblePriorityPeople]);
+
+  const teamPriorityPeople = useMemo(() => {
+    if (priorityFilter === "todos") return mainQueuePeople;
+
+    const filteredPeople = mainQueuePeople.filter((person) => {
+      switch (priorityFilter) {
+        case "quentes":
+          return person.temperature === "quente";
+        case "sem_responsavel":
+          return !person.responsibleName;
+        case "sem_encaminhamento":
+          return person.status === "respondeu" && !person.hasReferral;
+        case "prontas_aviso":
+          return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
+        case "minhas_pendencias":
+          return person.responsibleId === currentOperatorId;
+        case "pendente_resposta":
+          return false;
+        case "quer_evento":
+          return person.themes.includes("quer_evento_campo");
+        case "quer_voluntariado":
+          return person.themes.includes("quer_voluntariado");
+        case "quer_eluta":
+          return person.themes.includes("quer_missao_eluta");
+        default:
+          if (operators.some((op) => op.id === priorityFilter)) {
+            return person.responsibleId === priorityFilter;
+          }
+          return true;
+      }
+    });
+
+    return filteredPeople.length > 0 ? filteredPeople : mainQueuePeople;
+  }, [currentOperatorId, mainQueuePeople, operators, priorityFilter]);
 
   const waitingPeople = useMemo(() => {
     return visiblePriorityPeople
@@ -220,16 +231,16 @@ export function PeopleClient({
     const esperando = active.filter(p => p.isPendingResponse);
     const naoEsperando = active.filter(p => !p.isPendingResponse);
     return {
-      total: naoEsperando.length,
-      minhasPendencias: naoEsperando.filter(p => p.responsibleId === currentOperatorId).length,
-      quentes: naoEsperando.filter(p => p.temperature === "quente").length,
-      semResponsavel: naoEsperando.filter(p => !p.responsibleName).length,
+      total: mainQueuePeople.length,
+      minhasPendencias: mainQueuePeople.filter(p => p.responsibleId === currentOperatorId).length,
+      quentes: mainQueuePeople.filter(p => p.temperature === "quente").length,
+      semResponsavel: mainQueuePeople.filter(p => !p.responsibleName).length,
       esperando: esperando.length,
-      aEncaminhar: naoEsperando.filter(p => p.status === "respondeu" && !p.hasReferral).length,
+      aEncaminhar: mainQueuePeople.filter(p => p.status === "respondeu" && !p.hasReferral).length,
       naoAbordar: visiblePriorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
-      prontasAviso: naoEsperando.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
+      prontasAviso: mainQueuePeople.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
     };
-  }, [currentOperatorId, visiblePriorityPeople]);
+  }, [currentOperatorId, mainQueuePeople, visiblePriorityPeople]);
 
   function removePersonFromCurrentList(personId: string) {
     setDismissedPersonIds((current) => (current.includes(personId) ? current : [...current, personId]));
