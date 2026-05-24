@@ -608,7 +608,7 @@ export function QueueCard({
             <Button
               size="lg"
               className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-black hover:bg-concrete-dark hover:text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
-              onClick={() => window.open(person.instagramUrl || `https://www.instagram.com/direct/t/${person.username.replace(/^@+/, "")}/`, "_blank")}
+              onClick={() => window.open(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`, "_blank")}
               disabled={isBlocked}
             >
               <Instagram className="mr-2 h-4 w-4" /> Abrir Instagram

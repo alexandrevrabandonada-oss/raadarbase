@@ -49,9 +49,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       await navigator.clipboard.writeText(person.suggestedMessage);
       
       const igUsername = person.username.replace(/^@+/, "");
-      const igUrl = person.instagramUrl?.includes("/direct/t/")
-        ? person.instagramUrl
-        : `https://www.instagram.com/direct/t/${igUsername}/`;
+      const igUrl = `https://www.instagram.com/${igUsername}/`;
       window.open(igUrl, "_blank");
 
       const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
@@ -174,9 +172,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             onClick={(e) => {
               e.stopPropagation();
               const igUsername = person.username.replace(/^@+/, "");
-              const igUrl = person.instagramUrl?.includes("/direct/t/")
-                ? person.instagramUrl
-                : `https://www.instagram.com/direct/t/${igUsername}/`;
+              const igUrl = `https://www.instagram.com/${igUsername}/`;
               window.open(igUrl, "_blank");
             }}
             disabled={isBlocked}

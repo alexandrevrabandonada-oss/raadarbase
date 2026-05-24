@@ -421,9 +421,7 @@ export function PersonQuickSheet({
     
     // 2. Abrir Direct do Instagram
     const igUsername = person.username.replace(/^@+/, "");
-    const igUrl = person.instagramUrl?.includes("/direct/t/")
-      ? person.instagramUrl
-      : `https://www.instagram.com/direct/t/${igUsername}/`;
+    const igUrl = `https://www.instagram.com/${igUsername}/`;
     window.open(igUrl, "_blank");
 
     const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
@@ -863,9 +861,7 @@ export function PersonQuickSheet({
                 onClick={() => {
                   trackOperationalEvent("instagram_opened", person.id);
                   const igUsername = person.username.replace(/^@+/, "");
-                  const igUrl = person.instagramUrl?.includes("/direct/t/")
-                    ? person.instagramUrl
-                    : `https://www.instagram.com/direct/t/${igUsername}/`;
+                  const igUrl = `https://www.instagram.com/${igUsername}/`;
                   window.open(igUrl, '_blank');
                 }}
                 disabled={isBlocked}

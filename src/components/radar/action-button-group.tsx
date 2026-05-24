@@ -68,7 +68,7 @@ export function ActionButtonGroup({
                 className={brutallIconBtnClass(instagramUsername)} 
                 onClick={() => {
                   const igUsername = instagramUsername.replace(/^@+/, "");
-                  window.open(`https://www.instagram.com/direct/t/${igUsername}/`, '_blank');
+                  window.open(`https://www.instagram.com/${igUsername}/`, '_blank');
                 }}
               >
                 <Instagram className="h-4 w-4" />

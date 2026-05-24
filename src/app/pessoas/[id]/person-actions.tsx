@@ -127,11 +127,8 @@ export function PersonActions({
     // Telemetria
     await recordDMPreparedAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
 
-    // Abrir Direct do Instagram
     const igUsername = person.username.replace(/^@+/, "");
-    const igUrl = profile.priority.instagramUrl?.includes("/direct/t/")
-      ? profile.priority.instagramUrl
-      : `https://www.instagram.com/direct/t/${igUsername}/`;
+    const igUrl = `https://www.instagram.com/${igUsername}/`;
     window.open(igUrl, "_blank");
 
     const expressMode = typeof window !== "undefined" && localStorage.getItem("radar_envio_expresso") === "true";
@@ -234,9 +231,7 @@ export function PersonActions({
               className="font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
               onClick={() => {
                 const igUsername = person.username.replace(/^@+/, "");
-                const igUrl = profile.priority.instagramUrl?.includes("/direct/t/")
-                  ? profile.priority.instagramUrl
-                  : `https://www.instagram.com/direct/t/${igUsername}/`;
+                const igUrl = `https://www.instagram.com/${igUsername}/`;
                 window.open(igUrl, "_blank");
               }}
               disabled={!canApproach}

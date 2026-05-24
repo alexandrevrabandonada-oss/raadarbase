@@ -319,7 +319,7 @@ function buildPriorityPerson(
     suggestedMessage: suggestedTemplate ? renderSuggestedMessage(suggestedTemplate, person, mainTheme) : null,
     suggestedTemplateName: suggestedTemplate?.name ?? null,
     suggestedTemplateId: suggestedTemplate?.id ?? null,
-    instagramUrl: person.username ? `https://www.instagram.com/direct/t/${person.username.replace(/^@+/, "")}/` : null,
+    instagramUrl: person.username ? `https://www.instagram.com/${person.username.replace(/^@+/, "")}/` : null,
     hasPendingTask,
     isPendingResponse,
     hasReferral,

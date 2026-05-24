@@ -494,9 +494,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       await navigator.clipboard.writeText(messageToCopy);
       playSynthConfirm();
       
-      // Open Instagram direct link in a new tab
       const igUsername = currentPerson.username.replace(/^@+/, "");
-      const igUrl = currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${igUsername}/`;
+      const igUrl = `https://www.instagram.com/${igUsername}/`;
       window.open(igUrl, "_blank");
 
       if (expressMode) {
@@ -1242,7 +1241,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </Button>
                 <Button
                   className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-zinc-700 hover:bg-zinc-800 font-black uppercase tracking-wider text-xs px-3 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                  onClick={() => window.open(currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${currentPerson.username.replace(/^@+/, "")}/`, "_blank")}
+                  onClick={() => window.open(`https://www.instagram.com/${currentPerson.username.replace(/^@+/, "")}/`, "_blank")}
                   disabled={currentBlocked}
                 >
                   <Instagram className="h-4 w-4" />
@@ -1404,7 +1403,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             secondaryActions={[
               {
                 label: "Abrir Instagram",
-                onClick: () => window.open(currentPerson.instagramUrl || `https://www.instagram.com/direct/t/${currentPerson.username.replace(/^@+/, "")}/`, "_blank"),
+                onClick: () => window.open(`https://www.instagram.com/${currentPerson.username.replace(/^@+/, "")}/`, "_blank"),
                 icon: Instagram,
                 disabled: currentBlocked,
                 title: currentBlocked ? "Ação de contato indisponível enquanto o aviso estiver bloqueado." : undefined,
