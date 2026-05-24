@@ -61,7 +61,8 @@ export function PeopleClient({
   const router = useRouter();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("minhas_pendencias");
+  const [priorityFilter, setPriorityFilter] = useState<string>("todos");
+  const [activeTab, setActiveTab] = useState<"nao_enviadas" | "enviadas">("nao_enviadas");
   const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"cards" | "list">("list");
   const [dismissedPersonIds, setDismissedPersonIds] = useState<string[]>([]);
@@ -69,6 +70,7 @@ export function PeopleClient({
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
@@ -173,6 +175,7 @@ export function PeopleClient({
   useEffect(() => {
     const updateViewport = () => {
       setIsNotebookViewport(window.innerWidth < 1366);
+      setIsMobileViewport(window.innerWidth < 768);
     };
 
     updateViewport();
@@ -227,12 +230,6 @@ export function PeopleClient({
       prontasAviso: naoEsperando.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
     };
   }, [currentOperatorId, visiblePriorityPeople]);
-
-  useEffect(() => {
-    if (priorityFilter === "minhas_pendencias" && stats.minhasPendencias === 0 && stats.total > 0) {
-      setPriorityFilter("todos");
-    }
-  }, [priorityFilter, stats.minhasPendencias, stats.total]);
 
   function removePersonFromCurrentList(personId: string) {
     setDismissedPersonIds((current) => (current.includes(personId) ? current : [...current, personId]));
@@ -296,9 +293,9 @@ export function PeopleClient({
       <GamefulHero
         eyebrow="Sala de vínculos"
         title="Prioridades da Equipe"
-        description={isCompact ? "Entre na rodada de avisos individuais ou revise a lista operacional." : "Comece pela rodada de avisos individuais: uma pessoa por vez, mensagem manual e registro claro do envio."}
+        description={isMobileViewport ? "Primeiro envio em lista simples. Registrou, saiu da fila principal." : isCompact ? "Entre na rodada de avisos individuais ou revise a lista operacional." : "Comece pela rodada de avisos individuais: uma pessoa por vez, mensagem manual e registro claro do envio."}
         variant="light"
-        compact={isCompact}
+        compact={isCompact || isMobileViewport}
         titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
         descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[34rem]")}
         badges={
@@ -353,8 +350,8 @@ export function PeopleClient({
       <OperationalCommandBar
         title="Barra de comando"
         statusLabel="Rodada manual"
-        statusValue={`${stats.minhasPendencias} minhas pendências`}
-        statusDetail="A lista principal fica só com quem ainda não recebeu mensagem. Quem já foi abordado sai automaticamente para esperando retorno."
+        statusValue={`${stats.total} pendências de primeiro envio`}
+        statusDetail="A aba principal mostra os contatos mais engajados que ainda não receberam mensagem. Os já enviados ficam em uma aba separada."
         primaryAction={{
           label: "Começar Rodada",
           href: "/minha-fila?rodada=foco",
@@ -374,7 +371,7 @@ export function PeopleClient({
         }}
       />
 
-      <section className="bloco-concreto border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] sm:p-5 rounded-[2px]">
+      <section className="hidden sm:block bloco-concreto border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] sm:p-5 rounded-[2px]">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
           <div className="space-y-3">
             <div className="flex items-start gap-3">
@@ -414,24 +411,74 @@ export function PeopleClient({
         </div>
       </section>
 
-      <div className="sticky top-24 z-20 space-y-3">
-        <OperationalStatusBar
-          className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]"
-          activeFilter={priorityFilter}
-          onFilter={(id) => setPriorityFilter(id)}
-          metrics={[
-            { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
-            { id: "minhas_pendencias", label: "Minhas", value: stats.minhasPendencias, tone: "info", icon: List, filterable: true },
-            { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
-            { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
-            { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
-            { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
-            { id: "prontas_aviso", label: "Prontas p/ Aviso", value: stats.prontasAviso, tone: "neutral", icon: Send, filterable: true },
-          ]}
-          actions={null}
-        />
+      <div className={cn("sticky z-20 space-y-3", isMobileViewport ? "top-20" : "top-24")}>
+        <div className="radar-outline-card flex items-center gap-2 rounded-[2px] border-2 border-black bg-white p-2 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+          <Button
+            variant="outline"
+            className={cn(
+              "h-10 flex-1 border-2 border-black bg-white text-[10px] font-black uppercase tracking-[0.16em] text-charcoal rounded-[2px]",
+              activeTab === "nao_enviadas" && "bg-burnt-yellow"
+            )}
+            onClick={() => setActiveTab("nao_enviadas")}
+          >
+            Lista principal
+            <span className="ml-2">{stats.total}</span>
+          </Button>
+          <Button
+            variant="outline"
+            className={cn(
+              "h-10 flex-1 border-2 border-black bg-white text-[10px] font-black uppercase tracking-[0.16em] text-charcoal rounded-[2px]",
+              activeTab === "enviadas" && "bg-burnt-yellow"
+            )}
+            onClick={() => setActiveTab("enviadas")}
+          >
+            Já enviadas
+            <span className="ml-2">{waitingPeople.length}</span>
+          </Button>
+        </div>
 
-        {isCompact ? (
+        {isMobileViewport ? (
+          <div className="radar-outline-card overflow-x-auto rounded-[2px] border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
+            <div className="flex min-w-max gap-2">
+              {[
+                { id: "todos", label: "Primeiro envio", count: stats.total },
+                { id: "quentes", label: "Urgentes", count: stats.quentes },
+                { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
+                { id: "prontas_aviso", label: "Preparadas", count: stats.prontasAviso },
+              ].map((item) => (
+                <Button
+                  key={item.id}
+                  variant="outline"
+                  className={cn(
+                    "h-10 shrink-0 border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]",
+                    priorityFilter === item.id && "bg-burnt-yellow"
+                  )}
+                  onClick={() => setPriorityFilter(item.id)}
+                >
+                  {item.label}
+                  <span className="ml-2">{item.count}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <OperationalStatusBar
+            className="border-2 border-black bg-white rounded-[2px] shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]"
+            activeFilter={priorityFilter}
+            onFilter={(id) => setPriorityFilter(id)}
+            metrics={[
+              { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
+              { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
+              { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
+              { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
+              { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
+              { id: "prontas_aviso", label: "Prontas p/ Aviso", value: stats.prontasAviso, tone: "neutral", icon: Send, filterable: true },
+            ]}
+            actions={null}
+          />
+        )}
+
+        {isCompact && !isMobileViewport ? (
           <details className="radar-outline-card rounded-[2px] border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
             <summary className="cursor-pointer list-none px-3 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#7d6f59]">
               Filtros e busca
@@ -447,8 +494,7 @@ export function PeopleClient({
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "minhas_pendencias", label: "Minhas", count: stats.minhasPendencias },
+                {[ 
                   { id: "todos", label: "Primeiro envio", count: stats.total },
                   { id: "quentes", label: "Urgentes", count: stats.quentes },
                   { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
@@ -493,7 +539,8 @@ export function PeopleClient({
 
       {/* Conteúdo Principal */}
       <div className="space-y-6">
-        {teamPriorityPeople.length > 0 ? (
+        {activeTab === "nao_enviadas" ? (
+          teamPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
             <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
               {teamPriorityPeople.slice(0, 15).map((person, index) => (
@@ -520,20 +567,19 @@ export function PeopleClient({
           <EmptyState 
             type="empty_filter"
             title="Nenhuma pendência de primeiro envio"
-            description="A equipe já limpou a rodada principal deste filtro. Veja abaixo quem está esperando retorno."
+            description="A equipe já limpou a rodada principal deste filtro. Abra a aba de enviados para acompanhar quem está esperando retorno."
             primaryAction={
               <Button variant="outline" onClick={() => { setQuery(""); setPriorityFilter("todos"); }}>
                 Limpar filtros
               </Button>
             }
           />
-        )}
-
-        {waitingPeople.length > 0 ? (
+        )
+        ) : waitingPeople.length > 0 ? (
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Lista separada</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Nova aba</p>
                 <h3 className="text-xl font-black text-charcoal">Pessoas já enviadas</h3>
               </div>
               <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white">
@@ -548,7 +594,18 @@ export function PeopleClient({
               onActionComplete={handleActionComplete}
             />
           </section>
-        ) : null}
+        ) : (
+          <EmptyState
+            type="empty_filter"
+            title="Nenhuma pessoa enviada ainda"
+            description="Quando a equipe registrar um envio, o contato aparece nesta aba para acompanhamento."
+            primaryAction={
+              <Button variant="outline" onClick={() => setActiveTab("nao_enviadas")}>
+                Voltar para a lista principal
+              </Button>
+            }
+          />
+        )}
       </div>
 
       {isCompact ? (

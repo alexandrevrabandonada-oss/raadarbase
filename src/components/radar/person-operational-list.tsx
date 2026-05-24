@@ -12,6 +12,7 @@ import { recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
 import { useRouter } from "next/navigation";
 import { JourneyProgress } from "@/components/radar/journey-progress";
 import { AnnouncementStatusBadge } from "@/components/radar/announcement-status-badge";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   getPriorityPersonHoldState,
   getPriorityPersonHoldText,
@@ -36,6 +37,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const router = useRouter();
   const [isPending, startTransition] = React.useTransition();
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "confirmed">("idle");
+  const [showSentSuccess, setShowSentSuccess] = React.useState(false);
   const isBlocked = getPriorityPersonHoldState(person) === "blocked";
   const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
   const missionPhaseLabel = getPriorityPersonMissionPhaseLabel(person);
@@ -43,6 +45,12 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const missionNextStep = getPriorityPersonMissionNextStep(person);
   const holdText = getPriorityPersonHoldText(person);
   const journey = getPriorityPersonJourney(person);
+
+  const handleSentSuccess = () => {
+    setCopyStatus("confirmed");
+    setShowSentSuccess(true);
+    router.refresh();
+  };
 
   const handleCopyDM = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -58,10 +66,8 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       startTransition(async () => {
         const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
         if (result.ok) {
-          setCopyStatus("confirmed");
-          toast({ title: "Envio registrado", description: "Contato movido para esperando resposta." });
-          onActionComplete?.(person.id);
-          router.refresh();
+          toast({ title: "Envio registrado", description: "Contato foi movido para a aba de já enviadas." });
+          handleSentSuccess();
         } else {
           toast({ title: "Erro", description: result.error, variant: "destructive" });
         }
@@ -74,10 +80,8 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     startTransition(async () => {
       const result = await confirmDMSentAction(person.id, "lista_operacional_atalho", person.suggestedTemplateId);
       if (result.ok) {
-        setCopyStatus("confirmed");
-        toast({ title: "Enviado registrado", description: "Contato movido para a lista de pessoas já enviadas." });
-        onActionComplete?.(person.id);
-        router.refresh();
+        toast({ title: "Enviado registrado", description: "Contato foi movido para a aba de já enviadas." });
+        handleSentSuccess();
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -198,7 +202,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             variant="outline"
             className="h-8 border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px]"
             onClick={handleMarkSent}
-            disabled={isBlocked || isPending}
+            disabled={isBlocked || isPending || person.isPendingResponse}
           >
             Marcar enviado
           </Button>
@@ -232,15 +236,15 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     </tr>
     <div
       className={cn(
-        "border-b border-black/10 p-4 md:hidden",
+        "border-b border-black/10 p-3 md:hidden",
         isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
       )}
       onClick={() => onOpenDetails?.(person)}
     >
-      <div className="space-y-4 rounded-[2px] border-2 border-black bg-white p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+      <div className="space-y-3 rounded-[2px] border-2 border-black bg-white p-4 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-lg font-black text-zinc-950">{person.displayName || `@${person.username}`}</p>
+            <p className="text-base font-black text-zinc-950">{person.displayName || `@${person.username}`}</p>
             <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-zinc-400">@{person.username}</p>
           </div>
           <span className="text-[10px] font-black text-zinc-400">{index + 1}</span>
@@ -281,8 +285,43 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           {copyStatus === "confirmed" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
           <Button
+            className="h-11 w-full border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
+            onClick={handleCopyDM}
+            disabled={!person.suggestedMessage || isBlocked || isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {isPending ? "Registrando..." : "Copiar e abrir"}
+          </Button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-charcoal/5"
+              onClick={handleMarkSent}
+              disabled={isBlocked || isPending || person.isPendingResponse}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              {copyStatus === "confirmed" ? "Enviado" : "Marcar enviado"}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                const igUsername = person.username.replace(/^@+/, "");
+                const igUrl = `https://www.instagram.com/${igUsername}/`;
+                window.open(igUrl, "_blank");
+              }}
+              disabled={isBlocked}
+            >
+              <Instagram className="mr-2 h-4 w-4" />
+              Instagram
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
             variant="outline"
             className="h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
             onClick={(e) => {
@@ -293,53 +332,69 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             <FileText className="mr-2 h-4 w-4" />
             Abrir
           </Button>
-          <Button
-            variant="outline"
-            className="h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
-            onClick={(e) => {
-              e.stopPropagation();
-              const igUsername = person.username.replace(/^@+/, "");
-              const igUrl = `https://www.instagram.com/${igUsername}/`;
-              window.open(igUrl, "_blank");
-            }}
-            disabled={isBlocked}
-          >
-            <Instagram className="mr-2 h-4 w-4" />
-            Instagram
-          </Button>
-          <Button
-            className="h-11 border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
-            onClick={handleCopyDM}
-            disabled={!person.suggestedMessage || isBlocked || isPending}
-          >
-            <Copy className="mr-2 h-4 w-4" />
-            {isPending ? "Registrando..." : "Copiar e abrir"}
-          </Button>
-          <Button
-            className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-charcoal/5"
-            onClick={handleMarkSent}
-            disabled={isBlocked || isPending}
-          >
-            <CheckCircle2 className="mr-2 h-4 w-4" />
-            {copyStatus === "confirmed" ? "Enviado" : "Marcar enviado"}
-          </Button>
+            {!person.responsibleId && !isBlocked ? (
+              <Button
+                variant="outline"
+                className="h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssume?.(person.id);
+                }}
+                disabled={isAssuming}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Assumir
+              </Button>
+            ) : (
+              <div className="flex h-10 items-center justify-center rounded-[2px] border-2 border-black bg-[#f7f1e6] px-3 text-[10px] font-black uppercase tracking-[0.14em] text-[#645845]">
+                {person.responsibleName ? `Com ${person.responsibleName}` : "Já assumida"}
+              </div>
+            )}
+          </div>
           {!person.responsibleId && !isBlocked ? (
-            <Button
-              variant="outline"
-              className="col-span-2 h-10 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.14em] text-charcoal rounded-[2px]"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAssume?.(person.id);
-              }}
-              disabled={isAssuming}
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Assumir missão
-            </Button>
+            <p className="px-1 text-[10px] font-semibold text-[#645845]">
+              Ação principal em cima. Use "Marcar enviado" quando a mensagem já tiver sido mandada.
+            </p>
           ) : null}
         </div>
       </div>
     </div>
+    <Dialog open={showSentSuccess} onOpenChange={setShowSentSuccess}>
+      <DialogContent className="max-w-sm border-2 border-black bg-white p-0 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
+        <div className="space-y-5 p-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-black bg-emerald-100 text-emerald-700">
+            <CheckCircle2 className="h-8 w-8" />
+          </div>
+          <div className="space-y-2">
+            <DialogTitle className="text-2xl font-black text-charcoal">Parabéns</DialogTitle>
+            <DialogDescription className="text-sm font-semibold text-[#645845]">
+              Mensagem registrada. Essa pessoa saiu da lista principal e foi para a aba de já enviadas.
+            </DialogDescription>
+          </div>
+          <div className="grid gap-2">
+            <Button
+              className="h-11 border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
+              onClick={() => {
+                setShowSentSuccess(false);
+                onActionComplete?.(person.id, { openNext: true });
+              }}
+            >
+              Seguir
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px]"
+              onClick={() => {
+                setShowSentSuccess(false);
+                onActionComplete?.(person.id);
+              }}
+            >
+              Fechar
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
