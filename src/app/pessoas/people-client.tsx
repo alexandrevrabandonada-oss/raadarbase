@@ -26,6 +26,7 @@ import {
   Send,
 } from "lucide-react";
 import { assumePersonResponsible } from "@/app/actions";
+import { syncMetaRecentCommentsAction } from "@/app/integracoes/meta/actions";
 import { useToast } from "@/hooks/use-toast";
 
 // Radar Design System
@@ -103,17 +104,27 @@ export function PeopleClient({
       .filter((person) => {
         if (!person.priorityEligible) return false;
         
+        // Separação rigorosa dos contatos esperando retorno:
+        // Só mostramos contatos marcados como esperando retorno no filtro específico "pendente_resposta"
+        const isWaiting = person.isPendingResponse;
+        if (priorityFilter === "pendente_resposta") {
+          if (!isWaiting) return false;
+        } else {
+          if (isWaiting) return false;
+        }
+        
         switch (priorityFilter) {
           case "quentes":
             return person.temperature === "quente";
           case "sem_responsavel":
             return !person.responsibleName;
-          case "pendente_resposta":
-            return person.isPendingResponse;
           case "sem_encaminhamento":
             return person.status === "respondeu" && !person.hasReferral;
           case "prontas_aviso":
             return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
+          case "pendente_resposta":
+            // Já garantido pelo check acima
+            return true;
           case "quer_evento":
             return person.themes.includes("quer_evento_campo");
           case "quer_voluntariado":
@@ -129,6 +140,39 @@ export function PeopleClient({
       })
       .slice(0, 100);
   }, [operators, priorityFilter, priorityPeople]);
+
+  useEffect(() => {
+    const active = priorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
+    const totalActive = active.length;
+    const totalSent = active.filter(p => p.isPendingResponse).length;
+
+    if (totalActive > 0 && totalSent >= totalActive * 0.5) {
+      const lastSync = localStorage.getItem("radar_last_auto_sync_comments");
+      const now = Date.now();
+      if (!lastSync || now - Number(lastSync) > 10 * 60 * 1000) {
+        localStorage.setItem("radar_last_auto_sync_comments", String(now));
+        
+        toast({
+          title: "Atualizando prioridades 🔄",
+          description: "A maioria da lista já recebeu mensagens. Sincronizando novas interações do Instagram...",
+        });
+
+        startTransition(async () => {
+          try {
+            const result = await syncMetaRecentCommentsAction();
+            if (result.ok) {
+              toast({
+                title: "Prioridades atualizadas! 🎉",
+                description: "Novas interações do Instagram foram sincronizadas e a lista foi atualizada.",
+              });
+            }
+          } catch (err) {
+            console.error("Failed to run auto sync:", err);
+          }
+        });
+      }
+    }
+  }, [priorityPeople, toast]);
 
   useEffect(() => {
     const updateViewport = () => {
@@ -175,14 +219,16 @@ export function PeopleClient({
 
   const stats = useMemo(() => {
     const active = priorityPeople.filter(p => p.status !== "nao_abordar");
+    const esperando = active.filter(p => p.isPendingResponse);
+    const naoEsperando = active.filter(p => !p.isPendingResponse);
     return {
-      total: active.length,
-      quentes: active.filter(p => p.temperature === "quente").length,
-      semResponsavel: active.filter(p => !p.responsibleName).length,
-      esperando: active.filter(p => p.isPendingResponse).length,
-      aEncaminhar: active.filter(p => p.status === "respondeu" && !p.hasReferral).length,
+      total: naoEsperando.length,
+      quentes: naoEsperando.filter(p => p.temperature === "quente").length,
+      semResponsavel: naoEsperando.filter(p => !p.responsibleName).length,
+      esperando: esperando.length,
+      aEncaminhar: naoEsperando.filter(p => p.status === "respondeu" && !p.hasReferral).length,
       naoAbordar: priorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
-      prontasAviso: active.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
+      prontasAviso: naoEsperando.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
     };
   }, [priorityPeople]);
 

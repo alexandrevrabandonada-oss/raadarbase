@@ -44,6 +44,7 @@ import {
   releaseLockAction,
   checkLockAction,
 } from "@/app/actions";
+import { syncMetaRecentCommentsAction } from "@/app/integracoes/meta/actions";
 import { useToast } from "@/hooks/use-toast";
 import { executeOrQueueAction } from "@/lib/offline-queue";
 import { useCompletion } from "@/hooks/use-completion";
@@ -463,6 +464,34 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     [missionFeed, workMode],
   );
 
+  const checkAndAutoSync = (updatedQueue: PriorityPerson[]) => {
+    if (initialQueue.length > 0 && updatedQueue.length <= initialQueue.length / 2) {
+      const lastSync = localStorage.getItem("radar_last_auto_sync_comments");
+      const now = Date.now();
+      if (!lastSync || now - Number(lastSync) > 10 * 60 * 1000) {
+        localStorage.setItem("radar_last_auto_sync_comments", String(now));
+        toast({
+          title: "Atualizando fila 🔄",
+          description: "A maioria das DMs foi enviada. Sincronizando novas interações de base...",
+        });
+        startTransition(async () => {
+          try {
+            const result = await syncMetaRecentCommentsAction();
+            if (result.ok) {
+              toast({
+                title: "Fila atualizada! 🎉",
+                description: "Novas interações do Instagram sincronizadas.",
+              });
+              window.location.reload();
+            }
+          } catch (err) {
+            console.error("Auto sync in queue client failed:", err);
+          }
+        });
+      }
+    }
+  };
+
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
@@ -512,6 +541,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               
               const newQueue = queue.filter((p) => p.id !== currentPerson.id);
               setQueue(newQueue);
+              checkAndAutoSync(newQueue);
               const nextFilteredLength = filterQuentes 
                 ? newQueue.filter((p) => p.temperature === "quente").length 
                 : newQueue.length;
@@ -534,13 +564,26 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     startTransition(async () => {
       const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
       if (result.ok) {
-        playSynthSuccess();
-        setCopyStatus("confirmed");
-        if (!result.offline) {
-          toast({ title: "Envio manual confirmado.", description: "Selecione o estado do contato no diálogo." });
+        const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
+        if (responseResult.ok) {
+          playSynthSuccess();
+          incrementStreak();
+          if (!result.offline) {
+            toast({ title: "Envio manual confirmado", description: "Contato marcado como aguardando retorno." });
+          }
+          const newQueue = queue.filter((p) => p.id !== currentPerson.id);
+          setQueue(newQueue);
+          checkAndAutoSync(newQueue);
+          const nextFilteredLength = filterQuentes 
+            ? newQueue.filter((p) => p.temperature === "quente").length 
+            : newQueue.length;
+          if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
+            setCurrentIndex(Math.max(0, nextFilteredLength - 1));
+          }
+          setCopyStatus("idle");
+        } else {
+          toast({ title: "Erro", description: responseResult.error, variant: "destructive" });
         }
-        incrementStreak();
-        setShowPostSendDialog(true);
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
@@ -561,6 +604,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
+        checkAndAutoSync(newQueue);
         const nextFilteredLength = filterQuentes 
           ? newQueue.filter((p) => p.temperature === "quente").length 
           : newQueue.length;
@@ -587,6 +631,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
+        checkAndAutoSync(newQueue);
         const nextFilteredLength = filterQuentes 
           ? newQueue.filter((p) => p.temperature === "quente").length 
           : newQueue.length;
@@ -1706,13 +1751,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   <CardContent className="space-y-4 p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Pendências antigas</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Esperando Retorno</p>
                         <h4 className="mt-1 text-lg font-black text-charcoal">
-                          {oldPendencies.length} avisos pedem revisão
+                          {oldPendencies.length} enviadas e esperando retorno
                         </h4>
                       </div>
                       <Badge variant="outline" className="border-2 border-black bg-white text-charcoal rounded-[2px]">
-                        3+ dias
+                        Enviadas
                       </Badge>
                     </div>
 
@@ -1731,7 +1776,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                             {person.displayName || `@${person.username}`}
                           </p>
                           <p className="mt-1 text-xs font-medium text-cement">
-                            Revisar espera prolongada e decidir se a trilha segue ou fecha.
+                            Aguardando retorno no Instagram. Clique para abrir detalhes ou registrar resposta.
                           </p>
                         </button>
                       ))}

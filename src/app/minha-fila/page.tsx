@@ -44,18 +44,9 @@ export default async function MinhaFilaPage() {
     person => person.responsibleId === session.id || (shouldUseMockData() && (!person.responsibleId || person.responsibleId === "e2e-internal-user"))
   );
 
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const oldPendencies = myQueue.filter(person => person.isPendingResponse);
 
-  const oldPendencies = myQueue.filter(person => 
-    person.isPendingResponse && 
-    person.contact?.last_contacted_at && 
-    new Date(person.contact.last_contacted_at) < threeDaysAgo
-  );
-
-  const activeQueue = myQueue.filter(person => 
-    !oldPendencies.some(op => op.id === person.id)
-  );
+  const activeQueue = myQueue.filter(person => !person.isPendingResponse);
 
   let missionPlan = null;
   let orderedActiveQueue = activeQueue;
