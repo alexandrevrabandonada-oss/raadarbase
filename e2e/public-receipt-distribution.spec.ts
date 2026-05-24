@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public Receipt Distribution Management", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // Authenticate or bypass if necessary
     // For this environment, we assume the session is available or we mock it
   });

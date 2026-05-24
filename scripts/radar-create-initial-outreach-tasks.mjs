@@ -60,7 +60,7 @@ async function createInitialTasks() {
   // 3. Criar tarefas (Idempotente)
   for (const p of prioritarias) {
     // Verificar se já existe tarefa aberta
-    const { data: existing, error: taskCheckError } = await supabase
+    const { data: existing } = await supabase
       .from('outreach_tasks')
       .select('id')
       .eq('person_id', p.id)

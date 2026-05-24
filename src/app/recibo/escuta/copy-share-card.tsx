@@ -27,7 +27,7 @@ export function CopyShareCard({ title, description, text, buttonLabel }: CopySha
         description: "O texto foi carregado na sua área de transferência.",
       });
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       toast({
         title: "Erro ao copiar ⚠️",
         description: "Não foi possível copiar o texto automaticamente.",

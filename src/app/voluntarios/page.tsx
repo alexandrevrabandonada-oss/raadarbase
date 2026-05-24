@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { canManageContacts } from "@/lib/authz/roles";
 import { getVolunteerStats, listSquads, listVolunteers, type VolunteerStatus } from "@/lib/data/volunteers";
 import { getVolunteerReviewDashboard } from "@/lib/data/volunteer-review-dashboard";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
@@ -31,7 +30,7 @@ export default async function VolunteersPage({
 }: {
   searchParams?: Promise<{ search?: string; status?: string; neighborhood?: string; skill?: string; availability?: string }>;
 }) {
-  const session = await requireInternalPageSession("/voluntarios");
+  await requireInternalPageSession("/voluntarios");
   const resolvedSearchParams = await searchParams;
   const [stats, volunteers, squads] = await Promise.all([
     getVolunteerStats(),

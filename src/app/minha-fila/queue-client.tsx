@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { PriorityPerson, PersonResponseKind, PersonReferralType } from "@/lib/types";
 import { QueueCard } from "./queue-card";
@@ -249,15 +249,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
-  const [editedMessage, setEditedMessage] = useState("");
-
-  useEffect(() => {
-    if (currentPerson) {
-      setEditedMessage(currentPerson.suggestedMessage || "");
-    } else {
-      setEditedMessage("");
-    }
-  }, [currentPerson, currentIndex]);
+  const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
+  const editedMessage = currentPerson
+    ? (editedMessages[currentPerson.id] ?? currentPerson.suggestedMessage ?? "")
+    : "";
+  const updateEditedMessage = (text: string) => {
+    if (!currentPerson) return;
+    setEditedMessages((current) => ({ ...current, [currentPerson.id]: text }));
+  };
 
   const [focusMode, setFocusMode] = useState(false);
   const [expressMode, setExpressMode] = useState(() => {
@@ -267,13 +266,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return false;
   });
 
-  const handleToggleExpressMode = () => {
+  const handleToggleExpressMode = useCallback(() => {
     const nextVal = !expressMode;
     setExpressMode(nextVal);
     if (typeof window !== "undefined") {
       localStorage.setItem("radar_envio_expresso", String(nextVal));
     }
-  };
+  }, [expressMode]);
 
   const [streak, setStreak] = useState(() => {
     if (typeof window !== "undefined") {
@@ -293,16 +292,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return 0;
   });
 
-  const [soundPlayed, setSoundPlayed] = useState(false);
+  const completionSoundPlayedRef = useRef(false);
 
   useEffect(() => {
-    if (queue.length === 0 && initialQueue.length > 0 && !soundPlayed) {
+    if (queue.length === 0 && initialQueue.length > 0 && !completionSoundPlayedRef.current) {
       playSynthSuccess();
-      setSoundPlayed(true);
+      completionSoundPlayedRef.current = true;
     }
-  }, [queue.length, initialQueue.length, soundPlayed]);
+  }, [queue.length, initialQueue.length]);
 
-  const incrementStreak = () => {
+  const incrementStreak = useCallback(() => {
     setStreak((prev) => {
       const next = prev + 1;
       if (typeof window !== "undefined") {
@@ -317,7 +316,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       const updated = updateStreakOnActivity();
       setMultiDayStreak(updated.currentStreak);
     }
-  };
+  }, []);
 
   const [showZenSettings, setShowZenSettings] = useState(false);
   const [selectedZenDays, setSelectedZenDays] = useState<number[]>([]);
@@ -464,60 +463,66 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     [missionFeed, workMode],
   );
 
-  const checkAndAutoSync = (updatedQueue: PriorityPerson[]) => {
-    if (initialQueue.length > 0 && updatedQueue.length <= initialQueue.length / 2) {
-      const lastSync = localStorage.getItem("radar_last_auto_sync_comments");
-      const now = Date.now();
-      if (!lastSync || now - Number(lastSync) > 10 * 60 * 1000) {
-        localStorage.setItem("radar_last_auto_sync_comments", String(now));
-        toast({
-          title: "Atualizando fila 🔄",
-          description: "A maioria das DMs foi enviada. Sincronizando novas interações de base...",
-        });
-        startTransition(async () => {
-          try {
-            const result = await syncMetaRecentCommentsAction();
-            if (result.ok) {
-              toast({
-                title: "Fila atualizada! 🎉",
-                description: "Novas interações do Instagram sincronizadas.",
-              });
-              window.location.reload();
-            }
-          } catch (err) {
-            console.error("Auto sync in queue client failed:", err);
-          }
-        });
-      }
+  useEffect(() => {
+    if (initialQueue.length === 0 || queue.length > initialQueue.length / 2) {
+      return;
     }
-  };
 
-  const handlePrev = () => {
+    const lastSync = localStorage.getItem("radar_last_auto_sync_comments");
+    const now = Date.now();
+    if (lastSync && now - Number(lastSync) <= 10 * 60 * 1000) {
+      return;
+    }
+
+    localStorage.setItem("radar_last_auto_sync_comments", String(now));
+    toast({
+      title: "Atualizando fila 🔄",
+      description: "A maioria das DMs foi enviada. Sincronizando novas interações de base...",
+    });
+    startTransition(async () => {
+      try {
+        const result = await syncMetaRecentCommentsAction();
+        if (result.ok) {
+          toast({
+            title: "Fila atualizada! 🎉",
+            description: "Novas interações do Instagram sincronizadas.",
+          });
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error("Auto sync in queue client failed:", err);
+      }
+    });
+  }, [initialQueue.length, queue.length, startTransition, toast]);
+
+  const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       setCopyStatus("idle");
     }
-  };
+  }, [currentIndex]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < filteredQueue.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setCopyStatus("idle");
     } else {
       toast({ title: "Fim da trilha", description: "Você chegou ao fim da fila atual." });
     }
-  };
+  }, [currentIndex, filteredQueue.length, toast]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
+    if (!currentPerson) return;
     playSynthSkip();
     toast({
       title: "Aviso pausado sem perda de histórico.",
       description: `@${currentPerson.username} saiu da vez por agora. A trilha segue com o contexto preservado.`,
     });
     handleNext();
-  };
+  }, [currentPerson, handleNext, toast]);
 
-  const handleCopyDM = async () => {
+  const handleCopyDM = useCallback(async () => {
+    if (!currentPerson) return;
     const messageToCopy = editedMessage || currentPerson.suggestedMessage || "";
     if (messageToCopy) {
       await navigator.clipboard.writeText(messageToCopy);
@@ -541,7 +546,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               
               const newQueue = queue.filter((p) => p.id !== currentPerson.id);
               setQueue(newQueue);
-              checkAndAutoSync(newQueue);
               const nextFilteredLength = filterQuentes 
                 ? newQueue.filter((p) => p.temperature === "quente").length 
                 : newQueue.length;
@@ -558,9 +562,20 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         setCopyStatus("waiting");
       }
     }
-  };
+  }, [
+    currentPerson,
+    editedMessage,
+    expressMode,
+    toast,
+    startTransition,
+    incrementStreak,
+    queue,
+    filterQuentes,
+    currentIndex,
+  ]);
 
-  const handleConfirmSent = async () => {
+  const handleConfirmSent = useCallback(async () => {
+    if (!currentPerson) return;
     startTransition(async () => {
       const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
       if (result.ok) {
@@ -573,7 +588,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           }
           const newQueue = queue.filter((p) => p.id !== currentPerson.id);
           setQueue(newQueue);
-          checkAndAutoSync(newQueue);
           const nextFilteredLength = filterQuentes 
             ? newQueue.filter((p) => p.temperature === "quente").length 
             : newQueue.length;
@@ -588,7 +602,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
     });
-  };
+  }, [currentPerson, toast, startTransition, incrementStreak, queue, filterQuentes, currentIndex]);
 
   const handlePostSendResponse = async (kind: PersonResponseKind) => {
     startTransition(async () => {
@@ -604,7 +618,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
-        checkAndAutoSync(newQueue);
         const nextFilteredLength = filterQuentes 
           ? newQueue.filter((p) => p.temperature === "quente").length 
           : newQueue.length;
@@ -631,7 +644,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         incrementStreak();
         const newQueue = queue.filter((p) => p.id !== currentPerson.id);
         setQueue(newQueue);
-        checkAndAutoSync(newQueue);
         const nextFilteredLength = filterQuentes 
           ? newQueue.filter((p) => p.temperature === "quente").length 
           : newQueue.length;
@@ -1231,7 +1243,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               onCancelCopy={() => setCopyStatus("idle")}
               focusMode={focusMode}
               editedMessage={editedMessage}
-              setEditedMessage={setEditedMessage}
+              setEditedMessage={updateEditedMessage}
             />
 
             <div className="flex items-center justify-between pt-2 pb-24 md:pb-0">
@@ -1858,7 +1870,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   </div>
                   <textarea
                     value={editedMessage}
-                    onChange={(e) => setEditedMessage(e.target.value)}
+                    onChange={(e) => updateEditedMessage(e.target.value)}
                     className="w-full min-h-[140px] rounded-[2px] border-2 border-black bg-white p-4 text-sm font-medium leading-relaxed text-charcoal focus:ring-0 focus:outline-none resize-y"
                     disabled={currentBlocked}
                     placeholder="Nenhum modelo ideal encontrado para este contexto. Digite aqui..."

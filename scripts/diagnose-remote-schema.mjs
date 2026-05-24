@@ -14,41 +14,11 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-async function runSQL(label, sql) {
-  console.log(`\n[APPLYING] ${label}...`);
-  const { error } = await supabase.rpc('exec_sql', { query: sql }).maybeSingle();
-  if (error) {
-    // Try direct approach via REST
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ query: sql })
-    });
-    if (!res.ok) {
-      console.log(`  [SKIP/WARN] ${label}: ${error.message}`);
-    }
-  } else {
-    console.log(`  [OK] ${label}`);
-  }
-}
-
-async function checkColumnExists(table, column) {
-  const { data } = await supabase
-    .from(table)
-    .select(column)
-    .limit(0);
-  return data !== null; // if null, column doesn't exist
-}
-
 async function main() {
   console.log('=== Applying missing schema to remote Supabase ===');
   
   // Test: does ig_people have responsible_id?
-  const { data: testPeople, error: testErr } = await supabase
+  const { error: testErr } = await supabase
     .from('ig_people')
     .select('id, responsible_id')
     .limit(1);
@@ -62,7 +32,7 @@ async function main() {
     console.log('ig_people.responsible_id EXISTS.');
     
     // Check FK to internal_users
-    const { data: testJoin, error: joinErr } = await supabase
+    const { error: joinErr } = await supabase
       .from('ig_people')
       .select('*, internal_users(full_name)')
       .limit(1);
@@ -78,7 +48,7 @@ async function main() {
   }
   
   // Check outreach_tasks
-  const { data: testTasks, error: taskErr } = await supabase
+  const { error: taskErr } = await supabase
     .from('outreach_tasks')
     .select('id')
     .limit(1);
@@ -90,7 +60,7 @@ async function main() {
   }
   
   // Check contacts
-  const { data: testContacts, error: contactErr } = await supabase
+  const { error: contactErr } = await supabase
     .from('contacts')
     .select('id')
     .limit(1);
@@ -102,7 +72,7 @@ async function main() {
   }
   
   // Check ig_person_referrals
-  const { data: testReferrals, error: refErr } = await supabase
+  const { error: refErr } = await supabase
     .from('ig_person_referrals')
     .select('id')
     .limit(1);

@@ -12,12 +12,10 @@ import {
   ArrowRightCircle,
   Zap,
   Calendar,
-  ChevronRight,
   History
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { trackOperationalEvent } from "@/app/actions";

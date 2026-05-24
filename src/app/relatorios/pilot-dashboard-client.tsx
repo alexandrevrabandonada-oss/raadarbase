@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Users, MessageSquare, Reply, UserPlus, ShieldAlert, Clock, ArrowRight, LayoutDashboard, History } from "lucide-react";
+import { Users, MessageSquare, Reply, UserPlus, ShieldAlert, ArrowRight, History } from "lucide-react";
 import type { PilotDashboardData } from "@/lib/data/pilot-stats";
 
 // Radar Design System
@@ -125,23 +123,6 @@ export function PilotDashboardClient({ data }: { data: PilotDashboardData }) {
     </div>
   );
 }
-
-function StatCard({ title, value, icon, color = "text-foreground" }: { title: string, value: number, icon: React.ReactNode, color?: string }) {
-  return (
-    <Card className="border-slate-200">
-      <CardContent className="p-4 flex items-center gap-4">
-        <div className="p-2 rounded-full bg-slate-100 text-slate-500">
-          {icon}
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase text-slate-500">{title}</p>
-          <p className={`text-2xl font-black ${color}`}>{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function FunnelStep({ label, value, percentage }: { label: string, value: number, percentage?: string }) {
   return (
     <div className="flex-1 text-center p-4 rounded-lg bg-white border border-slate-200 shadow-sm w-full md:w-auto">

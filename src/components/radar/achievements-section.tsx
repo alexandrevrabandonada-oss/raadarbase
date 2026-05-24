@@ -8,12 +8,10 @@ import {
   Compass, 
   Activity, 
   Users, 
-  Lock, 
-  Sparkles,
+  Lock,
   Flame,
   Milestone,
   CheckCircle,
-  HelpCircle,
   Megaphone,
   BookOpenCheck,
   Award
@@ -256,10 +254,6 @@ export function AchievementsSection({ data }: AchievementsSectionProps) {
   };
 
   const clanInfo = getClanInfo(totalXP);
-  const clanProgressPercent = Math.min(
-    100,
-    ((totalXP - clanInfo.minXP) / (clanInfo.nextLevelXP - clanInfo.minXP)) * 100
-  );
 
   // Success Sound Micro-Interaction on Unlocks Increase
   useEffect(() => {

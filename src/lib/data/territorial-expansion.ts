@@ -143,8 +143,7 @@ function calculateReadinessScore(checklist: ExpansionReadinessChecklistItem[]): 
 function determinePriorityReason(
   phase: TerritoryPhaseId,
   territory: TerritorySummary,
-  daysSinceAction: number,
-  _hasPlannedEvent: boolean
+  daysSinceAction: number
 ): string {
   if (phase === "mobilizacao") return "mobilizacao";
   if (phase === "escuta" && territory.priorityScore >= 60) return "escuta_with_signals";
@@ -269,8 +268,7 @@ export async function getTerritorialExpansionCandidates(): Promise<TerritorialEx
         const priorityReason = determinePriorityReason(
           phase.id,
           territory,
-          daysSinceAction,
-          hasPlannedEvent
+          daysSinceAction
         );
 
         return {

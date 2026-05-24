@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, CheckCircle2, ChevronRight, HelpCircle, LayoutDashboard, Target, AlertTriangle } from "lucide-react";
+import { X, CheckCircle2, ChevronRight, HelpCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

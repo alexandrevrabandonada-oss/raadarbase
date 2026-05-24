@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/authz/roles";
 import { generateMetaReconciliationEvidence } from "@/lib/data/meta-reconciliation-evidence";
 import { requireInternalSession } from "@/lib/supabase/auth";
 
-export async function generateMetaReconciliationEvidenceAction(_formData: FormData): Promise<void> {
+export async function generateMetaReconciliationEvidenceAction(): Promise<void> {
   try {
     const session = await requireInternalSession();
     await requireRole(["admin", "operador"]);

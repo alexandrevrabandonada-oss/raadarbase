@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { validateImportBatch, type PersonImportPreview, type PersonImportRow } from "@/lib/data/import";
 import { executePersonImportBatch } from "@/app/actions";
-import { Check, AlertCircle, RefreshCw, XCircle } from "lucide-react";
 
 export function ImportClient() {
   const router = useRouter();

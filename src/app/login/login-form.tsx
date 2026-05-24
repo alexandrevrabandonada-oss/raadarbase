@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -117,7 +118,7 @@ export function LoginForm({ nextPath, reason }: { nextPath: string; reason: stri
       <CardHeader>
         <div className="flex flex-col items-center justify-center gap-3 mb-6">
           <div className="flex size-20 items-center justify-center rounded-[4px] border-2 border-burnt-yellow bg-charcoal overflow-hidden shadow-[4px_4px_0px_0px_rgba(242,169,0,0.5)]">
-            <img src="/logo.png" className="size-full object-cover" alt="Radar de Base logo" />
+            <Image src="/logo.png" className="size-full object-cover" alt="Radar de Base logo" width={80} height={80} />
           </div>
           <div className="text-center">
             <span className="block text-lg font-black tracking-tight text-charcoal dark:text-off-white">RADAR DE BASE</span>

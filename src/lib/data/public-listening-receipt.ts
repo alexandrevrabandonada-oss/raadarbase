@@ -1,4 +1,3 @@
-import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { getActiveTerritorialListeningWindow, getTerritorialListeningAggregates } from "./territorial-listening-monitoring";
 import { getCorrectiveActionsImpactSummary } from "./silence-radar-impact";

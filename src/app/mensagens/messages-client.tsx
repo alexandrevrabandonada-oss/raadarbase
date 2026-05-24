@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { 
   Copy, 
   Plus, 
@@ -311,20 +311,21 @@ export function MessagesClient({ initialTemplates }: { initialTemplates: Message
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [announcementPublications, setAnnouncementPublications] = useState(readAnnouncementPublicationState);
-  const [announcements, setAnnouncements] = useState<AnnouncementFormat[]>(() =>
-    announcementFormats.map((f) => ({ ...f }))
-  );
-
-  useEffect(() => {
-    const saved = localStorage.getItem("radar_announcement_formats:v1");
-    if (saved) {
-      try {
-        setAnnouncements(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved announcements", e);
-      }
+  const [announcements, setAnnouncements] = useState<AnnouncementFormat[]>(() => {
+    if (typeof window === "undefined") {
+      return announcementFormats.map((format) => ({ ...format }));
     }
-  }, []);
+    const saved = localStorage.getItem("radar_announcement_formats:v1");
+    if (!saved) {
+      return announcementFormats.map((format) => ({ ...format }));
+    }
+    try {
+      return JSON.parse(saved) as AnnouncementFormat[];
+    } catch (error) {
+      console.error("Failed to parse saved announcements", error);
+      return announcementFormats.map((format) => ({ ...format }));
+    }
+  });
 
   const handleAnnouncementChange = (id: string, newBody: string) => {
     const updated = announcements.map((f) =>

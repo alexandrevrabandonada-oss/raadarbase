@@ -21,7 +21,7 @@ export function MemorySuggestions({ initialTopicId }: { initialTopicId?: string 
       try {
         const data = await suggestStrategicMemoriesAction(initialTopicId ? { topic_id: initialTopicId } : undefined);
         setSuggestions(data);
-      } catch (error) {
+      } catch {
         toast({ title: "Erro", description: "Falha ao gerar sugestões.", variant: "destructive" });
       } finally {
         setLoading(false);
@@ -45,7 +45,7 @@ export function MemorySuggestions({ initialTopicId }: { initialTopicId?: string 
       } else {
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
-    } catch (error) {
+    } catch {
       toast({ title: "Erro", description: "Falha ao converter sugestão.", variant: "destructive" });
     }
   }

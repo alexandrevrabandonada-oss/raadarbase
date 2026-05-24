@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public Receipt Distribution Cycles", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // Authenticate as internal user
   });
 
@@ -23,7 +23,7 @@ test.describe("Public Receipt Distribution Cycles", () => {
     await expect(page.getByRole("button", { name: "Criar Ciclo Planejado" })).toBeVisible();
   });
 
-  test("anonymous user is redirected from distribution dashboard", async ({ page, context }) => {
+  test("anonymous user is redirected from distribution dashboard", async ({ page }) => {
     // Opt-out of auth bypass
     await page.setExtraHTTPHeaders({
       "x-e2e-bypass-auth": "off"

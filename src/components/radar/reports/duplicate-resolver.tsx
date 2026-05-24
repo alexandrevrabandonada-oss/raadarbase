@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { resolveDuplicateAction } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import type { DuplicateGroup } from "@/lib/data/data-quality";
-import { cn } from "@/lib/utils";
 
 export function DuplicateResolver({ groups }: { groups: DuplicateGroup[] }) {
   const [activeGroupIdx, setActiveGroupIdx] = React.useState(0);

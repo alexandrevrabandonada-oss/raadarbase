@@ -41,7 +41,6 @@ export default async function PessoasPage() {
         priorityPeople={people}
         operators={operators}
         currentOperatorId={session.internalUser.id}
-        currentOperatorName={session.internalUser.full_name}
       />
     </AppShell>
   );

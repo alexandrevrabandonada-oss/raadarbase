@@ -15,7 +15,7 @@ function loadEnvLocal() {
       }
       process.env[key] = val;
     });
-  } catch (e) {
+  } catch {
     // Ignore if file not found
   }
 }

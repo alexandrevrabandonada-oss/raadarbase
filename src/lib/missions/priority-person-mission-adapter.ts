@@ -256,7 +256,7 @@ function computeAnnouncementStatus(
     const latestLog = responseRecordedLogs[0];
     const metadata = latestLog.metadata;
     if (metadata && typeof metadata === "object") {
-      const meta = metadata as Record<string, any>;
+      const meta = metadata as Record<string, unknown>;
       if (meta.responseType === "revisar_depois" || meta.responseType === "manter_aguardando") {
         return "revisar_depois";
       }

@@ -181,7 +181,7 @@ export function getZenOffDays(): number[] {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {
+      } catch {
         // Fallback
       }
     }
@@ -222,7 +222,7 @@ export function getMultiDayStreak(): MultiDayStreak {
   if (saved) {
     try {
       return JSON.parse(saved);
-    } catch (e) {
+    } catch {
       // Fallback
     }
   }

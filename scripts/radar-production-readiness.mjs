@@ -55,7 +55,7 @@ async function runDiagnostico() {
   });
 
   // Teste de conexão simples
-  const { data: health, error: healthError } = await supabase.from('ig_people').select('id').limit(1);
+  const { error: healthError } = await supabase.from('ig_people').select('id').limit(1);
   if (healthError) {
     console.error(`❌ Falha ao conectar ao banco de dados: ${healthError.message}`);
     process.exit(1);

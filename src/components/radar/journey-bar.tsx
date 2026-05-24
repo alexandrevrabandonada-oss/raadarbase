@@ -107,7 +107,7 @@ export function JourneyBar({
         <div className="absolute top-[40px] left-[12%] right-[12%] hidden h-[2px] border-t-2 border-dashed border-zinc-300 sm:block" />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-5 relative z-10">
-          {JOURNEY_PHASES_ORDER.map((phase, idx) => {
+          {JOURNEY_PHASES_ORDER.map((phase) => {
             const isCompleted = completedPhases.includes(phase);
             const isCurrent = currentPhase === phase;
             const Icon = PHASE_ICONS[phase];

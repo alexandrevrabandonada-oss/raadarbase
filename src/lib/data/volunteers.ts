@@ -286,45 +286,6 @@ function buildVolunteerInsert(input: VolunteerMutationInput, actor?: Actor): Tab
   };
 }
 
-function applyVolunteerFilters(volunteers: VolunteerListItem[], filters?: VolunteerFilters) {
-  let items = volunteers;
-
-  if (filters?.search) {
-    const search = filters.search.trim().toLowerCase();
-    items = items.filter((volunteer) =>
-      [volunteer.displayName, volunteer.neighborhood, volunteer.city]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(search)),
-    );
-  }
-
-  if (filters?.status) {
-    items = items.filter((volunteer) => volunteer.status === filters.status);
-  }
-
-  if (filters?.neighborhood) {
-    items = items.filter((volunteer) => volunteer.neighborhood === filters.neighborhood);
-  }
-
-  if (filters?.skill) {
-    items = items.filter((volunteer) => volunteer.skills.includes(filters.skill!));
-  }
-
-  if (filters?.availability) {
-    const wanted = filters.availability.toLowerCase();
-    items = items.filter((volunteer) => {
-      const values = [
-        ...volunteer.availability.weekdays,
-        ...volunteer.availability.periods,
-        volunteer.availability.notes ?? "",
-      ].join(" ").toLowerCase();
-      return values.includes(wanted);
-    });
-  }
-
-  return items;
-}
-
 export function assertVolunteerExportAllowed(role: string, includeContact: boolean) {
   const canExport = role === "admin" || role === "operador";
   if (!canExport) {

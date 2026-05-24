@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AppShell from "@/components/app-shell";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
-import { OperationalAlert } from "@/components/radar/operational-alert";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Silence Radar Time Series", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // login logic usually handled by global setup or helpers in this project
   });
 

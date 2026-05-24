@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 export const dynamic = "force-dynamic";
 
 export default async function DistributionManagementPage() {
-  const session = await requireInternalPageSession("/recibo/escuta/distribuicao");
+  await requireInternalPageSession("/recibo/escuta/distribuicao");
   
   const cycles = await listReceiptDistributionCycles();
   const logs = await listReceiptDistributionLogs();

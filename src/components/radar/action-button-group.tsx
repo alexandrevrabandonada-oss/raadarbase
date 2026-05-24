@@ -153,5 +153,6 @@ export function ActionButtonGroup({
 
 // Helper to support call syntax on static string
 function brutallIconBtnClass(ig: string) {
+  void ig;
   return "h-8 w-8 text-charcoal border-2 border-black rounded-[2px] bg-white hover:bg-burnt-yellow hover:text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all p-0 flex items-center justify-center";
 }

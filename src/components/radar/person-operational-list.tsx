@@ -353,7 +353,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           </div>
           {!person.responsibleId && !isBlocked ? (
             <p className="px-1 text-[10px] font-semibold text-[#645845]">
-              Ação principal em cima. Use "Marcar enviado" quando a mensagem já tiver sido mandada.
+              Ação principal em cima. Use &quot;Marcar enviado&quot; quando a mensagem já tiver sido mandada.
             </p>
           ) : null}
         </div>

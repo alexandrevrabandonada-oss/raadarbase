@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public Listening Receipt", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // Note: This is a public page, so no login is performed here.
   });
 

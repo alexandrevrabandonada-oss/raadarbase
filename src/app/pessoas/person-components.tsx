@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { 
   Flame, 
   UserPlus, 
   Instagram,
-  Copy,
   Info,
   Clock,
-  MessageSquare,
   Milestone,
-  ArrowRight,
   ShieldAlert,
-  Search,
   Users,
   CheckCircle2
 } from "lucide-react";

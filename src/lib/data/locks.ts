@@ -14,6 +14,34 @@ type LockInfo = {
   expiresAt: number;
 };
 
+type OutreachLockRow = {
+  person_id: string;
+  operator_id: string;
+  operator_name: string;
+  expires_at: string;
+};
+
+type OutreachLockQuery = {
+  select: (columns: string) => {
+    eq: (column: string, value: string) => {
+      maybeSingle: <T>() => Promise<{ data: T | null; error: unknown }>;
+    };
+  };
+  update: (payload: Partial<OutreachLockRow>) => {
+    eq: (column: string, value: string) => Promise<{ error: unknown }>;
+  };
+  upsert: (payload: OutreachLockRow) => Promise<{ error: unknown }>;
+  delete: () => {
+    eq: (column: string, value: string) => {
+      eq: (nestedColumn: string, nestedValue: string) => Promise<{ error: unknown }>;
+    };
+  };
+};
+
+function outreachLocksTable(supabase: Awaited<ReturnType<typeof getSupabaseServerClient>>): OutreachLockQuery {
+  return supabase.from("outreach_locks" as never) as unknown as OutreachLockQuery;
+}
+
 // Map de ID do contato -> Informações do Lock (Fallback em memória)
 const memoryLocks = new Map<string, LockInfo>();
 
@@ -52,14 +80,13 @@ export async function acquireOutreachLock(
 
   // Persistência distribuída no Banco de Dados
   try {
-    const supabase = (await getSupabaseServerClient()) as any;
+    const supabase = await getSupabaseServerClient();
     
     // Consulta lock existente
-    const { data: lock, error } = await supabase
-      .from("outreach_locks" as any)
+    const { data: lock, error } = await outreachLocksTable(supabase)
       .select("*")
       .eq("person_id", personId)
-      .maybeSingle();
+      .maybeSingle<OutreachLockRow>();
 
     if (error) throw error;
 
@@ -70,9 +97,8 @@ export async function acquireOutreachLock(
         if (lock.operator_id === operatorId) {
           // Renovação / Extensão de 5 minutos
           const newExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-          const { error: updateError } = await supabase
-            .from("outreach_locks" as any)
-            .update({ expires_at: newExpiresAt } as any)
+          const { error: updateError } = await outreachLocksTable(supabase)
+            .update({ expires_at: newExpiresAt })
             .eq("person_id", personId);
           
           if (updateError) throw updateError;
@@ -84,14 +110,13 @@ export async function acquireOutreachLock(
 
     // Cria ou substitui o lock expirado
     const newExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    const { error: upsertError } = await supabase
-      .from("outreach_locks" as any)
+    const { error: upsertError } = await outreachLocksTable(supabase)
       .upsert({
         person_id: personId,
         operator_id: operatorId,
         operator_name: operatorName,
         expires_at: newExpiresAt,
-      } as any);
+      });
 
     if (upsertError) throw upsertError;
     return { success: true };
@@ -121,9 +146,8 @@ export async function releaseOutreachLock(personId: string, operatorId: string):
   }
 
   try {
-    const supabase = (await getSupabaseServerClient()) as any;
-    const { error } = await supabase
-      .from("outreach_locks" as any)
+    const supabase = await getSupabaseServerClient();
+    const { error } = await outreachLocksTable(supabase)
       .delete()
       .eq("person_id", personId)
       .eq("operator_id", operatorId);
@@ -162,12 +186,11 @@ export async function checkOutreachLock(
   }
 
   try {
-    const supabase = (await getSupabaseServerClient()) as any;
-    const { data: lock, error } = await supabase
-      .from("outreach_locks" as any)
+    const supabase = await getSupabaseServerClient();
+    const { data: lock, error } = await outreachLocksTable(supabase)
       .select("*")
       .eq("person_id", personId)
-      .maybeSingle();
+      .maybeSingle<OutreachLockRow>();
 
     if (error) throw error;
 

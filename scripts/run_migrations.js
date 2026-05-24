@@ -42,7 +42,7 @@ function runQuery(sql) {
       res.on('data', function(c) { data += c; });
       res.on('end', function() {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          try { resolve(JSON.parse(data)); } catch(_e) { resolve(data); }
+          try { resolve(JSON.parse(data)); } catch { resolve(data); }
         } else {
           reject(new Error('HTTP ' + res.statusCode + ': ' + data));
         }

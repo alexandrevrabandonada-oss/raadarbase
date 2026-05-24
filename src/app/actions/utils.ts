@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { isSupabaseConfigured, shouldUseMockData } from "@/lib/config";
+import { isSupabaseConfigured } from "@/lib/config";
 import { people as mockPeople, outreachTasks as mockTasks } from "@/lib/mock-data";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { requireInternalSession } from "@/lib/supabase/auth";

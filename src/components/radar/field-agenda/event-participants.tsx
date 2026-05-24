@@ -3,11 +3,9 @@
 import * as React from "react";
 import { 
   Users, 
-  MessageSquare, 
   ExternalLink, 
   CheckCircle, 
   XCircle, 
-  HelpCircle,
   Clock,
   MoreVertical,
   UserPlus
@@ -43,8 +41,9 @@ interface EventParticipantsProps {
 }
 
 export function EventParticipants({ eventId, initialParticipants, manageable }: EventParticipantsProps) {
+  void eventId;
   const [participants, setParticipants] = React.useState(initialParticipants);
-  const [isPending, startTransition] = React.useTransition();
+  const [, startTransition] = React.useTransition();
   const { toast } = useToast();
   
   const [selectedPersonId, setSelectedPersonId] = React.useState<string | null>(null);

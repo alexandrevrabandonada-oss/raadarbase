@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Public Listening Receipt Card", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async () => {
     // This is a public page, no login required.
   });
 

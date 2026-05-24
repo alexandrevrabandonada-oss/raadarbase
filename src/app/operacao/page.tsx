@@ -37,7 +37,6 @@ export default async function OperacaoPage() {
   let repeatedFailures;
   let evidenceCount = 0;
   let latestEvidence = null;
-  let previousEvidence = null;
   let evidenceDelta = null;
   try {
     [runs, stuckRuns, recentErrorCount, repeatedFailures, evidenceCount] = await Promise.all([
@@ -47,7 +46,7 @@ export default async function OperacaoPage() {
       getRepeatedFailureSummary(),
       countMetaReconciliationEvidence(),
     ]);
-    ({ latest: latestEvidence, previous: previousEvidence, delta: evidenceDelta } = await compareLatestEvidenceSnapshots());
+    ({ latest: latestEvidence, delta: evidenceDelta } = await compareLatestEvidenceSnapshots());
   } catch (error) {
     return (
       <AppShell>

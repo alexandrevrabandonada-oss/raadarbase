@@ -2,22 +2,14 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { people as mockPeople } from "@/lib/mock-data";
 import type { ContactRecord, PersonWithContact } from "@/lib/types";
+import type { TableRow } from "@/lib/supabase/database.types";
 import { handleSupabaseReadError } from "./utils";
 
-function mapPerson(person: {
-  id: string;
-  username: string;
-  display_name: string | null;
-  total_interactions: number;
-  last_interaction_at: string | null;
-  themes: string[];
-  status: PersonWithContact["status"];
-  notes: string;
-  do_not_contact_reason: string | null;
-  synced_at?: string | null;
-  responsible_id?: string | null;
+type PersonRowWithOwner = TableRow<"ig_people"> & {
   internal_users?: { full_name: string | null } | null;
-}, contact: ContactRecord | null): PersonWithContact {
+};
+
+function mapPerson(person: PersonRowWithOwner, contact: ContactRecord | null): PersonWithContact {
   return {
     id: person.id,
     username: person.username,
@@ -53,8 +45,7 @@ export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> 
     if (peopleError) throw peopleError;
     if (contactsError) throw contactsError;
     const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+    return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeople", error);
   }
@@ -69,8 +60,7 @@ export async function getPersonById(id: string): Promise<PersonWithContact | nul
     if (!personData) return null;
     const { data: contactData, error: contactError } = await supabase.from("contacts").select("*").eq("person_id", id).maybeSingle();
     if (contactError) throw contactError;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return mapPerson(personData as any, contactData ?? null);
+    return mapPerson(personData as unknown as PersonRowWithOwner, contactData ?? null);
   } catch (error) {
     handleSupabaseReadError("getPersonById", error);
   }
@@ -106,7 +96,7 @@ export async function listConfirmedPeople(): Promise<PersonWithContact[]> {
     if (peopleError) throw peopleError;
 
     const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
-    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+    return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listConfirmedPeople", error);
   }
@@ -133,7 +123,7 @@ export async function listPeopleWithoutTheme(): Promise<PersonWithContact[]> {
 
     if (contactsError) throw contactsError;
     const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
-    return (peopleData ?? []).map((person: any) => mapPerson(person, contactsByPerson.get(person.id) ?? null));
+    return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeopleWithoutTheme", error);
   }

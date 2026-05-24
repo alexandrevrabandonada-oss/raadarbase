@@ -52,12 +52,10 @@ export function PeopleClient({
   priorityPeople,
   operators = [],
   currentOperatorId,
-  currentOperatorName,
 }: {
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
   currentOperatorId: string;
-  currentOperatorName: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -219,17 +217,9 @@ export function PeopleClient({
     });
   }
 
-  function focusUnassignedMissions() {
-    setPriorityFilter("sem_responsavel");
-    setViewMode("list");
-    localStorage.setItem("radar_pessoas_view_mode", "list");
-    window.scrollTo({ top: 720, behavior: "smooth" });
-  }
-
   const stats = useMemo(() => {
     const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar");
     const esperando = active.filter(p => p.isPendingResponse);
-    const naoEsperando = active.filter(p => !p.isPendingResponse);
     return {
       total: mainQueuePeople.length,
       minhasPendencias: mainQueuePeople.filter(p => p.responsibleId === currentOperatorId).length,

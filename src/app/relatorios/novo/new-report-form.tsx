@@ -11,7 +11,8 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { createMobilizationReportAction } from "../actions";
 import type { TopicCategoryRow } from "@/lib/data/topics";
 
-export function NewReportForm({ topics: _ }: { topics: TopicCategoryRow[] }) {
+export function NewReportForm({ topics }: { topics: TopicCategoryRow[] }) {
+  void topics;
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);

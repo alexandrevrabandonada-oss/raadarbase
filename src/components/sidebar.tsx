@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
@@ -278,7 +279,7 @@ export function Sidebar({
       <Link href="/dashboard" className="mb-5 shrink-0 rounded-[4px] border-2 border-cement bg-charcoal p-4 shadow-[4px_4px_0px_0px_rgba(242,169,0,0.85)]">
         <div className="flex items-center gap-3">
           <div className="flex size-11 items-center justify-center rounded-[2px] border-2 border-burnt-yellow bg-charcoal overflow-hidden shadow-[2px_2px_0px_0px_rgba(242,169,0,0.4)]">
-            <img src="/logo.png" className="size-full object-cover" alt="RB logo" />
+            <Image src="/logo.png" className="size-full object-cover" alt="RB logo" width={44} height={44} />
           </div>
           <div className="min-w-0">
             <p className="truncate text-base font-black leading-tight text-off-white">Radar de Base</p>

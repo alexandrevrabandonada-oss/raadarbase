@@ -7,6 +7,9 @@ import {
   recordPersonReferral,
   submitNeighborhoodListenObjectAction,
 } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
+import type { NeighborhoodListenPayload } from "@/app/escuta/bairro/actions";
+import type { PersonReferralType, PersonResponseKind } from "@/lib/types";
 
 export type OfflineTaskType =
   | "recordDMPrepared"
@@ -15,12 +18,28 @@ export type OfflineTaskType =
   | "recordReferral"
   | "submitNeighborhoodListen";
 
-export type OfflineTask = {
-  id: string;
-  action: OfflineTaskType;
-  args: any[];
-  timestamp: number;
+type OfflineTaskArgsMap = {
+  recordDMPrepared: [personId: string, origin: string, templateId?: string | null];
+  confirmDMSent: [personId: string, origin: string, templateId?: string | null];
+  recordResponse: [personId: string, responseType: PersonResponseKind];
+  recordReferral: [personId: string, target: PersonReferralType];
+  submitNeighborhoodListen: [payload: NeighborhoodListenPayload];
 };
+
+export type OfflineTask = {
+  [K in OfflineTaskType]: {
+    id: string;
+    action: K;
+    args: OfflineTaskArgsMap[K];
+    timestamp: number;
+  };
+}[OfflineTaskType];
+
+type OfflineToast = (input: {
+  title: string;
+  description: string;
+  variant?: "default" | "destructive";
+}) => void;
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -73,16 +92,16 @@ export async function getOfflineTasks(): Promise<OfflineTask[]> {
 }
 
 // Add a task to the queue
-export async function addOfflineTask(action: OfflineTaskType, args: any[]): Promise<void> {
+export async function addOfflineTask<T extends OfflineTaskType>(action: T, args: OfflineTaskArgsMap[T]): Promise<void> {
   if (typeof window === "undefined" || !window.indexedDB) return;
   try {
     const db = await openDB();
-    const newTask: OfflineTask = {
+    const newTask = {
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       action,
       args,
       timestamp: Date.now(),
-    };
+    } as OfflineTask;
     return new Promise((resolve, reject) => {
       const transaction = db.transaction("tasks", "readwrite");
       const store = transaction.objectStore("tasks");
@@ -125,20 +144,20 @@ export async function removeOfflineTask(id: string): Promise<void> {
 }
 
 // Execute the actual server action mapped to the key
-async function runServerAction(action: OfflineTaskType, args: any[]) {
-  switch (action) {
+async function runServerAction(task: OfflineTask): Promise<ActionResult> {
+  switch (task.action) {
     case "recordDMPrepared":
-      return await recordDMPreparedAction(args[0], args[1], args[2]);
+      return await recordDMPreparedAction(task.args[0], task.args[1], task.args[2]);
     case "confirmDMSent":
-      return await confirmDMSentAction(args[0], args[1], args[2]);
+      return await confirmDMSentAction(task.args[0], task.args[1], task.args[2]);
     case "recordResponse":
-      return await recordPersonResponse(args[0], args[1]);
+      return await recordPersonResponse(task.args[0], task.args[1]);
     case "recordReferral":
-      return await recordPersonReferral(args[0], args[1]);
+      return await recordPersonReferral(task.args[0], task.args[1]);
     case "submitNeighborhoodListen":
-      return await submitNeighborhoodListenObjectAction(args[0]);
+      return await submitNeighborhoodListenObjectAction(task.args[0]);
     default:
-      throw new Error(`Unknown offline task action: ${action}`);
+      throw new Error("Unknown offline task action");
   }
 }
 
@@ -164,7 +183,7 @@ export async function syncOfflineTasks(
     }
 
     try {
-      const result = await runServerAction(task.action, task.args);
+      const result = await runServerAction(task);
       if (result && result.ok) {
         successCount++;
         // Remove from the queue immediately upon success
@@ -189,10 +208,10 @@ export async function syncOfflineTasks(
 }
 
 // Execute immediately if online, otherwise queue it
-export async function executeOrQueueAction(
-  action: OfflineTaskType,
-  args: any[],
-  toast: any
+export async function executeOrQueueAction<T extends OfflineTaskType>(
+  action: T,
+  args: OfflineTaskArgsMap[T],
+  toast: OfflineToast
 ): Promise<{ ok: boolean; offline: boolean; error?: string }> {
   if (typeof window !== "undefined" && !navigator.onLine) {
     await addOfflineTask(action, args);
@@ -204,12 +223,17 @@ export async function executeOrQueueAction(
   }
 
   try {
-    const result = await runServerAction(action, args);
+    const result = await runServerAction({
+      id: "immediate",
+      action,
+      args,
+      timestamp: Date.now(),
+    } as OfflineTask);
     if (result && result.ok) {
       return { ok: true, offline: false };
     }
     return { ok: false, offline: false, error: result?.error || "Erro desconhecido" };
-  } catch (err) {
+  } catch {
     // If the network request failed mid-execution (looks like offline)
     await addOfflineTask(action, args);
     toast({

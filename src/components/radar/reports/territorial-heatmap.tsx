@@ -2,11 +2,9 @@
 
 import * as React from "react";
 import { 
-  Map, 
   TrendingUp, 
   Users, 
   Target, 
-  Info,
   ChevronRight,
   ShieldCheck
 } from "lucide-react";

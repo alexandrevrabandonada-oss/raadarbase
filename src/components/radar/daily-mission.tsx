@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, Circle, AlertCircle, Target, ChevronRight, Zap } from "lucide-react";
+import { CheckCircle2, Circle, Target, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MissionState, MissionStep } from "@/lib/data/mission-engine";
+import { MissionState } from "@/lib/data/mission-engine";
 import { Progress } from "@/components/ui/progress";
 
 interface DailyMissionProps {

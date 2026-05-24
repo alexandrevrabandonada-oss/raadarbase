@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -11,92 +11,70 @@ type ConnectionIndicatorProps = {
 };
 
 export function ConnectionIndicator({ variant = "desktop" }: ConnectionIndicatorProps) {
-  const [isOnline, setIsOnline] = useState(true);
-  const [hydrated, setHydrated] = useState(false);
   const { toast } = useToast();
+  const isOnline = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => undefined;
+      const handleChange = () => onStoreChange();
+      window.addEventListener("online", handleChange);
+      window.addEventListener("offline", handleChange);
+      return () => {
+        window.removeEventListener("online", handleChange);
+        window.removeEventListener("offline", handleChange);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
 
   useEffect(() => {
-    setHydrated(true);
-    if (typeof window !== "undefined") {
-      setIsOnline(navigator.onLine);
-      
-      const handleOnline = async () => {
-        setIsOnline(true);
-        
-        // Sync tasks in background when back online
-        const tasks = await getOfflineTasks();
-        if (tasks.length > 0) {
-          toast({
-            title: "Sinal recuperado! ⚡",
-            description: `Sincronizando ${tasks.length} ação(ões) salva(s) localmente...`,
-          });
-          
-          syncOfflineTasks(
-            undefined,
-            (success, error) => {
-              if (success > 0) {
-                toast({
-                  title: "Sincronização concluída! ✅",
-                  description: `${success} ação(ões) enviada(s) para o servidor.`,
-                });
-              }
-              if (error > 0) {
-                toast({
-                  title: "Alguns registros falharam ⚠️",
-                  description: `${error} ação(ões) não pôde(ram) ser processada(s).`,
-                  variant: "destructive",
-                });
-              }
-            }
-          );
-        }
-      };
+    if (typeof window === "undefined") return;
 
-      const handleOffline = () => setIsOnline(false);
+    const handleOnline = async () => {
+      const tasks = await getOfflineTasks();
+      if (tasks.length === 0) return;
 
-      window.addEventListener("online", handleOnline);
-      window.addEventListener("offline", handleOffline);
-
-      // Check on initial load if we have pending tasks to sync
-      getOfflineTasks().then((pendingTasks) => {
-        if (navigator.onLine && pendingTasks.length > 0) {
-          syncOfflineTasks(
-            undefined,
-            (success) => {
-              if (success > 0) {
-                toast({
-                  title: "Sincronização pendente resolvida ✅",
-                  description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
-                });
-              }
-            }
-          );
-        }
+      toast({
+        title: "Sinal recuperado! ⚡",
+        description: `Sincronizando ${tasks.length} ação(ões) salva(s) localmente...`,
       });
 
-      return () => {
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-      };
-    }
-  }, [toast]);
+      syncOfflineTasks(undefined, (success, error) => {
+        if (success > 0) {
+          toast({
+            title: "Sincronização concluída! ✅",
+            description: `${success} ação(ões) enviada(s) para o servidor.`,
+          });
+        }
+        if (error > 0) {
+          toast({
+            title: "Alguns registros falharam ⚠️",
+            description: `${error} ação(ões) não pôde(ram) ser processada(s).`,
+            variant: "destructive",
+          });
+        }
+      });
+    };
 
-  // Prevent hydration mismatch by rendering a neutral state first
-  if (!hydrated) {
-    if (variant === "mobile") {
-      return (
-        <div className="flex items-center gap-1.5 rounded-[2px] border-2 border-cement bg-zinc-100 px-2 py-1 text-[9px] font-black uppercase text-zinc-500">
-          <span className="size-1.5 rounded-full bg-zinc-400" />
-          Carregando...
-        </div>
-      );
-    }
-    return (
-      <div className="rounded-[2px] border-2 border-cement bg-charcoal/30 p-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-400">
-        Verificando conexão...
-      </div>
-    );
-  }
+    window.addEventListener("online", handleOnline);
+
+    getOfflineTasks().then((pendingTasks) => {
+      if (navigator.onLine && pendingTasks.length > 0) {
+        syncOfflineTasks(undefined, (success) => {
+          if (success > 0) {
+            toast({
+              title: "Sincronização pendente resolvida ✅",
+              description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
+            });
+          }
+        });
+      }
+    });
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [toast]);
 
   if (variant === "mobile") {
     return (

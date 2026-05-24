@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, MapPin, Lightbulb, CheckCircle2 } from "lucide-react";
+import { TrendingUp, MapPin, Lightbulb, CheckCircle2 } from "lucide-react";
 import { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
 import { Progress } from "@/components/ui/progress";
 

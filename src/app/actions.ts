@@ -19,6 +19,8 @@ import type { BoardColumnId } from "@/lib/outreach-workflow";
 import type { PilotFeedbackLoopStatus } from "@/lib/data/pilot-feedback-loop";
 import type { PersonImportPreview } from "@/lib/data/import";
 import type { Json } from "@/lib/supabase/database.types";
+import type { NeighborhoodListenPayload } from "./escuta/bairro/actions";
+import * as escutaBairro from "./escuta/bairro/actions";
 
 
 
@@ -227,9 +229,7 @@ export async function trackOperationalEvent(
   return telemetry.trackOperationalEvent(event, personId, metadata);
 }
 
-import * as escutaBairro from "./escuta/bairro/actions";
-
-export async function submitNeighborhoodListenObjectAction(payload: any): Promise<ActionResult> {
+export async function submitNeighborhoodListenObjectAction(payload: NeighborhoodListenPayload): Promise<ActionResult> {
   return escutaBairro.submitNeighborhoodListenObjectAction(payload);
 }
 

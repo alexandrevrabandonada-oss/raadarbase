@@ -1,20 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { 
   Copy, 
-  Flag, 
-  MessageCircle, 
   ShieldCheck, 
   Flame, 
-  CheckCircle2, 
-  Clock, 
   AlertTriangle, 
   Info, 
   ClipboardCheck,
   Instagram,
-  UserPlus,
   MessageSquare,
   History,
   Send,
@@ -22,16 +17,7 @@ import {
   ArrowLeft,
   AlertCircle
 } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/status-badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -69,7 +55,6 @@ import { cn } from "@/lib/utils";
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
 import { PersonScoreBadge } from "@/components/radar/person-score-badge";
 import { OperationalAlert } from "@/components/radar/operational-alert";
-import { TemperatureBadge } from "@/components/radar/temperature-badge";
 
 function timelineIcon(type: PersonOperationalProfile["timeline"][number]["type"], title: string) {
   const t = title.toLowerCase();
@@ -104,10 +89,6 @@ export function PersonActions({
   const [referralNotes, setReferralNotes] = useState("");
   const [copyStatus, setCopyStatus] = useState<"idle" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
-
-  useEffect(() => {
-    setEditedMessage(profile.priority.suggestedMessage || "");
-  }, [profile.priority.suggestedMessage]);
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
   const contactGuardrailCopy =
