@@ -9,7 +9,7 @@ import {
   syncInstagramMedia,
 } from "@/lib/meta/sync";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 
 function toActionResult(result: { ok: boolean; message: string }): ActionResult {
   return result.ok ? { ok: true, message: result.message } : { ok: false, error: result.message };
