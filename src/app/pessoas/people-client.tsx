@@ -132,18 +132,10 @@ export function PeopleClient({
           if (!searchTarget.includes(normalizedQuery)) return false;
         }
 
-        if (priorityFilter !== "todos" && priorityFilter !== "pendente_resposta" && priorityFilter !== "minhas_pendencias") {
-          return false;
-        }
-
-        if (priorityFilter === "minhas_pendencias" && person.responsibleId !== currentOperatorId) {
-          return false;
-        }
-
         return true;
       })
       .slice(0, 100);
-  }, [currentOperatorId, normalizedQuery, priorityFilter, visiblePriorityPeople]);
+  }, [normalizedQuery, visiblePriorityPeople]);
 
   useEffect(() => {
     const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
@@ -542,10 +534,10 @@ export function PeopleClient({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Lista separada</p>
-                <h3 className="text-xl font-black text-charcoal">Pessoas esperando retorno</h3>
+                <h3 className="text-xl font-black text-charcoal">Pessoas já enviadas</h3>
               </div>
               <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white">
-                {waitingPeople.length} aguardando
+                {waitingPeople.length} enviadas
               </Badge>
             </div>
             <PersonOperationalList

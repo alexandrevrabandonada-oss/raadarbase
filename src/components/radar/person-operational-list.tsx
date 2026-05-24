@@ -69,6 +69,21 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
     }
   };
 
+  const handleMarkSent = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    startTransition(async () => {
+      const result = await confirmDMSentAction(person.id, "lista_operacional_atalho", person.suggestedTemplateId);
+      if (result.ok) {
+        setCopyStatus("confirmed");
+        toast({ title: "Enviado registrado", description: "Contato movido para a lista de pessoas já enviadas." });
+        onActionComplete?.(person.id);
+        router.refresh();
+      } else {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
+  };
+
   return (
     <>
     <tr
@@ -178,6 +193,15 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           >
             <Copy className="h-4 w-4" />
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px]"
+            onClick={handleMarkSent}
+            disabled={isBlocked || isPending}
+          >
+            Marcar enviado
+          </Button>
           {!person.responsibleId && !isBlocked && (
             <Button
               size="icon"
@@ -284,12 +308,20 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             Instagram
           </Button>
           <Button
-            className="col-span-2 h-11 border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
+            className="h-11 border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
             onClick={handleCopyDM}
             disabled={!person.suggestedMessage || isBlocked || isPending}
           >
             <Copy className="mr-2 h-4 w-4" />
-            {isPending ? "Registrando..." : copyStatus === "confirmed" ? "Enviado para esperando resposta" : "Copiar, abrir e marcar enviado"}
+            {isPending ? "Registrando..." : "Copiar e abrir"}
+          </Button>
+          <Button
+            className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-charcoal/5"
+            onClick={handleMarkSent}
+            disabled={isBlocked || isPending}
+          >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {copyStatus === "confirmed" ? "Enviado" : "Marcar enviado"}
           </Button>
           {!person.responsibleId && !isBlocked ? (
             <Button
