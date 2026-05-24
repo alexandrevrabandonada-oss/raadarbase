@@ -1,14 +1,15 @@
 "use client";
 
 import { useTransition } from "react";
-import { ChevronRight, UserPlus } from "lucide-react";
+import { CheckCircle2, ChevronRight, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
-import { assumePersonResponsible } from "@/app/actions";
+import { assumePersonResponsible, confirmDMSentAction } from "@/app/actions";
 import { JourneyProgress } from "./journey-progress";
 import { MissionCard } from "./mission-card";
+import { useToast } from "@/hooks/use-toast";
 import {
   getPriorityPersonHoldState,
   getPriorityPersonHoldText,
@@ -36,6 +37,7 @@ export function PersonPriorityCard({
   onOpenDetails,
   className,
 }: PersonPriorityCardProps) {
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const isBlocked = getPriorityPersonHoldState(person) === "blocked";
   const phaseLabel = getPriorityPersonMissionPhaseLabel(person);
@@ -50,6 +52,18 @@ export function PersonPriorityCard({
     startTransition(async () => {
       await assumePersonResponsible(person.id);
       onActionComplete?.();
+    });
+  }
+
+  function handleMarkSent() {
+    startTransition(async () => {
+      const result = await confirmDMSentAction(person.id, "card_prioridades", person.suggestedTemplateId);
+      if (result.ok) {
+        toast({ title: "Enviado registrado", description: "A pessoa foi movida para a lista de aguardando retorno." });
+        onActionComplete?.();
+        return;
+      }
+      toast({ title: "Erro", description: result.error, variant: "destructive" });
     });
   }
 
@@ -117,6 +131,17 @@ export function PersonPriorityCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-black pt-4 md:border-0 md:pt-0">
+          {!isBlocked ? (
+            <Button
+              variant="outline"
+              className="h-10 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+              onClick={handleMarkSent}
+              disabled={isPending}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Marcar enviado
+            </Button>
+          ) : null}
           {!person.responsibleId && !isBlocked && (
             <Button
               variant="outline"
@@ -147,6 +172,17 @@ export function PersonPriorityCard({
       className={cn("group h-full rounded-[2px] border-2 border-black transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", isBlocked && "bg-zinc-50 opacity-75", className)}
       footer={
         <div className="flex flex-wrap items-center gap-2 mt-2">
+          {!isBlocked ? (
+            <Button
+              variant="outline"
+              className="h-8 border-2 border-black bg-white text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] px-3 shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"
+              onClick={handleMarkSent}
+              disabled={isPending}
+            >
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+              Marcar enviado
+            </Button>
+          ) : null}
           {index !== undefined ? (
             <Badge variant="outline" className="rounded-[2px] border-2 border-black bg-white text-[9px] font-black uppercase tracking-widest text-charcoal">
               Missão {index + 1}
