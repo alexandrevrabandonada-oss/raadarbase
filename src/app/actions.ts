@@ -20,7 +20,7 @@ import type { PilotFeedbackLoopStatus } from "@/lib/data/pilot-feedback-loop";
 import type { PersonImportPreview } from "@/lib/data/import";
 import type { Json } from "@/lib/supabase/database.types";
 
-export type { ActionResult };
+
 
 // --- CONTACTS ---
 export async function updateContactStatus(personId: string, status: PersonStatus): Promise<ActionResult> {

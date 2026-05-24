@@ -12,7 +12,7 @@ import {
 } from "@/lib/data/action-execution";
 import { updateActionPlanItem } from "@/lib/data/action-plans";
 import { validateExecutionSafety, sanitizeExecutionInput } from "@/lib/action-execution/safety";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 
 export async function createActionEvidenceAction(

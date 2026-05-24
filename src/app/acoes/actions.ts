@@ -13,7 +13,7 @@ import {
   suggestActionPlanFromReport
 } from "@/lib/data/action-plans";
 import { checkTextSafety, sanitizeActionPlanData } from "@/lib/action-plans/safety";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 
 /**

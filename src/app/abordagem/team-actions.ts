@@ -6,7 +6,7 @@ import { shouldUseMockData } from "@/lib/config";
 import { requireRole } from "@/lib/authz/roles";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { requireInternalSession } from "@/lib/supabase/auth";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 
 /**
  * Retorna a lista de usuários internos ativos para distribuição de tarefas.
