@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import type { TableInsert } from "@/lib/supabase/database.types";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 
