@@ -9,7 +9,7 @@ import {
   removeInteractionTopic,
   TopicCategoryRow 
 } from "@/lib/data/topics";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import { isForbiddenLabel } from "@/lib/topics/rules";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 

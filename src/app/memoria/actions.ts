@@ -16,7 +16,7 @@ import {
   validateMemoryInput, 
   sanitizeMemoryInputObject 
 } from "@/lib/strategic-memory/safety";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 
 async function createStrategicMemoryRecord(

@@ -9,7 +9,7 @@ import { getActionPlanByReportId } from "@/lib/data/action-plans";
 import { getDevolutionPublicationByReportId } from "@/lib/data/devolution-publications";
 import { getPublicDevolutiveKit } from "@/lib/data/report-devolutive";
 import { openTerritorialListeningWindow } from "@/lib/data/territorial-listening-windows";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import type { TableUpdate } from "@/lib/supabase/database.types";
 
 type DevolutionPublicationInput = {

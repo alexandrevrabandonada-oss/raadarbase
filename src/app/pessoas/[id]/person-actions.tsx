@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 
 // Types & Actions
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 import {
   updatePersonNotes,
   assumePersonResponsible,

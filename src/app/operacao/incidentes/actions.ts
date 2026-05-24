@@ -5,7 +5,7 @@ import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { requireInternalSession } from "@/lib/supabase/auth";
 import { requireRole } from "@/lib/authz/roles";
 import { acknowledgeIncidentInDb, resolveIncidentInDb, addIncidentNoteInDb } from "@/lib/data/incidents";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 
 function sanitizeOperationalNote(note: string): string {
   return note

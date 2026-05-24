@@ -11,7 +11,7 @@ import {
   createFirstRealInstagramReport
 } from "@/lib/data/reports";
 import { validateReportTextSafety } from "@/lib/reports/safety";
-import type { ActionResult } from "@/app/actions";
+import type { ActionResult } from "@/app/actions/utils";
 
 export async function createMobilizationReportAction(input: {
   title: string;
