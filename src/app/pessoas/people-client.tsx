@@ -46,7 +46,6 @@ import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
-const MAIN_QUEUE_LIMIT = 50;
 
 export function PeopleClient({
   priorityPeople,
@@ -94,8 +93,7 @@ export function PeopleClient({
         }
         
         return true;
-      })
-      .slice(0, MAIN_QUEUE_LIMIT);
+      });
   }, [normalizedQuery, visiblePriorityPeople]);
 
   const teamPriorityPeople = useMemo(() => {
@@ -144,8 +142,7 @@ export function PeopleClient({
         }
 
         return true;
-      })
-      .slice(0, 100);
+      });
   }, [normalizedQuery, visiblePriorityPeople]);
 
   useEffect(() => {
@@ -222,6 +219,7 @@ export function PeopleClient({
     const esperando = active.filter(p => p.isPendingResponse);
     return {
       total: mainQueuePeople.length,
+      totalBase: visiblePriorityPeople.length,
       minhasPendencias: mainQueuePeople.filter(p => p.responsibleId === currentOperatorId).length,
       quentes: mainQueuePeople.filter(p => p.temperature === "quente").length,
       semResponsavel: mainQueuePeople.filter(p => !p.responsibleName).length,
@@ -293,8 +291,8 @@ export function PeopleClient({
     <div className="flex flex-col gap-4 pb-20">
       <GamefulHero
         eyebrow="Sala de vínculos"
-        title="Prioridades da Equipe"
-        description={isMobileViewport ? "Primeiro envio em lista simples. Registrou, saiu da fila principal." : isCompact ? "Entre na rodada de avisos individuais ou revise a lista operacional." : "Comece pela rodada de avisos individuais: uma pessoa por vez, mensagem manual e registro claro do envio."}
+        title="Base de Pessoas"
+        description={isMobileViewport ? "Lista completa da base local autorizada, uma pessoa por vez." : isCompact ? "Priorize os engajados, mas percorra toda a base local autorizada." : "Comece pelos mais engajados e siga até cobrir toda a base local autorizada: uma pessoa por vez, mensagem manual e registro claro do envio."}
         variant="light"
         compact={isCompact || isMobileViewport}
         titleClassName={cn("radar-title-display max-w-[8ch]", isCompact ? "text-[2.8rem] lg:text-[3.2rem] 2xl:text-6xl" : "text-4xl lg:text-5xl 2xl:text-6xl")}
@@ -302,13 +300,14 @@ export function PeopleClient({
         badges={
           <>
             <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
+            <GamefulHeroBadge light>{stats.totalBase} na base local</GamefulHeroBadge>
             <GamefulHeroBadge light>{stats.minhasPendencias} minhas</GamefulHeroBadge>
           </>
         }
         metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         metrics={
           <>
-            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Pendências de primeiro envio."} />
+            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Toda a base local elegível para primeiro envio."} />
             <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail={isCompact ? undefined : "Missões com maior calor."} />
             <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail={isCompact ? undefined : "Conversas pedindo retorno."} />
             <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail={isCompact ? undefined : "Interesses prontos para destino."} />
@@ -352,7 +351,7 @@ export function PeopleClient({
         title="Barra de comando"
         statusLabel="Rodada manual"
         statusValue={`${stats.total} pendências de primeiro envio`}
-        statusDetail="A aba principal mostra os contatos mais engajados que ainda não receberam mensagem. Os já enviados ficam em uma aba separada."
+        statusDetail="A aba principal mostra toda a base local elegível, ordenada por engajamento e prioridade. Os já enviados ficam em uma aba separada."
         primaryAction={{
           label: "Começar Rodada",
           href: "/minha-fila?rodada=foco",
@@ -388,7 +387,7 @@ export function PeopleClient({
               {[
                 { icon: Copy, title: "Preparar", detail: "Copiar a mensagem da pessoa." },
                 { icon: Instagram, title: "Enviar", detail: "Personalizar e mandar manualmente." },
-              { icon: CheckCircle2, title: "Registrar", detail: "Marcar envio e mover direto para esperando resposta." },
+              { icon: CheckCircle2, title: "Registrar", detail: "Marcar envio e seguir para a próxima pessoa." },
               ].map(({ icon: Icon, title, detail }) => (
                 <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-black bg-white p-3 rounded-[2px]">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-charcoal" />
@@ -442,7 +441,7 @@ export function PeopleClient({
           <div className="radar-outline-card overflow-x-auto rounded-[2px] border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
             <div className="flex min-w-max gap-2">
               {[
-                { id: "todos", label: "Primeiro envio", count: stats.total },
+                { id: "todos", label: "Base local", count: stats.total },
                 { id: "quentes", label: "Urgentes", count: stats.quentes },
                 { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
                 { id: "prontas_aviso", label: "Preparadas", count: stats.prontasAviso },
@@ -496,7 +495,7 @@ export function PeopleClient({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[ 
-                  { id: "todos", label: "Primeiro envio", count: stats.total },
+                  { id: "todos", label: "Base local", count: stats.total },
                   { id: "quentes", label: "Urgentes", count: stats.quentes },
                   { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
                 ].map((item) => (
@@ -544,7 +543,7 @@ export function PeopleClient({
           teamPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
             <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
-              {teamPriorityPeople.slice(0, 15).map((person, index) => (
+              {teamPriorityPeople.map((person, index) => (
                 <PersonPriorityCard 
                   key={person.id} 
                   person={person} 
@@ -567,7 +566,7 @@ export function PeopleClient({
         ) : (
           <EmptyState 
             type="empty_filter"
-            title="Nenhuma pendência de primeiro envio"
+            title="Nenhuma pessoa elegível neste filtro"
             description="A equipe já limpou a rodada principal deste filtro. Abra a aba de enviados para acompanhar quem está esperando retorno."
             primaryAction={
               <Button variant="outline" onClick={() => { setQuery(""); setPriorityFilter("todos"); }}>
@@ -670,9 +669,9 @@ export function PeopleClient({
         <div className="space-y-1">
           <h4 className="font-bold text-lg">Diretrizes de Engajamento Ético</h4>
           <p className="text-white/80 text-sm leading-relaxed">
-            O Radar de Base utiliza sinais de interação pública para sugerir a melhor conversa. 
+            O Radar de Base utiliza sinais de interação pública para sugerir a melhor conversa dentro da base local importada ou autorizada. 
             É proibido o uso destes dados para profiling ideológico ou pressão eleitoral. 
-            Toda conversa deve ser manual e respeitar o pedido de privacidade (&quot;Não Abordar&quot;).
+            Não há coleta em massa de seguidores; toda conversa deve ser manual e respeitar o pedido de privacidade (&quot;Não Abordar&quot;).
           </p>
         </div>
       </footer>
