@@ -10,6 +10,7 @@ import { handleSupabaseReadError } from "./utils";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RECENT_DAYS = 21;
 const HISTORY_PERSON_LOOKUP_LIMIT = 5000;
+const PERSON_HISTORY_BATCH_SIZE = 200;
 
 type InteractionSummary = {
   type: InteractionType;
@@ -397,6 +398,14 @@ export function buildPriorityPeople(
     });
 }
 
+function chunkPersonIds(personIds: string[]) {
+  const chunks: string[][] = [];
+  for (let index = 0; index < personIds.length; index += PERSON_HISTORY_BATCH_SIZE) {
+    chunks.push(personIds.slice(index, index + PERSON_HISTORY_BATCH_SIZE));
+  }
+  return chunks;
+}
+
 export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number }): Promise<PriorityPerson[]> {
   const now = new Date();
 
@@ -502,25 +511,32 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
     let auditLogs: AuditLogEntry[] = [];
 
     if (personIds.length > 0) {
-      const [referralsResult, auditLogsResult] = await Promise.all([
-        supabase
-          .from("ig_person_referrals")
-          .select("*")
-          .in("person_id", personIds)
-          .order("updated_at", { ascending: false }),
-        supabase
-          .from("audit_logs")
-          .select("*")
-          .eq("entity_type", "ig_people")
-          .in("entity_id", personIds)
-          .in("action", ["contact.dm_prepared", "contact.dm_sent", "contact.do_not_contact", "contact.response_recorded"])
-          .order("created_at", { ascending: false }),
-      ]);
+      const referralRows = [];
+      const auditRows = [];
 
-      if (referralsResult.error) throw referralsResult.error;
-      if (auditLogsResult.error) throw auditLogsResult.error;
+      for (const batch of chunkPersonIds(personIds)) {
+        const [referralsResult, auditLogsResult] = await Promise.all([
+          supabase
+            .from("ig_person_referrals")
+            .select("*")
+            .in("person_id", batch)
+            .order("updated_at", { ascending: false }),
+          supabase
+            .from("audit_logs")
+            .select("*")
+            .eq("entity_type", "ig_people")
+            .in("entity_id", batch)
+            .in("action", ["contact.dm_prepared", "contact.dm_sent", "contact.do_not_contact", "contact.response_recorded"])
+            .order("created_at", { ascending: false }),
+        ]);
 
-      referrals = (referralsResult.data ?? []).map((referral) => ({
+        if (referralsResult.error) throw referralsResult.error;
+        if (auditLogsResult.error) throw auditLogsResult.error;
+        referralRows.push(...(referralsResult.data ?? []));
+        auditRows.push(...(auditLogsResult.data ?? []));
+      }
+
+      referrals = referralRows.map((referral) => ({
         id: referral.id,
         personId: referral.person_id,
         targetType: referral.target_type,
@@ -540,7 +556,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
         metadata: referral.metadata,
       }));
 
-      auditLogs = (auditLogsResult.data ?? []).map((entry) => ({
+      auditLogs = auditRows.map((entry) => ({
         id: entry.id,
         actorId: entry.actor_id,
         actorEmail: entry.actor_email,
