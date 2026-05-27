@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { trackOperationalEvent } from "@/app/actions";
-import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { CycleAlertList } from "@/components/radar/cycle-alert-list";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
@@ -51,6 +51,11 @@ import {
   ChevronRight,
   Megaphone,
 } from "lucide-react";
+
+const PersonQuickSheet = dynamic(
+  () => import("@/components/radar/person-quick-sheet").then((module) => module.PersonQuickSheet),
+  { ssr: false },
+);
 
 type DashboardMissionEvent = {
   id: string;
@@ -213,6 +218,7 @@ function HeroJourneyWelcomeWidget({
 export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: DashboardClientProps) {
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showDeferredSections, setShowDeferredSections] = useState(false);
   const [streak] = useState(() => {
     if (typeof window !== "undefined") {
       const today = new Date().toISOString().split("T")[0];
@@ -224,7 +230,22 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
   });
 
   useEffect(() => {
-    trackOperationalEvent("dashboard_viewed");
+    const timeoutId = window.setTimeout(() => {
+      trackOperationalEvent("dashboard_viewed");
+    }, 1200);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    const show = () => setShowDeferredSections(true);
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(show, { timeout: 1600 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = setTimeout(show, 800);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const handleOpenDetails = (person: PriorityPerson) => {
@@ -293,27 +314,49 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
 
       <SystemAlertsSection data={data} />
 
-      <OperationPortalsSection data={data} />
+      {showDeferredSections ? (
+        <>
+          <OperationPortalsSection data={data} />
 
-      <AchievementsSection data={data} />
+          <AchievementsSection data={data} />
 
-      <QuestLogSection logs={data.recentLogs} />
+          <QuestLogSection logs={data.recentLogs} />
 
-      <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <QuickMapSection data={data} />
-        <FieldSection data={data} />
-      </section>
+          <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <QuickMapSection data={data} />
+            <FieldSection data={data} />
+          </section>
 
-      <CareSection data={data} />
+          <CareSection data={data} />
+        </>
+      ) : (
+        <DashboardDeferredPlaceholder />
+      )}
 
-      <PersonQuickSheet
-        person={selectedPerson}
-        open={isSheetOpen}
-        onOpenChange={setIsSheetOpen}
-        onNextPerson={handleNextPerson}
-        onActionComplete={() => window.location.reload()}
-      />
+      {isSheetOpen ? (
+        <PersonQuickSheet
+          person={selectedPerson}
+          open={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          onNextPerson={handleNextPerson}
+          onActionComplete={() => window.location.reload()}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function DashboardDeferredPlaceholder() {
+  return (
+    <Card className="bloco-concreto bg-white">
+      <CardContent className="p-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="h-20 animate-pulse rounded-[2px] bg-charcoal/5" />
+          <div className="h-20 animate-pulse rounded-[2px] bg-charcoal/5" />
+          <div className="h-20 animate-pulse rounded-[2px] bg-charcoal/5" />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

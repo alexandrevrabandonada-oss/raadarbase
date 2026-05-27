@@ -166,6 +166,44 @@ export async function getFieldEventParticipantMetrics(eventId: string): Promise<
   return metrics;
 }
 
+async function listFieldEventParticipantMetrics(eventIds: string[]): Promise<Record<string, FieldEventMetrics>> {
+  const metricsByEventId: Record<string, FieldEventMetrics> = {};
+  for (const eventId of eventIds) {
+    metricsByEventId[eventId] = {
+      totalInvited: 0,
+      confirmed: 0,
+      attended: 0,
+      helped: 0,
+      pendingConfirmation: 0,
+    };
+  }
+
+  if (eventIds.length === 0) return metricsByEventId;
+
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("ig_person_referrals")
+    .select("target_id, status")
+    .eq("target_type", "evento_campo")
+    .in("target_id", eventIds);
+
+  if (error) throw error;
+
+  for (const referral of data || []) {
+    if (!referral.target_id || !(referral.target_id in metricsByEventId)) continue;
+    const metrics = metricsByEventId[referral.target_id];
+    metrics.totalInvited += 1;
+    if (referral.status === "confirmou") metrics.confirmed += 1;
+    if (referral.status === "compareceu") metrics.attended += 1;
+    if (referral.status === "ajudou") metrics.helped += 1;
+    if (referral.status === "convidado" || referral.status === "interessado" || referral.status === "recomendado") {
+      metrics.pendingConfirmation += 1;
+    }
+  }
+
+  return metricsByEventId;
+}
+
 export async function listFieldAgendaEvents(filters?: { 
   status?: FieldAgendaEventStatus;
   neighborhood?: string;
@@ -221,10 +259,9 @@ export async function listFieldAgendaEvents(filters?: {
   }));
 
   if (filters?.includeMetrics) {
-    const metricsPromises = events.map(e => getFieldEventParticipantMetrics(e.id));
-    const allMetrics = await Promise.all(metricsPromises);
-    events.forEach((e, i) => {
-      e.metrics = allMetrics[i];
+    const metricsByEventId = await listFieldEventParticipantMetrics(events.map((event) => event.id));
+    events.forEach((event) => {
+      event.metrics = metricsByEventId[event.id];
     });
   }
 

@@ -90,7 +90,7 @@ async function loadDashboardData() {
     memoryStats,
     recentLogs,
   ] = await Promise.all([
-    listPriorityPeople(),
+    listPriorityPeople({ limit: 250 }),
     getPilotDashboardData(),
     getOperationalAlertsAction(),
     getOperationalCycleAlerts(),

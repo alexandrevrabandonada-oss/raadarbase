@@ -69,9 +69,8 @@ export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> 
       if (!data || data.length < SUPABASE_PAGE_SIZE) break;
     }
 
-    const { data: contactsData, error: contactsError } = await supabase.from("contacts").select("*");
-    if (contactsError) throw contactsError;
-    const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
+    const contactsData = await listContactsForPeople(peopleData.map((person) => person.id));
+    const contactsByPerson = new Map(contactsData.map((contact) => [contact.person_id, contact]));
     return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeople", error);
