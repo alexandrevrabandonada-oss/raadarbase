@@ -11,6 +11,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { validateImportBatch, type PersonImportPreview, type PersonImportRow } from "@/lib/data/import";
 import { executePersonImportBatch } from "@/app/actions";
 
+function extractUsernameCandidates(line: string) {
+  const candidates = new Set<string>();
+  const urlMatches = line.matchAll(/instagram\.com\/([A-Za-z0-9._]{1,30})(?:[/?#\s]|$)/gi);
+  for (const match of urlMatches) {
+    if (match[1] && !["p", "reel", "stories", "explore", "accounts"].includes(match[1].toLowerCase())) {
+      candidates.add(match[1]);
+    }
+  }
+
+  const handleMatches = line.matchAll(/@([A-Za-z0-9._]{1,30})/g);
+  for (const match of handleMatches) {
+    if (match[1]) candidates.add(match[1]);
+  }
+
+  return Array.from(candidates);
+}
+
 export function ImportClient() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -27,24 +44,51 @@ export function ImportClient() {
 
   function parseBatchText(): PersonImportRow[] {
     if (!batchText.trim()) return [];
+
+    const rows: PersonImportRow[] = [];
+    const seen = new Set<string>();
     
-    return batchText.split("\n")
+    batchText.split("\n")
       .map(line => line.trim())
       .filter(line => line.length > 0)
-      .map(line => {
+      .forEach(line => {
+        const extractedUsernames = extractUsernameCandidates(line);
+        if (extractedUsernames.length > 0 && !line.includes(",") && !line.includes("\t")) {
+          for (const username of extractedUsernames) {
+            const key = username.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            rows.push({
+              username,
+              status: "novo",
+              temperature: "frio",
+              reason: "Seguidor importado manualmente a partir de lista autorizada.",
+              notes: "Origem: importação manual autorizada.",
+            });
+          }
+          return;
+        }
+
         // Simple heuristic for TSV or CSV
         const delimiter = line.includes("\t") ? "\t" : ",";
         const parts = line.split(delimiter).map(p => p.trim());
+        const username = parts[0] || "";
+        const key = username.replace(/^@/, "").toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
         
-        return {
-          username: parts[0] || "",
+        rows.push({
+          username,
           displayName: parts[1] || undefined,
           theme: parts[2] || undefined,
-          status: parts[3] || undefined,
-          temperature: parts[4] || undefined,
-          reason: parts[5] || undefined,
-        };
+          status: parts[3] || "novo",
+          temperature: parts[4] || "frio",
+          reason: parts[5] || "Seguidor importado manualmente a partir de lista autorizada.",
+          notes: parts[6] || "Origem: importação manual autorizada.",
+        });
       });
+
+    return rows;
   }
 
   async function handleValidateBatch() {
@@ -114,16 +158,16 @@ export function ImportClient() {
             <CardHeader>
               <CardTitle>Colar Dados (CSV / Excel)</CardTitle>
               <CardDescription>
-                Cole os dados separados por vírgula ou tabulação (copiados do Excel/Sheets). 
+                Cole usernames, links do Instagram ou dados separados por vírgula/tabulação copiados do Excel/Sheets.
                 <br/>
-                <strong>Ordem das colunas:</strong> Username, Nome, Tema, Status (novo/responder), Temperatura (quente/morno/frio), Motivo
+                <strong>Ordem das colunas:</strong> Username, Nome, Tema, Status (novo/responder), Temperatura (quente/morno/frio), Motivo, Notas
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea 
                 value={batchText}
                 onChange={e => setBatchText(e.target.value)}
-                placeholder="Exemplo: @usuario_silva, João Silva, habitação, responder, quente, Denunciou goteira"
+                placeholder={"Exemplos:\n@usuario_silva\nhttps://www.instagram.com/usuario_santos/\n@usuario, Nome, tema, novo, frio, seguidor importado manualmente"}
                 className="min-h-[200px] font-mono text-xs"
               />
             </CardContent>

@@ -9,6 +9,7 @@ import { handleSupabaseReadError } from "./utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RECENT_DAYS = 21;
+const HISTORY_PERSON_LOOKUP_LIMIT = 5000;
 
 type InteractionSummary = {
   type: InteractionType;
@@ -489,7 +490,14 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
       personId: interaction.person_id,
     }));
 
-    const personIds = people.map((person) => person.id);
+    const historyPeople = people.filter(
+      (person) =>
+        person.status !== "novo" ||
+        person.totalInteractions > 0 ||
+        person.lastInteractionAt ||
+        Boolean(person.doNotContactReason),
+    );
+    const personIds = historyPeople.slice(0, HISTORY_PERSON_LOOKUP_LIMIT).map((person) => person.id);
     let referrals: PersonReferral[] = [];
     let auditLogs: AuditLogEntry[] = [];
 

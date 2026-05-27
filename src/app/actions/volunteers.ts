@@ -130,12 +130,14 @@ export async function executePersonImportBatch(previews: PersonImportPreview[]):
   const { getSupabaseAdminClient } = await import("@/lib/supabase/admin");
   const { shouldUseMockData } = await import("@/lib/config");
 
+  const validCount = previews.filter((p) => !p.hasErrors).length;
+
   return performAction({
     action: "contact.imported",
     entityType: "ig_people",
     entityId: null,
-    summary: `Importação em lote de ${previews.length} pessoas executada.`,
-    metadata: { importedCount: previews.length },
+    summary: `Importação em lote de ${validCount} pessoas válidas executada.`,
+    metadata: { importedCount: validCount, previewCount: previews.length },
     mutate: async () => {
       await requireRole(["admin", "operador"]);
       if (shouldUseMockData()) {

@@ -46,6 +46,7 @@ import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
+const LIST_RENDER_BATCH = 250;
 
 export function PeopleClient({
   priorityPeople,
@@ -64,6 +65,7 @@ export function PeopleClient({
   const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"cards" | "list">("list");
   const [dismissedPersonIds, setDismissedPersonIds] = useState<string[]>([]);
+  const [visibleListState, setVisibleListState] = useState({ key: "", count: LIST_RENDER_BATCH });
 
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -145,6 +147,9 @@ export function PeopleClient({
       });
   }, [normalizedQuery, visiblePriorityPeople]);
 
+  const visibleListKey = `${activeTab}:${normalizedQuery}:${priorityFilter}`;
+  const visibleListCount = visibleListState.key === visibleListKey ? visibleListState.count : LIST_RENDER_BATCH;
+
   useEffect(() => {
     const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
     const totalActive = active.length;
@@ -198,6 +203,22 @@ export function PeopleClient({
     storageKey: "radar_pessoas_compacto",
     autoCompact: isNotebookViewport || teamPriorityPeople.length > 20,
   });
+
+  const displayedTeamPriorityPeople = useMemo(
+    () => teamPriorityPeople.slice(0, visibleListCount),
+    [teamPriorityPeople, visibleListCount],
+  );
+  const displayedWaitingPeople = useMemo(
+    () => waitingPeople.slice(0, visibleListCount),
+    [visibleListCount, waitingPeople],
+  );
+
+  function loadMoreVisiblePeople() {
+    setVisibleListState((current) => ({
+      key: visibleListKey,
+      count: (current.key === visibleListKey ? current.count : LIST_RENDER_BATCH) + LIST_RENDER_BATCH,
+    }));
+  }
 
   // Auto-switch to list mode if many results
   useEffect(() => {
@@ -542,26 +563,52 @@ export function PeopleClient({
         {activeTab === "nao_enviadas" ? (
           teamPriorityPeople.length > 0 ? (
           viewMode === "cards" ? (
-            <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
-              {teamPriorityPeople.map((person, index) => (
-                <PersonPriorityCard 
-                  key={person.id} 
-                  person={person} 
-                  index={index} 
-                  layout="card"
-                  onOpenDetails={handleOpenDetails}
-                  onActionComplete={() => router.refresh()}
-                />
-              ))}
-            </div>
+            <>
+              <div className={cn("grid grid-cols-1 gap-6 sm:grid-cols-2 2xl:grid-cols-4", isCompact ? "xl:grid-cols-2" : "xl:grid-cols-3")}>
+                {displayedTeamPriorityPeople.map((person, index) => (
+                  <PersonPriorityCard 
+                    key={person.id} 
+                    person={person} 
+                    index={index} 
+                    layout="card"
+                    onOpenDetails={handleOpenDetails}
+                    onActionComplete={() => router.refresh()}
+                  />
+                ))}
+              </div>
+              {visibleListCount < teamPriorityPeople.length ? (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    className="h-11 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px]"
+                    onClick={loadMoreVisiblePeople}
+                  >
+                    Carregar mais {Math.min(LIST_RENDER_BATCH, teamPriorityPeople.length - visibleListCount)}
+                  </Button>
+                </div>
+              ) : null}
+            </>
           ) : (
-            <PersonOperationalList 
-              people={teamPriorityPeople}
-              onOpenDetails={handleOpenDetails}
-              onAssume={(id) => handleAssume(id)}
-              isAssuming={isPending}
-              onActionComplete={handleActionComplete}
-            />
+            <>
+              <PersonOperationalList 
+                people={displayedTeamPriorityPeople}
+                onOpenDetails={handleOpenDetails}
+                onAssume={(id) => handleAssume(id)}
+                isAssuming={isPending}
+                onActionComplete={handleActionComplete}
+              />
+              {visibleListCount < teamPriorityPeople.length ? (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    className="h-11 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px]"
+                    onClick={loadMoreVisiblePeople}
+                  >
+                    Carregar mais {Math.min(LIST_RENDER_BATCH, teamPriorityPeople.length - visibleListCount)}
+                  </Button>
+                </div>
+              ) : null}
+            </>
           )
         ) : (
           <EmptyState 
@@ -587,12 +634,23 @@ export function PeopleClient({
               </Badge>
             </div>
             <PersonOperationalList
-              people={waitingPeople}
+              people={displayedWaitingPeople}
               onOpenDetails={handleOpenDetails}
               onAssume={(id) => handleAssume(id)}
               isAssuming={isPending}
               onActionComplete={handleActionComplete}
             />
+            {visibleListCount < waitingPeople.length ? (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  className="h-11 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px]"
+                  onClick={loadMoreVisiblePeople}
+                >
+                  Carregar mais {Math.min(LIST_RENDER_BATCH, waitingPeople.length - visibleListCount)}
+                </Button>
+              </div>
+            ) : null}
           </section>
         ) : (
           <EmptyState
