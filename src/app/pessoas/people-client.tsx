@@ -136,7 +136,7 @@ export function PeopleClient({
     return visiblePriorityPeople
       .filter((person) => {
         if (!person.priorityEligible) return false;
-        if (!person.isPendingResponse) return false;
+        if (!person.isPendingResponse && person.status !== "abordado") return false;
 
         if (normalizedQuery) {
           const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();

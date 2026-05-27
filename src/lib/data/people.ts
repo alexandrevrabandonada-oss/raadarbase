@@ -9,6 +9,8 @@ type PersonRowWithOwner = TableRow<"ig_people"> & {
   internal_users?: { full_name: string | null } | null;
 };
 
+const SUPABASE_PAGE_SIZE = 1000;
+
 function mapPerson(person: PersonRowWithOwner, contact: ContactRecord | null): PersonWithContact {
   return {
     id: person.id,
@@ -31,18 +33,27 @@ export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> 
   if (shouldUseMockData()) return mockPeople;
   try {
     const supabase = getSupabaseAdminClient();
-    
-    let peopleQuery = supabase.from("ig_people").select("*, internal_users(full_name)").order("last_interaction_at", { ascending: false });
-    
-    if (cutoff) {
-      peopleQuery = peopleQuery.gte("last_interaction_at", cutoff);
+
+    const peopleData: TableRow<"ig_people">[] = [];
+    for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+      let peopleQuery = supabase
+        .from("ig_people")
+        .select("*, internal_users(full_name)")
+        .order("last_interaction_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .range(from, from + SUPABASE_PAGE_SIZE - 1);
+
+      if (cutoff) {
+        peopleQuery = peopleQuery.gte("last_interaction_at", cutoff);
+      }
+
+      const { data, error } = await peopleQuery;
+      if (error) throw error;
+      peopleData.push(...(data ?? []));
+      if (!data || data.length < SUPABASE_PAGE_SIZE) break;
     }
 
-    const [{ data: peopleData, error: peopleError }, { data: contactsData, error: contactsError }] = await Promise.all([
-      peopleQuery,
-      supabase.from("contacts").select("*"),
-    ]);
-    if (peopleError) throw peopleError;
+    const { data: contactsData, error: contactsError } = await supabase.from("contacts").select("*");
     if (contactsError) throw contactsError;
     const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
     return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
