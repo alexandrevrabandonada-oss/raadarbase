@@ -58,21 +58,26 @@ export function ConnectionIndicator({ variant = "desktop" }: ConnectionIndicator
 
     window.addEventListener("online", handleOnline);
 
-    getOfflineTasks().then((pendingTasks) => {
-      if (navigator.onLine && pendingTasks.length > 0) {
-        syncOfflineTasks(undefined, (success) => {
-          if (success > 0) {
-            toast({
-              title: "Sincronização pendente resolvida ✅",
-              description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
-            });
-          }
-        });
-      }
-    });
+    const checkPendingOfflineTasks = () => {
+      getOfflineTasks().then((pendingTasks) => {
+        if (navigator.onLine && pendingTasks.length > 0) {
+          syncOfflineTasks(undefined, (success) => {
+            if (success > 0) {
+              toast({
+                title: "Sincronização pendente resolvida ✅",
+                description: `${success} ação(ões) acumulada(s) enviada(s) com sucesso.`,
+              });
+            }
+          });
+        }
+      });
+    };
+
+    const timeoutId = setTimeout(checkPendingOfflineTasks, 3000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
+      clearTimeout(timeoutId);
     };
   }, [toast]);
 

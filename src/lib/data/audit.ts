@@ -27,7 +27,7 @@ function mapAuditEntry(entry: {
   };
 }
 
-export async function listAuditLogs(): Promise<AuditLogEntry[]> {
+export async function listAuditLogs(limit = 100): Promise<AuditLogEntry[]> {
   if (shouldUseMockData()) {
     const now = Date.now();
     return [
@@ -90,7 +90,7 @@ export async function listAuditLogs(): Promise<AuditLogEntry[]> {
   }
   try {
     const supabase = getSupabaseAdminClient();
-    const { data, error } = await supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(100);
+    const { data, error } = await supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(limit);
     if (error) throw error;
     return (data ?? []).map(mapAuditEntry);
   } catch (error) {

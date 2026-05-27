@@ -28,7 +28,7 @@ export default async function RitmoPage() {
   await requireInternalPageSession("/ritmo");
 
   const [pilotData, collective, qualityStats, territories, fieldEvents, cycleAlerts, teamAdoption, memoryStats, territorialExpansion, feedbackLoop] = await Promise.all([
-    getPilotDashboardData(),
+    getPilotDashboardData({ includeRetrospective: false }),
     getCollectiveProgressMetrics(),
     getBaseQualityStats(),
     listTerritorySummaries(),

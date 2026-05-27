@@ -232,6 +232,21 @@ export async function getStrategicMemoryStats() {
   };
 }
 
+export async function countDraftStrategicMemories() {
+  if (shouldUseMockData()) {
+    return mockStrategicMemories.filter((memory) => memory.status === "draft").length;
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const { count, error } = await supabase
+    .from("strategic_memories")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "draft");
+
+  if (error) throw new Error(`Falha ao contar rascunhos de memória: ${error.message}`);
+  return count ?? 0;
+}
+
 export async function countStrategicMemoryLinksByEntity(entityType: string, entityIds: string[]) {
   if (shouldUseMockData() || entityIds.length === 0) {
     return {} as Record<string, number>;

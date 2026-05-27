@@ -25,6 +25,25 @@ export type DuplicateGroup = {
   reason: string;
 };
 
+export async function countPeopleEligibleForReview(): Promise<number> {
+  if (shouldUseMockData()) {
+    return 15;
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const { count, error } = await supabase
+    .from("ig_people")
+    .select("*", { count: "exact", head: true })
+    .not("last_interaction_at", "is", null)
+    .lt("last_interaction_at", sixMonthsAgo.toISOString());
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getBaseQualityStats(): Promise<BaseQualityStats> {
   if (shouldUseMockData()) {
     return {

@@ -4,7 +4,7 @@ import { shouldUseMockData } from "@/lib/config";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { getCollectiveProgressMetrics } from "@/lib/data/collective-progress-data";
-import { getBaseQualityStats } from "@/lib/data/data-quality";
+import { countPeopleEligibleForReview } from "@/lib/data/data-quality";
 import { listFieldAgendaEvents, listFieldAgendaEventResultsByEventIds } from "@/lib/data/field-agenda";
 import { listTerritorySummaries } from "@/lib/data/territories";
 import { mapTerritoryToPhase } from "@/lib/data/territory-mapper";
@@ -131,32 +131,38 @@ export async function getOperationalCycleAlerts(
   const cutoffIso = getPastIso(resolvedThresholds.stuckLinkDays);
 
   const [
-    stuckLinkTasks,
+    stuckLinkTasksResult,
     fieldEvents,
     territories,
     pilotData,
-    qualityStats,
+    baseReviewCount,
     collective,
   ] = await Promise.all([
     supabase
       .from("outreach_tasks")
-      .select("id,column_key")
+      .select("id", { count: "exact", head: true })
       .is("completed_at", null)
       .in("column_key", LINKAGE_COLUMNS)
       .lt("updated_at", cutoffIso),
-    listFieldAgendaEvents({ includeMetrics: true }),
+    listFieldAgendaEvents(),
     listTerritorySummaries(),
-    getPilotDashboardData(),
-    getBaseQualityStats(),
+    getPilotDashboardData({ includeRetrospective: false }),
+    countPeopleEligibleForReview(),
     getCollectiveProgressMetrics(),
   ]);
 
-  if (stuckLinkTasks.error) throw stuckLinkTasks.error;
+  if (stuckLinkTasksResult.error) throw stuckLinkTasksResult.error;
 
-  const stuckLinkCount = (stuckLinkTasks.data || []).length;
+  const stuckLinkCount = stuckLinkTasksResult.count ?? 0;
 
-  const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
   const now = getCurrentTimestamp();
+  const pastFieldEventIds = fieldEvents
+    .filter((event) => {
+      const startsAt = event.startsAt ? new Date(event.startsAt).getTime() : Number.POSITIVE_INFINITY;
+      return Number.isFinite(startsAt) && startsAt <= now;
+    })
+    .map((event) => event.id);
+  const eventResults = await listFieldAgendaEventResultsByEventIds(pastFieldEventIds);
   const fieldStuckCount = fieldEvents.filter((event) => {
     const startsAt = event.startsAt ? new Date(event.startsAt).getTime() : Number.POSITIVE_INFINITY;
     return Number.isFinite(startsAt) && startsAt <= now && !eventResults[event.id];
@@ -183,7 +189,7 @@ export async function getOperationalCycleAlerts(
       assessQueueWellness(operator.openTasks).level !== "healthy"
   ).length;
 
-  const dataNeedsReviewCount = qualityStats.eligibleForReviewCount + collective.ethics.dataUnderReview;
+  const dataNeedsReviewCount = baseReviewCount + collective.ethics.dataUnderReview;
 
   const alerts: OperationalCycleAlert[] = [];
 

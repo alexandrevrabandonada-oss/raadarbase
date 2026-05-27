@@ -58,17 +58,15 @@ export async function listTerritorySummaries(): Promise<TerritorySummary[]> {
   const supabase = getSupabaseAdminClient();
 
   // Fetch all neighborhoods across key tables
-  const [submissionsRes, volunteersRes, eventsRes, tasksRes] = await Promise.all([
+  const [submissionsRes, volunteersRes, eventsRes] = await Promise.all([
     supabase.from("bairro_escuta_submissions").select("bairro, pauta, status"),
     supabase.from("campaign_volunteers").select("neighborhood, status"),
     supabase.from("field_agenda_events").select("neighborhood, starts_at, status, title, id"),
-    supabase.from("outreach_tasks").select("id, person_id, column_key").is("completed_at", null),
   ]);
 
   if (submissionsRes.error) throw submissionsRes.error;
   if (volunteersRes.error) throw volunteersRes.error;
   if (eventsRes.error) throw eventsRes.error;
-  if (tasksRes.error) throw tasksRes.error;
 
   const neighborhoods = new Set<string>();
   submissionsRes.data.forEach(s => neighborhoods.add(s.bairro));

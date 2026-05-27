@@ -2,13 +2,19 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 
 import { cn } from "@/lib/utils"
-import { playSynthKeypress } from "@/lib/audio"
+
+let keypressAudioPromise: Promise<typeof import("@/lib/audio")> | null = null;
+
+function playKeypressSound() {
+  keypressAudioPromise ??= import("@/lib/audio");
+  void keypressAudioPromise.then(({ playSynthKeypress }) => playSynthKeypress());
+}
 
 function Input({ className, type, onKeyDown, ...props }: React.ComponentProps<"input">) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Play subtle mechanical sound on normal key typing
     if (e.key && e.key.length === 1) {
-      playSynthKeypress();
+      playKeypressSound();
     }
     if (onKeyDown) {
       onKeyDown(e);

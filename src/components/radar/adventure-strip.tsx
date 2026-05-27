@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AdventureProgress, AdventureWorldId } from "@/lib/data/adventure-progress";
-import { playSynthSuccess } from "@/lib/audio";
 
 type AdventureWorld = {
   id: AdventureWorldId;
@@ -115,23 +114,31 @@ export function AdventureStrip({ progress }: { progress: AdventureProgress }) {
   const completedWorlds = worlds.filter((world) => progress[world.id] >= world.target).length;
 
   useEffect(() => {
-    const storageKey = getProgressStorageKey();
-    const previous = parseStoredProgress(window.localStorage.getItem(storageKey));
-    window.localStorage.setItem(storageKey, JSON.stringify(progress));
+    let hideRewardTimer: number | undefined;
+    const progressSnapshot = progress;
 
-    if (!previous) return;
+    const syncProgressTimer = window.setTimeout(() => {
+      const storageKey = getProgressStorageKey();
+      const previous = parseStoredProgress(window.localStorage.getItem(storageKey));
+      window.localStorage.setItem(storageKey, JSON.stringify(progressSnapshot));
 
-    const completedNow = worlds.find(
-      (world) => previous[world.id] < world.target && progress[world.id] >= world.target,
-    );
+      if (!previous) return;
 
-    if (!completedNow) return;
+      const completedNow = worlds.find(
+        (world) => previous[world.id] < world.target && progressSnapshot[world.id] >= world.target,
+      );
 
-    playSynthSuccess();
-    window.setTimeout(() => {
+      if (!completedNow) return;
+
+      void import("@/lib/audio").then(({ playSynthSuccess }) => playSynthSuccess());
       setRewardWorld(completedNow);
-      window.setTimeout(() => setRewardWorld(null), 5200);
-    }, 0);
+      hideRewardTimer = window.setTimeout(() => setRewardWorld(null), 5200);
+    }, 1200);
+
+    return () => {
+      window.clearTimeout(syncProgressTimer);
+      if (hideRewardTimer) window.clearTimeout(hideRewardTimer);
+    };
   }, [progress]);
 
   return (

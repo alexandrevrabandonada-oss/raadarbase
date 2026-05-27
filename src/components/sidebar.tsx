@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AlertCircle,
@@ -224,12 +224,15 @@ function matchesPath(pathname: string | null, item: NavItem) {
 }
 
 function AudioToggle() {
-  const [muted, setMuted] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("radar_audio_muted") === "true";
-    }
-    return false;
-  });
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setMuted(window.localStorage.getItem("radar_audio_muted") === "true");
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   const toggle = () => {
     const newVal = !muted;

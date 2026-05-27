@@ -12,7 +12,6 @@ import { GamefulPortalCard } from "@/components/radar/gameful-portal-card";
 import { MissionCard as RadarMissionCard } from "@/components/radar/mission-card";
 import { RhythmPanel } from "@/components/radar/rhythm-panel";
 import { AlertBeacon } from "@/components/radar/alert-beacon";
-import { AchievementsSection } from "@/components/radar/achievements-section";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import { AnnouncementSeasonProgress } from "@/components/radar/announcement-season-progress";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson, AuditLogEntry } from "@/lib/types";
 import type { InternalSession } from "@/lib/supabase/auth";
-import type { PilotDashboardData } from "@/lib/data/pilot-stats";
 import type { MissionState } from "@/lib/data/mission-engine";
 import type { WeeklyRhythmState } from "@/lib/data/weekly-rhythm";
 import type { OperationalCycleAlert } from "@/lib/data/operational-cycle-alerts";
@@ -55,6 +53,14 @@ import {
 const PersonQuickSheet = dynamic(
   () => import("@/components/radar/person-quick-sheet").then((module) => module.PersonQuickSheet),
   { ssr: false },
+);
+
+const AchievementsSection = dynamic(
+  () => import("@/components/radar/achievements-section").then((module) => module.AchievementsSection),
+  {
+    ssr: false,
+    loading: () => <DashboardDeferredPlaceholder />,
+  },
 );
 
 type DashboardMissionEvent = {
@@ -140,7 +146,7 @@ export type DashboardViewData = {
 type DashboardClientProps = {
   session: InternalSession;
   priorityPeople: PriorityPerson[];
-  pilotStats: PilotDashboardData;
+  myQueueCount: number;
   cycleAlerts: OperationalCycleAlert[];
   data: DashboardViewData;
 };
@@ -215,19 +221,11 @@ function HeroJourneyWelcomeWidget({
   );
 }
 
-export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: DashboardClientProps) {
+export function DashboardClient({ session, priorityPeople, myQueueCount, cycleAlerts, data }: DashboardClientProps) {
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [showDeferredSections, setShowDeferredSections] = useState(false);
-  const [streak] = useState(() => {
-    if (typeof window !== "undefined") {
-      const today = new Date().toISOString().split("T")[0];
-      const key = `radar_streak_${today}`;
-      const saved = localStorage.getItem(key);
-      return saved ? parseInt(saved, 10) : 0;
-    }
-    return 0;
-  });
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -248,6 +246,18 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
     return () => clearTimeout(timeoutId);
   }, []);
 
+  useEffect(() => {
+    const loadStreak = () => {
+      const today = new Date().toISOString().split("T")[0];
+      const key = `radar_streak_${today}`;
+      const saved = window.localStorage.getItem(key);
+      setStreak(saved ? parseInt(saved, 10) || 0 : 0);
+    };
+
+    const timeoutId = window.setTimeout(loadStreak, 900);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
     setIsSheetOpen(true);
@@ -265,15 +275,13 @@ export function DashboardClient({ session, priorityPeople, cycleAlerts, data }: 
     setIsSheetOpen(false);
   };
 
-  const myQueue = priorityPeople.filter((p) => p.responsibleId === session.id);
-
   return (
     <div className="space-y-8 pb-16">
       <HeroSection data={data} />
 
       <HeroJourneyWelcomeWidget
         session={session}
-        myQueueCount={myQueue.length}
+        myQueueCount={myQueueCount}
         streak={streak}
       />
 

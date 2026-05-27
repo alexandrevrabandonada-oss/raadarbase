@@ -1,13 +1,14 @@
 import AppShell from "@/components/app-shell";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { listPriorityPeople } from "@/lib/data/people-priority";
-import { getOperationalCycleAlerts } from "@/lib/data/operational-cycle-alerts";
+import type { OperationalCycleAlert } from "@/lib/data/operational-cycle-alerts";
 import { getOperationalAlertsAction } from "./actions";
 import { DashboardClient, type DashboardViewData } from "./dashboard-client";
 import { getCollectiveProgressMetrics } from "@/lib/data/collective-progress-data";
-import { getBaseQualityStats } from "@/lib/data/data-quality";
+import { countPeopleEligibleForReview } from "@/lib/data/data-quality";
 import { listTerritorySummaries } from "@/lib/data/territories";
 import { mapTerritoryToPhase } from "@/lib/data/territory-mapper";
 import {
@@ -18,7 +19,7 @@ import {
 import { calculateOperatorMission } from "@/lib/data/mission-engine";
 import { calculateWeeklyRhythm } from "@/lib/data/weekly-rhythm";
 import { assessQueueWellness } from "@/lib/data/operator-wellness";
-import { getStrategicMemoryStats } from "@/lib/data/strategic-memory";
+import { countDraftStrategicMemories } from "@/lib/data/strategic-memory";
 import { buildDailyNarrative } from "@/lib/narrative/daily-narrative";
 import { buildWeeklyNarrative } from "@/lib/narrative/weekly-narrative";
 import { buildSeasonNarrative } from "@/lib/narrative/season-narrative";
@@ -26,8 +27,36 @@ import { listAuditLogs } from "@/lib/data/audit";
 
 export const dynamic = "force-dynamic";
 
+const STUCK_LINK_DAYS = 5;
+const HEALTHY_QUEUE_LIMIT = 5;
+const LINKAGE_COLUMNS = [
+  "esperando_resposta",
+  "aguardando_resposta",
+  "precisa_encaminhar",
+  "convidar_grupo",
+];
+
 function getCurrentTimestamp() {
   return Date.now();
+}
+
+function getPastIso(days: number) {
+  const reference = new Date();
+  reference.setDate(reference.getDate() - days);
+  return reference.toISOString();
+}
+
+async function countDashboardStuckLinkTasks() {
+  const supabase = getSupabaseAdminClient();
+  const { count, error } = await supabase
+    .from("outreach_tasks")
+    .select("id", { count: "exact", head: true })
+    .is("completed_at", null)
+    .in("column_key", LINKAGE_COLUMNS)
+    .lt("updated_at", getPastIso(STUCK_LINK_DAYS));
+
+  if (error) throw error;
+  return count ?? 0;
 }
 
 function getOverallStatus(data: {
@@ -77,29 +106,29 @@ function formatFieldEvent(event: FieldAgendaEvent) {
   };
 }
 
-async function loadDashboardData() {
+async function loadDashboardData(session: Awaited<ReturnType<typeof requireInternalPageSession>>) {
   const [
     priorityPeople,
     pilotStats,
     operationalAlerts,
-    cycleAlerts,
     collective,
-    qualityStats,
+    baseReviewCount,
     territories,
     fieldEvents,
-    memoryStats,
+    draftMemoryCount,
     recentLogs,
+    stuckLinkCount,
   ] = await Promise.all([
     listPriorityPeople({ limit: 250 }),
-    getPilotDashboardData(),
+    getPilotDashboardData({ includeRetrospective: false }),
     getOperationalAlertsAction(),
-    getOperationalCycleAlerts(),
     getCollectiveProgressMetrics(),
-    getBaseQualityStats(),
+    countPeopleEligibleForReview(),
     listTerritorySummaries(),
     listFieldAgendaEvents({ includeMetrics: true }),
-    getStrategicMemoryStats(),
-    listAuditLogs(),
+    countDraftStrategicMemories(),
+    listAuditLogs(10),
+    countDashboardStuckLinkTasks(),
   ]);
 
   const now = getCurrentTimestamp();
@@ -112,12 +141,16 @@ async function loadDashboardData() {
     .map((event) => event.id);
   const eventResults = await listFieldAgendaEventResultsByEventIds(pastFieldEventIds);
 
-  const territoryCounts = territories.reduce(
+  const territoriesWithPhase = territories.map((territory) => ({
+    territory,
+    phase: mapTerritoryToPhase(territory),
+  }));
+
+  const territoryCounts = territoriesWithPhase.reduce(
     (acc, territory) => {
-      const phase = mapTerritoryToPhase(territory);
-      if (phase.id === "mobilizacao") acc.mobilizacao += 1;
-      if (phase.id === "campo") acc.campo += 1;
-      if (phase.id === "continuidade") acc.continuidade += 1;
+      if (territory.phase.id === "mobilizacao") acc.mobilizacao += 1;
+      if (territory.phase.id === "campo") acc.campo += 1;
+      if (territory.phase.id === "continuidade") acc.continuidade += 1;
       return acc;
     },
     { mobilizacao: 0, campo: 0, continuidade: 0 },
@@ -125,17 +158,17 @@ async function loadDashboardData() {
 
   const territoryHighlights = {
     mobilizacao:
-      territories
-        .filter((territory) => mapTerritoryToPhase(territory).id === "mobilizacao")
-        .sort((a, b) => b.priorityPeople - a.priorityPeople)[0] ?? null,
+      territoriesWithPhase
+        .filter((item) => item.phase.id === "mobilizacao")
+        .sort((a, b) => b.territory.priorityPeople - a.territory.priorityPeople)[0]?.territory ?? null,
     campo:
-      territories
-        .filter((territory) => mapTerritoryToPhase(territory).id === "campo")
-        .sort((a, b) => b.fieldActions - a.fieldActions)[0] ?? null,
+      territoriesWithPhase
+        .filter((item) => item.phase.id === "campo")
+        .sort((a, b) => b.territory.fieldActions - a.territory.fieldActions)[0]?.territory ?? null,
     continuidade:
-      territories
-        .filter((territory) => mapTerritoryToPhase(territory).id === "continuidade")
-        .sort((a, b) => b.openTasks - a.openTasks)[0] ?? null,
+      territoriesWithPhase
+        .filter((item) => item.phase.id === "continuidade")
+        .sort((a, b) => b.territory.openTasks - a.territory.openTasks)[0]?.territory ?? null,
   };
 
   const plannedActions = fieldEvents.filter((event) => event.status === "planned" || event.status === "draft");
@@ -163,6 +196,9 @@ async function loadDashboardData() {
   const averageQueueLoad = Math.round(queueLoads.reduce((sum, value) => sum + value, 0) / Math.max(queueLoads.length, 1));
   const overloadAlerts = queueLoads.filter((load) => assessQueueWellness(load).level !== "healthy").length;
   const wellness = assessQueueWellness(averageQueueLoad);
+  const overloadedOperatorsCount = queueLoads.filter(
+    (load) => load > HEALTHY_QUEUE_LIMIT && assessQueueWellness(load).level !== "healthy",
+  ).length;
 
   const missionState = calculateOperatorMission({
     tasksAssumed: pilotStats.responsibleBreakdown.filter((item) => item.openTasks > 0).length,
@@ -196,6 +232,7 @@ async function loadDashboardData() {
     person.latestInteractionType === "comentario" ||
     person.latestInteractionType === "resposta_story",
   ).length;
+  const myQueueCount = priorityPeople.filter((person) => person.responsibleId === session.id).length;
   const recurringLinksCount = priorityPeople.filter((person) => person.totalInteractions >= 3).length;
   const urgentCareCount = collective.ethics.sensitiveNotesReviewed + collective.ethics.dataUnderReview;
   const pendingReturnsCount =
@@ -203,8 +240,75 @@ async function loadDashboardData() {
     pilotStats.summary.dmsPreparedWithoutConfirmation +
     collective.operationHealth.staleTasksCount;
   const openReferralsCount = pilotStats.summary.pendingReferralsCount;
-  const pendingMemoryCount = memoryStats.draftCount;
+  const pendingMemoryCount = draftMemoryCount;
   const territoriesReadyCount = territories.filter((territory) => territory.priorityPeople > 0 && territory.openTasks === 0).length;
+  const plannedNeighborhoods = new Set(
+    fieldEvents
+      .filter((event) => event.status === "planned" || event.status === "draft")
+      .map((event) => event.neighborhood)
+      .filter((value): value is string => Boolean(value)),
+  );
+  const stuckTerritoryCount = territoriesWithPhase
+    .filter((item) => item.phase.id === "mobilizacao")
+    .filter((item) => !plannedNeighborhoods.has(item.territory.neighborhood)).length;
+  const dataNeedsReviewCount = baseReviewCount + collective.ethics.dataUnderReview;
+  const cycleAlerts: OperationalCycleAlert[] = [
+    stuckLinkCount > 0
+      ? {
+          id: "vinculo_travado",
+          title: "Vínculo travado",
+          message: "Este vínculo precisa de fechamento ou pausa.",
+          nextStep: "Revisar pendências antigas em Registrar/Encaminhar e decidir fechamento ou pausa cuidadosa.",
+          count: stuckLinkCount,
+          href: "/abordagem",
+          severity: "warning" as const,
+        }
+      : null,
+    unresolvedPastEvents.length > 0
+      ? {
+          id: "campo_travado",
+          title: "Campo travado",
+          message: "Esta ação precisa virar memória e aprendizado.",
+          nextStep: "Fechar o resultado dos eventos passados para consolidar memória operacional.",
+          count: unresolvedPastEvents.length,
+          href: "/campo",
+          severity: "critical" as const,
+        }
+      : null,
+    stuckTerritoryCount > 0
+      ? {
+          id: "territorio_travado",
+          title: "Território travado",
+          message: "O bairro tem sinais suficientes. Planeje uma escuta ou ação.",
+          nextStep: "Escolher os bairros em mobilização sem planejamento e abrir ação de campo.",
+          count: stuckTerritoryCount,
+          href: "/relatorios/territorios",
+          severity: "warning" as const,
+        }
+      : null,
+    overloadedOperatorsCount > 0
+      ? {
+          id: "operador_sobrecarregado",
+          title: "Operador sobrecarregado",
+          message: "Redistribua ou trabalhe em blocos menores.",
+          nextStep: "Redistribuir filas acima do limite saudável e manter blocos curtos de execução.",
+          count: overloadedOperatorsCount,
+          href: "/dashboard",
+          severity: "warning" as const,
+        }
+      : null,
+    dataNeedsReviewCount > 0
+      ? {
+          id: "dados_pedindo_revisao",
+          title: "Dados pedindo revisão",
+          message: "Há dados que precisam de cuidado.",
+          nextStep: "Revisar registros inativos (+180 dias) e notas sensíveis pendentes.",
+          count: dataNeedsReviewCount,
+          href: "/relatorios",
+          severity: "warning" as const,
+        }
+      : null,
+  ].filter((alert): alert is OperationalCycleAlert => alert !== null);
 
   const narrative = {
     today: buildDailyNarrative({
@@ -292,7 +396,7 @@ async function loadDashboardData() {
       wellnessLevel: wellness.level,
       wellnessMicrocopy: wellness.microcopy,
       wellnessRecommendation: wellness.recommendation,
-      baseReviewCount: qualityStats.eligibleForReviewCount,
+      baseReviewCount,
       sensitiveAlertsCount: collective.ethics.sensitiveNotesReviewed,
       collectiveProgress: collective.funnel.conclude,
       referralsMade: collective.progress.referralsMade,
@@ -312,9 +416,9 @@ async function loadDashboardData() {
   };
 
   return {
-    priorityPeople,
-    pilotStats,
-    cycleAlerts: cycleAlerts.alerts,
+    priorityPeople: priorityPeople.slice(0, 4),
+    myQueueCount,
+    cycleAlerts,
     dashboardData,
   };
 }
@@ -328,7 +432,7 @@ export default async function DashboardPage() {
   let loadError: string | null = null;
 
   try {
-    loaded = await loadDashboardData();
+    loaded = await loadDashboardData(session);
   } catch (error) {
     loadError = error instanceof Error ? error.message : "Não foi possível carregar o hub principal do sistema.";
   }
@@ -349,7 +453,7 @@ export default async function DashboardPage() {
       <DashboardClient
         session={session}
         priorityPeople={loaded.priorityPeople}
-        pilotStats={loaded.pilotStats}
+        myQueueCount={loaded.myQueueCount}
         cycleAlerts={loaded.cycleAlerts}
         data={loaded.dashboardData}
       />

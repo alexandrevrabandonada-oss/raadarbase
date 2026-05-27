@@ -1,13 +1,19 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import { playSynthKeypress } from "@/lib/audio"
+
+let keypressAudioPromise: Promise<typeof import("@/lib/audio")> | null = null;
+
+function playKeypressSound() {
+  keypressAudioPromise ??= import("@/lib/audio");
+  void keypressAudioPromise.then(({ playSynthKeypress }) => playSynthKeypress());
+}
 
 function Textarea({ className, onKeyDown, ...props }: React.ComponentProps<"textarea">) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Play subtle mechanical sound on normal key typing
     if (e.key && e.key.length === 1) {
-      playSynthKeypress();
+      playKeypressSound();
     }
     if (onKeyDown) {
       onKeyDown(e);

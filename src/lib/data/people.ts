@@ -45,19 +45,22 @@ async function listContactsForPeople(personIds: string[]): Promise<ContactRecord
   return contacts;
 }
 
-export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> {
-  if (shouldUseMockData()) return mockPeople;
+export async function listPeople(cutoff?: string, limit?: number): Promise<PersonWithContact[]> {
+  if (shouldUseMockData()) return mockPeople.slice(0, limit);
   try {
     const supabase = getSupabaseAdminClient();
 
     const peopleData: TableRow<"ig_people">[] = [];
-    for (let from = 0; ; from += SUPABASE_PAGE_SIZE) {
+    const maxRows = limit ?? Number.POSITIVE_INFINITY;
+
+    for (let from = 0; peopleData.length < maxRows; from += SUPABASE_PAGE_SIZE) {
+      const to = Math.min(from + SUPABASE_PAGE_SIZE - 1, from + (maxRows - peopleData.length) - 1);
       let peopleQuery = supabase
         .from("ig_people")
         .select("*, internal_users(full_name)")
         .order("last_interaction_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
-        .range(from, from + SUPABASE_PAGE_SIZE - 1);
+        .range(from, to);
 
       if (cutoff) {
         peopleQuery = peopleQuery.gte("last_interaction_at", cutoff);

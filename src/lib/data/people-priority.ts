@@ -456,7 +456,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
         ? listPeopleByResponsible(options.responsibleId, options.limit)
         : options?.statuses
           ? listPeopleByStatuses(options.statuses, options.limit)
-          : listPeople(),
+          : listPeople(undefined, options?.limit),
       supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
       supabase

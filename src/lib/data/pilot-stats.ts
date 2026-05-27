@@ -61,7 +61,7 @@ export type PilotDashboardData = {
   };
 };
 
-export async function getPilotDashboardData(): Promise<PilotDashboardData> {
+export async function getPilotDashboardData(options: { includeRetrospective?: boolean } = {}): Promise<PilotDashboardData> {
   if (shouldUseMockData()) {
     return {
       summary: {
@@ -221,43 +221,50 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
     supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }).eq("status", "compareceu") // Example of "First Action"
   ]);
 
-  // 4. Retrospective (Weekly/Aggregated)
-  const [
-    { data: themeStats },
-    { data: doNotContactData }
-  ] = await Promise.all([
-    supabase.from("ig_people").select("themes, status"),
-    supabase.from("ig_people").select("do_not_contact_reason").not("do_not_contact_reason", "is", null)
-  ]);
+  let retrospective: PilotDashboardData["retrospective"];
 
-  const themesMap = new Map<string, { total: number, responded: number }>();
-  themeStats?.forEach(p => {
-    p.themes?.forEach((t: string) => {
-      const current = themesMap.get(t) || { total: 0, responded: 0 };
-      current.total += 1;
-      if (p.status === 'respondeu' || p.status === 'contato_confirmado') current.responded += 1;
-      themesMap.set(t, current);
+  if (options.includeRetrospective !== false) {
+    const [
+      { data: themeStats },
+      { data: doNotContactData }
+    ] = await Promise.all([
+      supabase.from("ig_people").select("themes, status"),
+      supabase.from("ig_people").select("do_not_contact_reason").not("do_not_contact_reason", "is", null)
+    ]);
+
+    const themesMap = new Map<string, { total: number, responded: number }>();
+    themeStats?.forEach(p => {
+      p.themes?.forEach((t: string) => {
+        const current = themesMap.get(t) || { total: 0, responded: 0 };
+        current.total += 1;
+        if (p.status === 'respondeu' || p.status === 'contato_confirmado') current.responded += 1;
+        themesMap.set(t, current);
+      });
     });
-  });
 
-  const responseRateByTheme = Array.from(themesMap.entries())
-    .map(([theme, stats]) => ({
-      theme,
-      rate: Math.round((stats.responded / stats.total) * 100),
-      count: stats.total
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+    const responseRateByTheme = Array.from(themesMap.entries())
+      .map(([theme, stats]) => ({
+        theme,
+        rate: Math.round((stats.responded / stats.total) * 100),
+        count: stats.total
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
-  const reasonsMap = new Map<string, number>();
-  doNotContactData?.forEach(p => {
-    const reason = p.do_not_contact_reason || "Não especificado";
-    reasonsMap.set(reason, (reasonsMap.get(reason) || 0) + 1);
-  });
+    const reasonsMap = new Map<string, number>();
+    doNotContactData?.forEach(p => {
+      const reason = p.do_not_contact_reason || "Não especificado";
+      reasonsMap.set(reason, (reasonsMap.get(reason) || 0) + 1);
+    });
 
-  const nonContactReasons = Array.from(reasonsMap.entries())
-    .map(([reason, count]) => ({ reason, count }))
-    .sort((a, b) => b.count - a.count);
+    retrospective = {
+      totalReviewed: fPrioritized || 0,
+      responseRateByTheme,
+      nonContactReasons: Array.from(reasonsMap.entries())
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }
 
   return {
     summary: {
@@ -304,10 +311,6 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
       sensitiveNotesReviewed: 0,
       dataUnderReview: 0,
     },
-    retrospective: {
-      totalReviewed: fPrioritized || 0,
-      responseRateByTheme,
-      nonContactReasons
-    }
+    retrospective,
   };
 }
