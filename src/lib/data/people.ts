@@ -10,6 +10,7 @@ type PersonRowWithOwner = TableRow<"ig_people"> & {
 };
 
 const SUPABASE_PAGE_SIZE = 1000;
+const CONTACT_LOOKUP_PAGE_SIZE = 200;
 
 function mapPerson(person: PersonRowWithOwner, contact: ContactRecord | null): PersonWithContact {
   return {
@@ -27,6 +28,21 @@ function mapPerson(person: PersonRowWithOwner, contact: ContactRecord | null): P
     responsibleName: person.internal_users?.full_name ?? null,
     contact,
   };
+}
+
+async function listContactsForPeople(personIds: string[]): Promise<ContactRecord[]> {
+  if (personIds.length === 0) return [];
+  const supabase = getSupabaseAdminClient();
+  const contacts: ContactRecord[] = [];
+
+  for (let index = 0; index < personIds.length; index += CONTACT_LOOKUP_PAGE_SIZE) {
+    const ids = personIds.slice(index, index + CONTACT_LOOKUP_PAGE_SIZE);
+    const { data, error } = await supabase.from("contacts").select("*").in("person_id", ids);
+    if (error) throw error;
+    contacts.push(...(data ?? []));
+  }
+
+  return contacts;
 }
 
 export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> {
@@ -83,13 +99,8 @@ export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: num
     }
 
     if (peopleData.length === 0) return [];
-    const personIds = peopleData.map((person) => person.id);
-    const { data: contactsData, error: contactsError } = await supabase
-      .from("contacts")
-      .select("*")
-      .in("person_id", personIds);
-    if (contactsError) throw contactsError;
-    const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
+    const contactsData = await listContactsForPeople(peopleData.map((person) => person.id));
+    const contactsByPerson = new Map(contactsData.map((contact) => [contact.person_id, contact]));
     return peopleData.map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeopleByStatuses", error);
