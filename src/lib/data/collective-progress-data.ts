@@ -103,14 +103,14 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
   // 2. Territories and Field Actions
   const [
     { data: territoriesData },
-    { data: fieldActionsData },
+    { count: fieldActionsCompletedCount },
   ] = await Promise.all([
     supabase.from("field_agenda_events")
       .select("neighborhood")
       .in("status", ["planned", "done"])
       .gte("starts_at", sevenDaysIso),
     supabase.from("field_agenda_events")
-      .select("id")
+      .select("id", { count: "exact", head: true })
       .eq("status", "done")
       .gte("updated_at", sevenDaysIso),
   ]);
@@ -182,32 +182,21 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
   // 6. Ethics - sensitive notes (using do_not_contact_reason as proxy for sensitive handling)
   const [
     { count: dataUnderReviewCount },
-    { data: sensitiveData },
+    { count: sensitiveNotesReviewedCount },
   ] = await Promise.all([
     supabase.from("ig_interactions")
       .select("*", { count: "exact", head: true })
       .not("metadata->'flags'->>'reviewed'", "is", null),
     supabase.from("ig_people")
-      .select("id")
+      .select("id", { count: "exact", head: true })
       .not("do_not_contact_reason", "is", null)
   ]);
 
-  const sensitiveNotesReviewedCount = (sensitiveData || []).length;
-
-  // 7. Funnel aggregation
-  const [
-    { count: funnelPrepareCount },
-    { count: funnelTalkCount },
-    { count: funnelRegisterCount },
-    { count: funnelReferCount },
-    { count: funnelConcludeCount },
-  ] = await Promise.all([
-    supabase.from("ig_people").select("*", { count: "exact", head: true }),
-    supabase.from("ig_people").select("*", { count: "exact", head: true }).neq("status", "novo"),
-    supabase.from("ig_people").select("*", { count: "exact", head: true }).in("status", ["respondeu", "contato_confirmado"]),
-    supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }),
-    supabase.from("ig_person_referrals").select("*", { count: "exact", head: true }).eq("status", "compareceu"),
-  ]);
+  // 7. Funnel aggregation reuses the broad counts already loaded above.
+  const { count: funnelConcludeCount } = await supabase
+    .from("ig_person_referrals")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "compareceu");
 
   return {
     progress: {
@@ -216,15 +205,15 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
       responsesRecorded: responsesRecordedCount || 0,
       referralsMade: referralsMadeCount || 0,
       territoriesInMobilization: uniqueTerritories.size,
-      fieldActionsCompleted: (fieldActionsData || []).length,
+      fieldActionsCompleted: fieldActionsCompletedCount || 0,
       doNotContactRespected: doNotContactCount || 0,
       bairroListensSubmitted: bairroListensCount || 0,
     },
     funnel: {
-      prepare: funnelPrepareCount || 0,
-      talk: funnelTalkCount || 0,
-      register: funnelRegisterCount || 0,
-      refer: funnelReferCount || 0,
+      prepare: linksPreparedCount || 0,
+      talk: conversationsInitiatedCount || 0,
+      register: responsesRecordedCount || 0,
+      refer: referralsMadeCount || 0,
       conclude: funnelConcludeCount || 0,
     },
     operationHealth: {
@@ -236,7 +225,7 @@ export async function getCollectiveProgressMetrics(): Promise<CollectiveProgress
     },
     ethics: {
       doNotContactRespected: doNotContactCount || 0,
-      sensitiveNotesReviewed: sensitiveNotesReviewedCount,
+      sensitiveNotesReviewed: sensitiveNotesReviewedCount || 0,
       dataUnderReview: dataUnderReviewCount || 0,
     },
   };

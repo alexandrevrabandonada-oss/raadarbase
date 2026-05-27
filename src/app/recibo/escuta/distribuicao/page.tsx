@@ -14,11 +14,14 @@ export const dynamic = "force-dynamic";
 export default async function DistributionManagementPage() {
   await requireInternalPageSession("/recibo/escuta/distribuicao");
   
-  const cycles = await listReceiptDistributionCycles();
-  const logs = await listReceiptDistributionLogs();
+  const [cycles, logs] = await Promise.all([
+    listReceiptDistributionCycles(),
+    listReceiptDistributionLogs(),
+  ]);
   
   const activeCycle = cycles.find(c => c.status === "active");
   const activeImpact = activeCycle ? await getReceiptDistributionImpact(activeCycle.id) : null;
+  const activeCycleLogs = activeCycle ? logs.filter(l => l.cycle_id === activeCycle.id) : [];
   
   return (
     <AppShell>
@@ -35,10 +38,10 @@ export default async function DistributionManagementPage() {
         <h2 className="text-2xl font-bold text-slate-900">Canais e Logs do Ciclo Ativo</h2>
         {activeCycle ? (
           <div className="grid gap-4">
-            {logs.filter(l => l.cycle_id === activeCycle.id).length === 0 ? (
+            {activeCycleLogs.length === 0 ? (
                <p className="text-sm text-muted-foreground italic">Nenhum log vinculado a este ciclo ainda. Vincule logs na página principal do recibo.</p>
             ) : (
-              logs.filter(l => l.cycle_id === activeCycle.id).map(log => (
+              activeCycleLogs.map(log => (
                 <Card key={log.id}>
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>

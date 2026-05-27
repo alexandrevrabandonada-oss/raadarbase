@@ -153,7 +153,7 @@ export async function listAuditLogsForEntity(entityType: string, entityId: strin
   }
 }
 
-export async function getOperationalTelemetry(days = 7): Promise<AuditLogEntry[]> {
+export async function getOperationalTelemetry(days = 7, limit = 200): Promise<AuditLogEntry[]> {
   if (shouldUseMockData()) return [];
   try {
     const supabase = getSupabaseAdminClient();
@@ -165,7 +165,8 @@ export async function getOperationalTelemetry(days = 7): Promise<AuditLogEntry[]
       .select("*")
       .or(`entity_type.eq.operational_telemetry,action.eq.contact.response_recorded,action.eq.contact.referral_recorded`)
       .gte("created_at", startDate.toISOString())
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: true })
+      .limit(limit);
       
     if (error) throw error;
     return (data ?? []).map(mapAuditEntry);
@@ -173,7 +174,7 @@ export async function getOperationalTelemetry(days = 7): Promise<AuditLogEntry[]
     handleSupabaseReadError("getOperationalTelemetry", error);
   }
 }
-export async function listPilotFeedback(): Promise<AuditLogEntry[]> {
+export async function listPilotFeedback(limit = 100): Promise<AuditLogEntry[]> {
   if (shouldUseMockData()) return [];
   try {
     const supabase = getSupabaseAdminClient();
@@ -181,7 +182,8 @@ export async function listPilotFeedback(): Promise<AuditLogEntry[]> {
       .from("audit_logs")
       .select("*")
       .eq("action", "pilot.feedback_submitted")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(limit);
       
     if (error) throw error;
     return (data ?? []).map(mapAuditEntry);

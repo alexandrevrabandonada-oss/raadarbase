@@ -5,19 +5,13 @@ export type AdventureWorldId = "journey" | "territory" | "field" | "memory" | "c
 
 export type AdventureProgress = Record<AdventureWorldId, number>;
 
-const trackedActions = [
-  "contact.dm_sent",
-  "contact.response_recorded",
-  "contact.referral_recorded",
-  "territorial.snapshot_generated",
-  "territorial.outreach_shared",
-  "field_agenda.result_created",
-  "field_agenda.event_done",
-  "strategic_memory.created",
-  "strategic_memory.linked",
-  "action_execution.result_created",
-  "action_execution.item_completed_with_result",
-] as const;
+const actionGroups = {
+  journey: ["contact.dm_sent", "contact.response_recorded", "contact.referral_recorded"],
+  territory: ["territorial.snapshot_generated", "territorial.outreach_shared"],
+  field: ["field_agenda.result_created", "field_agenda.event_done"],
+  memory: ["strategic_memory.created", "strategic_memory.linked"],
+  command: ["action_execution.result_created", "action_execution.item_completed_with_result"],
+} as const satisfies Record<AdventureWorldId, string[]>;
 
 function getTodayIso() {
   const today = new Date();
@@ -48,32 +42,27 @@ export async function getAdventureProgress(): Promise<AdventureProgress> {
 
   try {
     const supabase = getSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("audit_logs")
-      .select("action")
-      .in("action", trackedActions)
-      .gte("created_at", getTodayIso());
+    const todayIso = getTodayIso();
+    const [journey, territory, field, memory, command] = await Promise.all(
+      (Object.keys(actionGroups) as AdventureWorldId[]).map(async (world) => {
+        const { count, error } = await supabase
+          .from("audit_logs")
+          .select("id", { count: "exact", head: true })
+          .in("action", actionGroups[world])
+          .gte("created_at", todayIso);
 
-    if (error) throw error;
+        if (error) throw error;
+        return count ?? 0;
+      }),
+    );
 
-    return (data ?? []).reduce<AdventureProgress>((progress, row) => {
-      if (row.action === "contact.dm_sent" || row.action === "contact.response_recorded" || row.action === "contact.referral_recorded") {
-        progress.journey += 1;
-      }
-      if (row.action === "territorial.snapshot_generated" || row.action === "territorial.outreach_shared") {
-        progress.territory += 1;
-      }
-      if (row.action === "field_agenda.result_created" || row.action === "field_agenda.event_done") {
-        progress.field += 1;
-      }
-      if (row.action === "strategic_memory.created" || row.action === "strategic_memory.linked") {
-        progress.memory += 1;
-      }
-      if (row.action === "action_execution.result_created" || row.action === "action_execution.item_completed_with_result") {
-        progress.command += 1;
-      }
-      return progress;
-    }, blankProgress());
+    return {
+      journey,
+      territory,
+      field,
+      memory,
+      command,
+    };
   } catch {
     return blankProgress();
   }

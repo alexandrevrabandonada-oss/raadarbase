@@ -46,9 +46,19 @@ export async function getBaseQualityStats(): Promise<BaseQualityStats> {
 
   const supabase = getSupabaseAdminClient();
   
-  // Executando contagens via Supabase
-  const { data: people } = await supabase.from("ig_people").select("id, username, display_name, themes, status, responsible_id, last_interaction_at");
-  const { data: tasks } = await supabase.from("outreach_tasks").select("id, person_id, responsible_id, completed_at");
+  const [
+    { data: people },
+    { data: tasks },
+    { count: contactsCount },
+    { count: volunteersCount },
+    { count: incidentsCount },
+  ] = await Promise.all([
+    supabase.from("ig_people").select("id, username, display_name, themes, status, responsible_id, last_interaction_at"),
+    supabase.from("outreach_tasks").select("id, person_id, responsible_id, completed_at"),
+    supabase.from("contacts").select("*", { count: "exact", head: true }).eq("consent_status", "confirmed"),
+    supabase.from("campaign_volunteers").select("*", { count: "exact", head: true }).eq("status", "ativo"),
+    supabase.from("operational_incidents").select("*", { count: "exact", head: true }).eq("status", "open"),
+  ]);
 
   if (!people) return {
     unassignedCount: 0, possibleDuplicatesCount: 0, noThemeCount: 0, 
@@ -64,10 +74,6 @@ export async function getBaseQualityStats(): Promise<BaseQualityStats> {
       tasksMap.set(t.person_id, t);
     }
   });
-
-  const { count: contactsCount } = await supabase.from("contacts").select("*", { count: "exact", head: true }).eq("consent_status", "confirmed");
-  const { count: volunteersCount } = await supabase.from("campaign_volunteers").select("*", { count: "exact", head: true }).eq("status", "ativo");
-  const { count: incidentsCount } = await supabase.from("operational_incidents").select("*", { count: "exact", head: true }).eq("status", "open");
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);

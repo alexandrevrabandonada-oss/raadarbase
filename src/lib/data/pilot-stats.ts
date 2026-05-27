@@ -175,34 +175,36 @@ export async function getPilotDashboardData(): Promise<PilotDashboardData> {
   const referredIds = new Set(referredPeople?.map(r => r.person_id) || []);
   const actualPendingReferrals = respondedIds.filter(id => !referredIds.has(id)).length;
 
-  // 2. Responsible Breakdown
   const { data: operators } = await supabase.from("internal_users").select("id, full_name, email").eq("status", "active");
-  const breakdown = await Promise.all((operators || []).map(async op => {
-    const [
-      { count: opOpen },
-      { count: opDone },
-      { count: opResponses },
-      { data: opRespondedPeople }
-    ] = await Promise.all([
-      supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).is("completed_at", null),
-      supabase.from("outreach_tasks").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).not("completed_at", "is", null),
-      supabase.from("ig_people").select("*", { count: "exact", head: true }).eq("responsible_id", op.id).eq("status", "respondeu"),
-      supabase.from("ig_people").select("id").eq("responsible_id", op.id).eq("status", "respondeu")
-    ]);
+  const operatorIds = (operators || []).map((op) => op.id);
+  const [operatorTasksResult, operatorRespondedPeopleResult] = operatorIds.length > 0
+    ? await Promise.all([
+        supabase.from("outreach_tasks").select("responsible_id, completed_at").in("responsible_id", operatorIds),
+        supabase.from("ig_people").select("id, responsible_id").in("responsible_id", operatorIds).eq("status", "respondeu"),
+      ])
+    : [{ data: [] }, { data: [] }];
 
-    const opRespondedIds = opRespondedPeople?.map(p => p.id) || [];
-    const { data: opReferred } = await supabase.from("ig_person_referrals").select("person_id").in("person_id", opRespondedIds);
-    const opReferredIds = new Set(opReferred?.map(r => r.person_id) || []);
-    const opPendingReferrals = opRespondedIds.filter(id => !opReferredIds.has(id)).length;
+  const operatorRespondedIds = (operatorRespondedPeopleResult.data || []).map((person) => person.id);
+  const { data: operatorReferrals } = operatorRespondedIds.length > 0
+    ? await supabase.from("ig_person_referrals").select("person_id").in("person_id", operatorRespondedIds)
+    : { data: [] };
+
+  const referredPersonIds = new Set((operatorReferrals || []).map((referral) => referral.person_id));
+  const operatorTasks = operatorTasksResult.data || [];
+  const operatorRespondedPeople = operatorRespondedPeopleResult.data || [];
+
+  const breakdown = (operators || []).map(op => {
+    const opTasks = operatorTasks.filter((task) => task.responsible_id === op.id);
+    const opRespondedPeople = operatorRespondedPeople.filter((person) => person.responsible_id === op.id);
 
     return {
       operatorName: op.full_name || op.email,
-      openTasks: opOpen || 0,
-      completedTasks: opDone || 0,
-      responsesRecorded: opResponses || 0,
-      pendingReferrals: opPendingReferrals
+      openTasks: opTasks.filter((task) => !task.completed_at).length,
+      completedTasks: opTasks.filter((task) => Boolean(task.completed_at)).length,
+      responsesRecorded: opRespondedPeople.length,
+      pendingReferrals: opRespondedPeople.filter((person) => !referredPersonIds.has(person.id)).length
     };
-  }));
+  });
 
   // 3. Funnel
   const [

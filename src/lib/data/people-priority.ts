@@ -4,7 +4,7 @@ import { interactions as mockInteractions, messageTemplates as mockTemplates, ou
 import type { AuditLogEntry, InteractionType, MessageTemplate, OutreachTaskWithPerson, PersonReferral, PersonStatus, PersonWithContact, PriorityPerson } from "@/lib/types";
 import { boardColumnCountsAsReferral, boardColumnIsPendingResponse, getOutreachColumnLabel, normalizeOutreachColumn } from "@/lib/outreach-workflow";
 import { attachMissionMetadataToPriorityPeople, sortPriorityPeopleByMission } from "@/lib/missions/priority-person-mission-adapter";
-import { listPeople, listPeopleByStatuses } from "./people";
+import { listPeople, listPeopleByResponsible, listPeopleByStatuses } from "./people";
 import { handleSupabaseReadError } from "./utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -406,7 +406,7 @@ function chunkPersonIds(personIds: string[]) {
   return chunks;
 }
 
-export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number }): Promise<PriorityPerson[]> {
+export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number; responsibleId?: string }): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
@@ -435,7 +435,10 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
       },
     ];
 
-    const priorityPeople = buildPriorityPeople(mockPeople, mockInteractionsSummary(), mockTasks, mockTemplates, now);
+    const mockPeopleSource = options?.responsibleId
+      ? mockPeople.filter((person) => person.responsibleId === options.responsibleId)
+      : mockPeople;
+    const priorityPeople = buildPriorityPeople(mockPeopleSource, mockInteractionsSummary(), mockTasks, mockTemplates, now);
     return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
       priorityPeople,
       interactions: mockInteractionsSummary(),
@@ -449,7 +452,11 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
     const supabase = getSupabaseAdminClient();
     const cutoff = new Date(now.getTime() - RECENT_DAYS * DAY_MS).toISOString();
     const [people, tasksResult, templatesResult, interactionsResult] = await Promise.all([
-      options?.statuses ? listPeopleByStatuses(options.statuses, options.limit) : listPeople(),
+      options?.responsibleId
+        ? listPeopleByResponsible(options.responsibleId, options.limit)
+        : options?.statuses
+          ? listPeopleByStatuses(options.statuses, options.limit)
+          : listPeople(),
       supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
       supabase

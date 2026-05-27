@@ -102,7 +102,15 @@ async function loadDashboardData() {
     listAuditLogs(),
   ]);
 
-  const eventResults = await listFieldAgendaEventResultsByEventIds(fieldEvents.map((event) => event.id));
+  const now = getCurrentTimestamp();
+  const pastFieldEventIds = fieldEvents
+    .filter((event) => {
+      if (!event.startsAt) return false;
+      const startsAt = new Date(event.startsAt).getTime();
+      return Number.isFinite(startsAt) && startsAt <= now;
+    })
+    .map((event) => event.id);
+  const eventResults = await listFieldAgendaEventResultsByEventIds(pastFieldEventIds);
 
   const territoryCounts = territories.reduce(
     (acc, territory) => {
@@ -130,7 +138,6 @@ async function loadDashboardData() {
         .sort((a, b) => b.openTasks - a.openTasks)[0] ?? null,
   };
 
-  const now = getCurrentTimestamp();
   const plannedActions = fieldEvents.filter((event) => event.status === "planned" || event.status === "draft");
   const futureActions = plannedActions
     .filter((event) => {

@@ -26,7 +26,14 @@ export default async function MinhaFilaPage() {
   let priorityPeople;
   let outreachTasks;
   try {
-    [priorityPeople, outreachTasks] = await Promise.all([listPriorityPeople(), listOutreachTasks()]);
+    [priorityPeople, outreachTasks] = await Promise.all([
+      shouldUseMockData()
+        ? listPriorityPeople()
+        : listPriorityPeople({ responsibleId: session.internalUser.id, limit: 1000 }),
+      shouldUseMockData()
+        ? listOutreachTasks()
+        : listOutreachTasks({ responsibleId: session.internalUser.id }),
+    ]);
   } catch (error) {
     return (
       <AppShell>
@@ -40,9 +47,9 @@ export default async function MinhaFilaPage() {
   }
 
   // Filtrar pela fila do operador logado. Em modo demonstração/mock, inclui também pessoas sem responsável atribuído.
-  const myQueue = (priorityPeople || []).filter(
-    person => person.responsibleId === session.id || (shouldUseMockData() && (!person.responsibleId || person.responsibleId === "e2e-internal-user"))
-  );
+  const myQueue = shouldUseMockData()
+    ? (priorityPeople || []).filter(person => !person.responsibleId || person.responsibleId === "e2e-internal-user")
+    : (priorityPeople || []);
 
   const oldPendencies = myQueue.filter(person => person.isPendingResponse);
 

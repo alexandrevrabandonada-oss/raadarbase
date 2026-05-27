@@ -107,6 +107,38 @@ export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: num
   }
 }
 
+export async function listPeopleByResponsible(responsibleId: string, limit?: number): Promise<PersonWithContact[]> {
+  if (shouldUseMockData()) {
+    return mockPeople.filter((person) => person.responsibleId === responsibleId).slice(0, limit);
+  }
+  try {
+    const supabase = getSupabaseAdminClient();
+    const peopleData: TableRow<"ig_people">[] = [];
+    const maxRows = limit ?? Number.POSITIVE_INFINITY;
+
+    for (let from = 0; peopleData.length < maxRows; from += SUPABASE_PAGE_SIZE) {
+      const to = Math.min(from + SUPABASE_PAGE_SIZE - 1, from + (maxRows - peopleData.length) - 1);
+      const { data, error } = await supabase
+        .from("ig_people")
+        .select("*, internal_users(full_name)")
+        .eq("responsible_id", responsibleId)
+        .order("last_interaction_at", { ascending: false, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+      peopleData.push(...(data ?? []));
+      if (!data || data.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    if (peopleData.length === 0) return [];
+    const contactsData = await listContactsForPeople(peopleData.map((person) => person.id));
+    const contactsByPerson = new Map(contactsData.map((contact) => [contact.person_id, contact]));
+    return peopleData.map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
+  } catch (error) {
+    handleSupabaseReadError("listPeopleByResponsible", error);
+  }
+}
+
 export async function getPersonById(id: string): Promise<PersonWithContact | null> {
   if (shouldUseMockData()) return mockPeople.find((person) => person.id === id) ?? null;
   try {

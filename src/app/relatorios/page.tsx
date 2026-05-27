@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import AppShell from "@/components/app-shell";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,20 +55,120 @@ type FeaturedReportSnapshot = {
 
 export const dynamic = "force-dynamic";
 
+async function QualityTab() {
+  const [qualityStats, duplicates, peopleWithoutTheme, internalUsers] = await Promise.all([
+    getBaseQualityStats(),
+    detectPossibleDuplicates(),
+    listPeopleWithoutTheme(),
+    listInternalUsers(),
+  ]);
+
+  return (
+    <BaseQualityDashboard
+      stats={qualityStats}
+      duplicates={duplicates}
+      peopleWithoutTheme={peopleWithoutTheme}
+      internalUsers={internalUsers}
+    />
+  );
+}
+
+async function FeedbackTab() {
+  const [pilotFeedback, pilotFeedbackLoop] = await Promise.all([
+    listPilotFeedback(),
+    getPilotFeedbackLoop(),
+  ]);
+
+  return (
+    <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
+      <div className="space-y-6">
+        <PilotFeedbackForm currentRoute="/relatorios" />
+        <Card className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow">
+          <CardContent className="pt-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-charcoal mb-2">Por que reportar?</h3>
+            <p className="text-xs text-charcoal/90 leading-relaxed font-semibold">
+              O piloto de 7 dias serve para encontrarmos onde o Radar atrapalha em vez de ajudar. Cada reporte seu vira uma melhoria para a próxima versão.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      <div>
+        <PilotFeedbackList feedbacks={pilotFeedback || []} feedbackLoop={pilotFeedbackLoop} />
+      </div>
+    </div>
+  );
+}
+
+async function ProgressTab() {
+  const collectiveProgressMetrics = await getCollectiveProgressMetrics();
+  return <CollectiveProgress data={collectiveProgressMetrics} />;
+}
+
+async function RhythmTab({ pilotData }: { pilotData: Awaited<ReturnType<typeof getPilotDashboardData>> }) {
+  const telemetryData = await getOperationalTelemetry(7);
+  const rhythm = calculateWeeklyRhythm({
+    dayOfWeek: new Date().getDay(),
+    tasksDistributed: pilotData.summary.tasksWithoutResponsible === 0,
+    prioritiesReviewed: true,
+    responsesRecordedCount: pilotData.summary.responsesRecorded,
+    referralsMadeCount: pilotData.funnel.referred,
+    stalePendenciesCount: pilotData.summary.staleTasksCount,
+    fieldActionsPlannedCount: 1,
+    weeklyClosureStarted: false,
+    dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek
+  });
+
+  return (
+    <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
+      <div className="space-y-6">
+        <WeeklyRhythmCard state={rhythm} />
+        <ContextHelpCard
+          title="Ritmo da Semana"
+          whatIsThis="Uma visão do progresso coletivo para garantir que a equipe mantenha um fluxo constante de escuta."
+          whyItMatters="Evita o acúmulo de tarefas e garante que a mobilização territorial ocorra no tempo certo."
+          whatToDoNow="Verifique as pendências críticas e ajude a fechar o ciclo da semana."
+        />
+      </div>
+      <div className="space-y-6">
+        <WeeklyClosure
+          rhythm={rhythm}
+          stats={{
+            topThemes: pilotData.retrospective?.responseRateByTheme.slice(0, 3) || [],
+            territories: [
+              { name: "Centro", stage: "Campo", signals: 42 },
+              { name: "Vila Nova", stage: "Escuta", signals: 28 },
+              { name: "Jardins", stage: "Observação", signals: 15 }
+            ]
+          }}
+        />
+        <TelemetryDashboard telemetryData={telemetryData || []} />
+      </div>
+    </div>
+  );
+}
+
+function TabLoading() {
+  return (
+    <Card className="bloco-concreto bg-white">
+      <CardContent className="py-10 text-center text-sm font-semibold text-cement">
+        Carregando dados desta aba...
+      </CardContent>
+    </Card>
+  );
+}
+
 export default async function RelatoriosPage() {
   await requireInternalPageSession("/relatorios");
 
-  const reports = await listMobilizationReports();
-  const pilotData = await getPilotDashboardData();
-  const collectiveProgressMetrics = await getCollectiveProgressMetrics();
-  const telemetryData = await getOperationalTelemetry(7);
-  const pilotFeedback = await listPilotFeedback();
-  const pilotFeedbackLoop = await getPilotFeedbackLoop();
-  const qualityStats = await getBaseQualityStats();
-  const duplicates = await detectPossibleDuplicates();
-  const peopleWithoutTheme = await listPeopleWithoutTheme();
-  const internalUsers = await listInternalUsers();
-  const cycleAlerts = await getOperationalCycleAlerts();
+  const [
+    reports,
+    pilotData,
+    cycleAlerts,
+  ] = await Promise.all([
+    listMobilizationReports(),
+    getPilotDashboardData(),
+    getOperationalCycleAlerts(),
+  ]);
 
   const generatedReports = reports.filter((report) => report.status === "generated");
   const firstRealReport = generatedReports
@@ -149,12 +250,9 @@ export default async function RelatoriosPage() {
               Higiene e Qualidade da Base
             </h2>
           </div>
-          <BaseQualityDashboard 
-            stats={qualityStats} 
-            duplicates={duplicates} 
-            peopleWithoutTheme={peopleWithoutTheme}
-            internalUsers={internalUsers}
-          />
+          <Suspense fallback={<TabLoading />}>
+            <QualityTab />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="fechamento" className="space-y-6">
@@ -267,22 +365,9 @@ export default async function RelatoriosPage() {
         </TabsContent>
 
         <TabsContent value="feedback" className="space-y-8">
-           <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
-              <div className="space-y-6">
-                <PilotFeedbackForm currentRoute="/relatorios" />
-                <Card className="bloco-concreto bg-burnt-yellow/5 border-burnt-yellow">
-                  <CardContent className="pt-6">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-charcoal mb-2">Por que reportar?</h3>
-                    <p className="text-xs text-charcoal/90 leading-relaxed font-semibold">
-                      O piloto de 7 dias serve para encontrarmos onde o Radar atrapalha em vez de ajudar. Cada reporte seu vira uma melhoria para a próxima versão.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              <div>
-                <PilotFeedbackList feedbacks={pilotFeedback || []} feedbackLoop={pilotFeedbackLoop} />
-              </div>
-           </div>
+          <Suspense fallback={<TabLoading />}>
+            <FeedbackTab />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="operacional" className="space-y-6">
@@ -307,53 +392,9 @@ export default async function RelatoriosPage() {
               Ritmo de Trabalho da Equipe
             </h2>
           </div>
-          <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
-            <div className="space-y-6">
-              <WeeklyRhythmCard 
-                state={calculateWeeklyRhythm({
-                  dayOfWeek: new Date().getDay(),
-                  tasksDistributed: pilotData.summary.tasksWithoutResponsible === 0,
-                  prioritiesReviewed: true, // Placeholder
-                  responsesRecordedCount: pilotData.summary.responsesRecorded,
-                  referralsMadeCount: pilotData.funnel.referred,
-                  stalePendenciesCount: pilotData.summary.staleTasksCount,
-                  fieldActionsPlannedCount: 1,
-                  weeklyClosureStarted: false,
-                  dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek
-                })}
-              />
-              <ContextHelpCard 
-                title="Ritmo da Semana"
-                whatIsThis="Uma visão do progresso coletivo para garantir que a equipe mantenha um fluxo constante de escuta."
-                whyItMatters="Evita o acúmulo de tarefas e garante que a mobilização territorial ocorra no tempo certo."
-                whatToDoNow="Verifique as pendências críticas e ajude a fechar o ciclo da semana."
-              />
-            </div>
-            <div className="space-y-6">
-               <WeeklyClosure 
-                  rhythm={calculateWeeklyRhythm({
-                    dayOfWeek: new Date().getDay(),
-                    tasksDistributed: pilotData.summary.tasksWithoutResponsible === 0,
-                    prioritiesReviewed: true,
-                    responsesRecordedCount: pilotData.summary.responsesRecorded,
-                    referralsMadeCount: pilotData.funnel.referred,
-                    stalePendenciesCount: pilotData.summary.staleTasksCount,
-                    fieldActionsPlannedCount: 1,
-                    weeklyClosureStarted: false,
-                    dmsConfirmedThisWeekCount: pilotData.summary.dmsConfirmedThisWeek
-                  })}
-                  stats={{
-                    topThemes: pilotData.retrospective?.responseRateByTheme.slice(0, 3) || [],
-                    territories: [
-                      { name: "Centro", stage: "Campo", signals: 42 },
-                      { name: "Vila Nova", stage: "Escuta", signals: 28 },
-                      { name: "Jardins", stage: "Observação", signals: 15 }
-                    ]
-                  }}
-               />
-               <TelemetryDashboard telemetryData={telemetryData || []} />
-            </div>
-          </div>
+          <Suspense fallback={<TabLoading />}>
+            <RhythmTab pilotData={pilotData} />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="relatorios" className="space-y-6">
@@ -502,7 +543,9 @@ export default async function RelatoriosPage() {
               Central de Progresso Coletivo
             </h2>
           </div>
-          <CollectiveProgress data={collectiveProgressMetrics} />
+          <Suspense fallback={<TabLoading />}>
+            <ProgressTab />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </AppShell>

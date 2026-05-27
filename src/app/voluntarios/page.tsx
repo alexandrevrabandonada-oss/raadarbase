@@ -32,7 +32,7 @@ export default async function VolunteersPage({
 }) {
   await requireInternalPageSession("/voluntarios");
   const resolvedSearchParams = await searchParams;
-  const [stats, volunteers, squads] = await Promise.all([
+  const [stats, volunteers, squads, reviewDashboard] = await Promise.all([
     getVolunteerStats(),
     listVolunteers({
       search: resolvedSearchParams?.search,
@@ -42,8 +42,8 @@ export default async function VolunteersPage({
       availability: resolvedSearchParams?.availability,
     }),
     listSquads(),
+    getVolunteerReviewDashboard(),
   ]);
-  const reviewDashboard = await getVolunteerReviewDashboard();
 
   return (
     <AppShell>
