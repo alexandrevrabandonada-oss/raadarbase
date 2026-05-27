@@ -1,10 +1,10 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { interactions as mockInteractions, messageTemplates as mockTemplates, outreachTasks as mockTasks, people as mockPeople } from "@/lib/mock-data";
-import type { AuditLogEntry, InteractionType, MessageTemplate, OutreachTaskWithPerson, PersonReferral, PersonWithContact, PriorityPerson } from "@/lib/types";
+import type { AuditLogEntry, InteractionType, MessageTemplate, OutreachTaskWithPerson, PersonReferral, PersonStatus, PersonWithContact, PriorityPerson } from "@/lib/types";
 import { boardColumnCountsAsReferral, boardColumnIsPendingResponse, getOutreachColumnLabel, normalizeOutreachColumn } from "@/lib/outreach-workflow";
 import { attachMissionMetadataToPriorityPeople, sortPriorityPeopleByMission } from "@/lib/missions/priority-person-mission-adapter";
-import { listPeople } from "./people";
+import { listPeople, listPeopleByStatuses } from "./people";
 import { handleSupabaseReadError } from "./utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -397,7 +397,7 @@ export function buildPriorityPeople(
     });
 }
 
-export async function listPriorityPeople(): Promise<PriorityPerson[]> {
+export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number }): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
@@ -440,7 +440,7 @@ export async function listPriorityPeople(): Promise<PriorityPerson[]> {
     const supabase = getSupabaseAdminClient();
     const cutoff = new Date(now.getTime() - RECENT_DAYS * DAY_MS).toISOString();
     const [people, tasksResult, templatesResult, interactionsResult] = await Promise.all([
-      listPeople(),
+      options?.statuses ? listPeopleByStatuses(options.statuses, options.limit) : listPeople(),
       supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
       supabase

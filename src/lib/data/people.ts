@@ -1,7 +1,7 @@
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { shouldUseMockData } from "@/lib/config";
 import { people as mockPeople } from "@/lib/mock-data";
-import type { ContactRecord, PersonWithContact } from "@/lib/types";
+import type { ContactRecord, PersonStatus, PersonWithContact } from "@/lib/types";
 import type { TableRow } from "@/lib/supabase/database.types";
 import { handleSupabaseReadError } from "./utils";
 
@@ -59,6 +59,40 @@ export async function listPeople(cutoff?: string): Promise<PersonWithContact[]> 
     return (peopleData ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
   } catch (error) {
     handleSupabaseReadError("listPeople", error);
+  }
+}
+
+export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: number): Promise<PersonWithContact[]> {
+  if (shouldUseMockData()) return mockPeople.filter((person) => statuses.includes(person.status));
+  try {
+    const supabase = getSupabaseAdminClient();
+    const peopleData: TableRow<"ig_people">[] = [];
+    const maxRows = limit ?? Number.POSITIVE_INFINITY;
+
+    for (let from = 0; peopleData.length < maxRows; from += SUPABASE_PAGE_SIZE) {
+      const to = Math.min(from + SUPABASE_PAGE_SIZE - 1, from + (maxRows - peopleData.length) - 1);
+      const { data, error } = await supabase
+        .from("ig_people")
+        .select("*, internal_users(full_name)")
+        .in("status", statuses)
+        .order("updated_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+      peopleData.push(...(data ?? []));
+      if (!data || data.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    if (peopleData.length === 0) return [];
+    const personIds = peopleData.map((person) => person.id);
+    const { data: contactsData, error: contactsError } = await supabase
+      .from("contacts")
+      .select("*")
+      .in("person_id", personIds);
+    if (contactsError) throw contactsError;
+    const contactsByPerson = new Map((contactsData ?? []).map((contact) => [contact.person_id, contact]));
+    return peopleData.map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
+  } catch (error) {
+    handleSupabaseReadError("listPeopleByStatuses", error);
   }
 }
 

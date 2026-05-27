@@ -15,11 +15,20 @@ export default async function PessoasPage() {
   let operators;
   let outreachGoal;
   try {
-    [people, operators, outreachGoal] = await Promise.all([
-      listPriorityPeople(),
+    const [mainPeople, sentPeople, activeOperators, goalStats] = await Promise.all([
+      listPriorityPeople({ statuses: ["novo", "responder"], limit: 1000 }),
+      listPriorityPeople({ statuses: ["abordado", "respondeu", "contato_confirmado"] }),
       import("../abordagem/team-actions").then(m => m.getActiveOperators()),
       getOutreachGoalStats(),
     ]);
+    const seen = new Set<string>();
+    people = [...sentPeople, ...mainPeople].filter((person) => {
+      if (seen.has(person.id)) return false;
+      seen.add(person.id);
+      return true;
+    });
+    operators = activeOperators;
+    outreachGoal = goalStats;
   } catch (error) {
     return (
       <AppShell>

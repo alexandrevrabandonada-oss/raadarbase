@@ -328,15 +328,15 @@ export function PeopleClient({
         descriptionClassName={cn(isCompact ? "max-w-[28rem]" : "max-w-[34rem]")}
         badges={
           <>
-            <GamefulHeroBadge light>{stats.total} missões ativas</GamefulHeroBadge>
-            <GamefulHeroBadge light>{stats.totalBase} na base local</GamefulHeroBadge>
+            <GamefulHeroBadge light>{outreachGoal.totalRemaining.toLocaleString("pt-BR")} missões ativas</GamefulHeroBadge>
+            <GamefulHeroBadge light>{outreachGoal.totalEligible.toLocaleString("pt-BR")} na base local</GamefulHeroBadge>
             <GamefulHeroBadge light>{stats.minhasPendencias} minhas</GamefulHeroBadge>
           </>
         }
         metricsClassName={cn("sm:grid-cols-2", isCompact ? "2xl:grid-cols-4" : "xl:grid-cols-4")}
         metrics={
           <>
-            <GamefulMetricCard label="Rede ativa" value={stats.total} tone="light" compact layout="split" detail={isCompact ? undefined : "Toda a base local elegível para primeiro envio."} />
+            <GamefulMetricCard label="Rede ativa" value={outreachGoal.totalRemaining} tone="light" compact layout="split" detail={isCompact ? undefined : "Toda a base local elegível para primeiro envio."} />
             <GamefulMetricCard label="Urgentes" value={stats.quentes} tone="light" compact layout="split" detail={isCompact ? undefined : "Missões com maior calor."} />
             <GamefulMetricCard label="Esperando" value={stats.esperando} tone="light" compact layout="split" detail={isCompact ? undefined : "Conversas pedindo retorno."} />
             <GamefulMetricCard label="A encaminhar" value={stats.aEncaminhar} tone="light" compact layout="split" detail={isCompact ? undefined : "Interesses prontos para destino."} />
@@ -462,7 +462,7 @@ export function PeopleClient({
       <OperationalCommandBar
         title="Barra de comando"
         statusLabel="Rodada manual"
-        statusValue={`${stats.total} pendências de primeiro envio`}
+        statusValue={`${outreachGoal.totalRemaining.toLocaleString("pt-BR")} pendências de primeiro envio`}
         statusDetail="A aba principal mostra toda a base local elegível, ordenada por engajamento e prioridade. Os já enviados ficam em uma aba separada."
         primaryAction={{
           label: "Começar Rodada",
@@ -534,7 +534,7 @@ export function PeopleClient({
             onClick={() => setActiveTab("nao_enviadas")}
           >
             Lista principal
-            <span className="ml-2">{stats.total}</span>
+            <span className="ml-2">{outreachGoal.totalRemaining.toLocaleString("pt-BR")}</span>
           </Button>
           <Button
             variant="outline"
@@ -545,7 +545,7 @@ export function PeopleClient({
             onClick={() => setActiveTab("enviadas")}
           >
             Já enviadas
-            <span className="ml-2">{waitingPeople.length}</span>
+            <span className="ml-2">{outreachGoal.totalSent.toLocaleString("pt-BR")}</span>
           </Button>
         </div>
 
@@ -553,7 +553,7 @@ export function PeopleClient({
           <div className="radar-outline-card overflow-x-auto rounded-[2px] border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]">
             <div className="flex min-w-max gap-2">
               {[
-                { id: "todos", label: "Base local", count: stats.total },
+                { id: "todos", label: "Base local", count: outreachGoal.totalRemaining },
                 { id: "quentes", label: "Urgentes", count: stats.quentes },
                 { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
                 { id: "prontas_aviso", label: "Preparadas", count: stats.prontasAviso },
@@ -579,7 +579,7 @@ export function PeopleClient({
             activeFilter={priorityFilter}
             onFilter={(id) => setPriorityFilter(id)}
             metrics={[
-              { id: "todos", label: "Geral", value: stats.total, tone: "neutral", icon: Users, filterable: true },
+              { id: "todos", label: "Geral", value: outreachGoal.totalRemaining, tone: "neutral", icon: Users, filterable: true },
               { id: "quentes", label: "Urgentes", value: stats.quentes, tone: "hot", icon: Flame, filterable: true },
               { id: "sem_responsavel", label: "Sem Dono", value: stats.semResponsavel, tone: stats.semResponsavel > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
               { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
@@ -607,7 +607,7 @@ export function PeopleClient({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[ 
-                  { id: "todos", label: "Base local", count: stats.total },
+                  { id: "todos", label: "Base local", count: outreachGoal.totalRemaining },
                   { id: "quentes", label: "Urgentes", count: stats.quentes },
                   { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
                 ].map((item) => (
@@ -721,7 +721,7 @@ export function PeopleClient({
                 <h3 className="text-xl font-black text-charcoal">Pessoas já enviadas</h3>
               </div>
               <Badge className="rounded-[2px] border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-white">
-                {waitingPeople.length} enviadas
+                {outreachGoal.totalSent.toLocaleString("pt-BR")} enviadas
               </Badge>
             </div>
             <PersonOperationalList
