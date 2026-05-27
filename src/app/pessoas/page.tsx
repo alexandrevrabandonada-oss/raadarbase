@@ -1,6 +1,7 @@
 import AppShell from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
+import { getOutreachGoalStats } from "@/lib/data/outreach-goal";
 import { listPriorityPeople } from "@/lib/data/people-priority";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { PeopleClient } from "./people-client";
@@ -12,10 +13,12 @@ export default async function PessoasPage() {
 
   let people;
   let operators;
+  let outreachGoal;
   try {
-    [people, operators] = await Promise.all([
+    [people, operators, outreachGoal] = await Promise.all([
       listPriorityPeople(),
-      import("../abordagem/team-actions").then(m => m.getActiveOperators())
+      import("../abordagem/team-actions").then(m => m.getActiveOperators()),
+      getOutreachGoalStats(),
     ]);
   } catch (error) {
     return (
@@ -40,6 +43,7 @@ export default async function PessoasPage() {
       <PeopleClient
         priorityPeople={people}
         operators={operators}
+        outreachGoal={outreachGoal}
         currentOperatorId={session.internalUser.id}
       />
     </AppShell>

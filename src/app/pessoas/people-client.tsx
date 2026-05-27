@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useTransition } from "react";
+import type { OutreachGoalStats } from "@/lib/data/outreach-goal";
 import type { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,10 @@ import {
   Instagram,
   Route,
   Send,
+  MessageSquare,
+  Target,
+  CalendarDays,
+  Trophy,
 } from "lucide-react";
 import { assumePersonResponsible } from "@/app/actions";
 import { syncMetaRecentCommentsAction } from "@/app/integracoes/meta/actions";
@@ -44,6 +49,7 @@ import { ContextHelpCard } from "@/components/radar/context-help-card";
 import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight-onboarding";
 import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
+import { Progress } from "@/components/ui/progress";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 const LIST_RENDER_BATCH = 250;
@@ -51,10 +57,12 @@ const LIST_RENDER_BATCH = 250;
 export function PeopleClient({
   priorityPeople,
   operators = [],
+  outreachGoal,
   currentOperatorId,
 }: {
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
+  outreachGoal: OutreachGoalStats;
   currentOperatorId: string;
 }) {
   const router = useRouter();
@@ -367,6 +375,89 @@ export function PeopleClient({
           </>
         }
       />
+
+      <section className="bloco-concreto border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(11,11,11,1)] sm:p-5 rounded-[2px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-cement">Meta central</p>
+                <h2 className="text-2xl font-black tracking-tight text-charcoal">Chegar em todos até {outreachGoal.targetDateLabel}</h2>
+              </div>
+              <Badge className="w-fit rounded-[2px] border-2 border-black bg-burnt-yellow px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-charcoal hover:bg-burnt-yellow">
+                <Target className="mr-2 h-3.5 w-3.5" />
+                {outreachGoal.dailyGoal} por dia
+              </Badge>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-5xl font-black tracking-tight text-charcoal">{outreachGoal.progressPercent}%</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#645845]">da base elegível enviada</p>
+                </div>
+                <p className="text-right text-sm font-bold text-charcoal">
+                  {outreachGoal.totalSent.toLocaleString("pt-BR")} feitas<br />
+                  <span className="text-[#645845]">{outreachGoal.totalRemaining.toLocaleString("pt-BR")} faltam</span>
+                </p>
+              </div>
+              <Progress value={outreachGoal.progressPercent} className="h-4 rounded-[2px] border-2 border-black bg-charcoal/10" indicatorClassName="bg-burnt-yellow" />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              {[
+                { icon: MessageSquare, label: "Enviadas", value: outreachGoal.totalSent.toLocaleString("pt-BR") },
+                { icon: Target, label: "Faltam", value: outreachGoal.totalRemaining.toLocaleString("pt-BR") },
+                { icon: CalendarDays, label: "Dias restantes", value: outreachGoal.daysRemaining.toLocaleString("pt-BR") },
+                { icon: Send, label: "Hoje", value: outreachGoal.sentToday.toLocaleString("pt-BR") },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label} className="rounded-[2px] border-2 border-black bg-[#f7f1e6] p-3">
+                  <Icon className="mb-2 h-4 w-4 text-charcoal" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#645845]">{label}</p>
+                  <p className="mt-1 text-2xl font-black text-charcoal">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[2px] border-2 border-black bg-charcoal p-4 text-white">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Mural de envios</p>
+                <h3 className="text-lg font-black">Mensagens por perfil interno</h3>
+              </div>
+              <Trophy className="h-5 w-5 text-burnt-yellow" />
+            </div>
+            <div className="space-y-2">
+              {outreachGoal.operatorScores.length === 0 ? (
+                <p className="rounded-[2px] border border-white/20 p-3 text-sm font-semibold text-white/70">Nenhum envio registrado ainda.</p>
+              ) : (
+                outreachGoal.operatorScores.slice(0, 8).map((operator, index) => {
+                  const maxSent = Math.max(1, outreachGoal.operatorScores[0]?.totalSent ?? 1);
+                  const width = Math.max(4, Math.round((operator.totalSent / maxSent) * 100));
+                  return (
+                    <div key={operator.operatorId ?? operator.operatorEmail ?? index} className="rounded-[2px] border border-white/15 bg-white/5 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black">{index + 1}. {operator.operatorName}</p>
+                          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">{operator.operatorEmail ?? "sem email"}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xl font-black text-burnt-yellow">{operator.totalSent}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/55">hoje {operator.sentToday}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 h-2 rounded-[2px] bg-white/10">
+                        <div className="h-full rounded-[2px] bg-burnt-yellow" style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <OperationalCommandBar
         title="Barra de comando"
