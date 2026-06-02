@@ -83,7 +83,7 @@ export async function validateFormData<T>(
 ): Promise<T> {
   const result: any = {};
   
-  for (const [key, validator] of Object.entries(schema)) {
+  for (const [key, validator] of Object.entries(schema) as [string, (fd: FormData) => unknown][]) {
     result[key] = await Promise.resolve(validator(formData));
   }
   
