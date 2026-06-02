@@ -109,10 +109,26 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       .select("*", { count: "exact", head: true });
     if (totalError) throw totalError;
 
-    const operatorsById = new Map((operatorsResult.data ?? []).map((operator) => [operator.id, operator]));
+    // Buscar pessoas enviadas agrupadas por responsible_id (fonte completa, paginada)
+    // Isso cobre todos os envios, incluindo os anteriores ao sistema de audit_logs
+    const sentPeople: Array<{ responsible_id: string | null }> = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("ig_people")
+        .select("responsible_id")
+        .in("status", ["abordado", "respondeu", "contato_confirmado"])
+        .not("responsible_id", "is", null)
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      sentPeople.push(...(data ?? []));
+      if (!data || data.length < PAGE_SIZE) break;
+    }
+
+    const operatorsById = new Map((operatorsResult.data ?? []).map((op) => [op.id, op]));
     const scores = new Map<string, OutreachOperatorScore>();
     const sentToday = logs.filter((log) => log.created_at >= todayStart).length;
 
+    // Inicializar scores para todos os operadores ativos
     for (const operator of operatorsResult.data ?? []) {
       scores.set(operator.id, {
         operatorId: operator.id,
@@ -124,21 +140,30 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       });
     }
 
+    // Contabilizar totalSent por operador via ig_people.responsible_id
+    // Esta é a fonte mais completa: inclui todos os envios históricos
+    for (const person of sentPeople ?? []) {
+      const key = person.responsible_id!;
+      const operator = operatorsById.get(key);
+      const current = scores.get(key) ?? {
+        operatorId: key,
+        operatorEmail: operator?.email ?? null,
+        operatorName: operator?.full_name || operator?.email || "Operador",
+        totalSent: 0,
+        sentToday: 0,
+        lastSentAt: null,
+      };
+      current.totalSent += 1;
+      scores.set(key, current);
+    }
+
+    // Complementar sentToday e lastSentAt via audit_logs (mais preciso para datas)
     for (const log of logs) {
       const key = log.actor_id ?? log.actor_email ?? "sem-operador";
       const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
-      const current =
-        scores.get(key) ??
-        {
-          operatorId: log.actor_id,
-          operatorEmail: log.actor_email,
-          operatorName: operator?.full_name || log.actor_email || "Sem operador identificado",
-          totalSent: 0,
-          sentToday: 0,
-          lastSentAt: null,
-        };
+      const current = scores.get(key);
+      if (!current) continue; // ignorar operadores não encontrados no mapa
 
-      current.totalSent += 1;
       if (log.created_at >= todayStart) current.sentToday += 1;
       if (!current.lastSentAt || log.created_at > current.lastSentAt) current.lastSentAt = log.created_at;
       scores.set(key, current);
@@ -159,7 +184,9 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       daysRemaining,
       dailyGoal: Math.ceil(totalRemaining / daysRemaining),
       sentToday,
-      operatorScores: Array.from(scores.values()).sort((left, right) => right.totalSent - left.totalSent),
+      operatorScores: Array.from(scores.values())
+        .filter((s) => s.totalSent > 0)
+        .sort((a, b) => b.totalSent - a.totalSent),
     };
   } catch (error) {
     handleSupabaseReadError("getOutreachGoalStats", error);
