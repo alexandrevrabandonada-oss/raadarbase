@@ -112,7 +112,27 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    ...PROTECTED_ROUTE_PREFIXES.map((p) => `/${p}/:path*`),
+    "/dashboard/:path*",
+    "/pessoas/:path*",
+    "/abordagem/:path*",
+    "/mensagens/:path*",
+    "/integracoes/:path*",
+    "/operacao/:path*",
+    "/configuracoes/:path*",
+    "/acoes/:path*",
+    "/campo/:path*",
+    "/escuta/bairro/admin/:path*",
+    "/execucao/:path*",
+    "/governanca/:path*",
+    "/memoria/:path*",
+    "/minha-fila/:path*",
+    "/posts/:path*",
+    "/radar/:path*",
+    "/recibo/escuta/distribuicao/:path*",
+    "/relatorios/:path*",
+    "/ritmo/:path*",
+    "/temas/:path*",
+    "/voluntarios/:path*",
     "/login",
   ],
 };

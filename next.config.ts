@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   // Production optimizations
   productionBrowserSourceMaps: false,
   compress: true,
-  swcMinify: true,
 
   // Image optimization
   images: {
@@ -16,16 +15,10 @@ const nextConfig: NextConfig = {
     formats: ["image/webp", "image/avif"],
   },
 
-  // Performance monitoring
+  // Dev page buffer
   onDemandEntries: {
     maxInactiveAge: 15 * 60 * 1000,
     pagesBufferLength: 5,
-  },
-
-  // Experimental optimizations
-  experimental: {
-    // Optimize for faster builds when applicable
-    isrMemoryCacheSize: 52 * 1024 * 1024, // 52 MB ISR cache
   },
 };
 
