@@ -49,7 +49,7 @@ async function countPeopleByStatus(statuses: PersonStatus[]) {
   return total;
 }
 
-async function listDmSentAuditLogs(limit = 2000) {
+async function listDmSentAuditLogs() {
   const supabase = getSupabaseAdminClient();
   const rows: Array<{
     actor_id: string | null;
@@ -57,14 +57,13 @@ async function listDmSentAuditLogs(limit = 2000) {
     created_at: string;
   }> = [];
 
-  for (let from = 0; rows.length < limit; from += PAGE_SIZE) {
-    const to = Math.min(from + PAGE_SIZE - 1, from + (limit - rows.length) - 1);
+  for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("audit_logs")
       .select("actor_id, actor_email, created_at")
       .eq("action", "contact.dm_sent")
       .order("created_at", { ascending: false })
-      .range(from, to);
+      .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE_SIZE) break;
@@ -94,7 +93,8 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const daysRemaining = daysUntilTarget(now);
 
-    // sentByStatus é a fonte de verdade: pessoas que já foram abordadas no banco
+    // sentByStatus é a fonte de verdade da barra geral.
+    // O placar por operador, porém, precisa refletir histórico real de envios.
     const [sentByStatus, doNotContact, logs, operatorsResult] = await Promise.all([
       countPeopleByStatus(["abordado", "respondeu", "contato_confirmado"]),
       countPeopleByStatus(["nao_abordar"]),
@@ -108,21 +108,6 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       .from("ig_people")
       .select("*", { count: "exact", head: true });
     if (totalError) throw totalError;
-
-    // Buscar pessoas enviadas agrupadas por responsible_id (fonte completa, paginada)
-    // Isso cobre todos os envios, incluindo os anteriores ao sistema de audit_logs
-    const sentPeople: Array<{ responsible_id: string | null }> = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data, error } = await supabase
-        .from("ig_people")
-        .select("responsible_id")
-        .in("status", ["abordado", "respondeu", "contato_confirmado"])
-        .not("responsible_id", "is", null)
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      sentPeople.push(...(data ?? []));
-      if (!data || data.length < PAGE_SIZE) break;
-    }
 
     const operatorsById = new Map((operatorsResult.data ?? []).map((op) => [op.id, op]));
     const scores = new Map<string, OutreachOperatorScore>();
@@ -140,9 +125,23 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       });
     }
 
-    // Contabilizar totalSent por operador via ig_people.responsible_id
-    // Esta é a fonte mais completa: inclui todos os envios históricos
-    for (const person of sentPeople ?? []) {
+    // Contabilizar totalSent por operador via ig_people.responsible_id (paginado)
+    // Esta é a fonte mais completa: cobre 100% dos envios históricos,
+    // inclusive anteriores ao sistema de audit_logs
+    const sentPeople: Array<{ responsible_id: string | null }> = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("ig_people")
+        .select("responsible_id")
+        .in("status", ["abordado", "respondeu", "contato_confirmado"])
+        .not("responsible_id", "is", null)
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      sentPeople.push(...(data ?? []));
+      if (!data || data.length < PAGE_SIZE) break;
+    }
+
+    for (const person of sentPeople) {
       const key = person.responsible_id!;
       const operator = operatorsById.get(key);
       const current = scores.get(key) ?? {
@@ -157,17 +156,16 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       scores.set(key, current);
     }
 
-    // Complementar sentToday e lastSentAt via audit_logs (mais preciso para datas)
+    // Complementar sentToday e lastSentAt via audit_logs (precisão de data/hora)
     for (const log of logs) {
       const key = log.actor_id ?? log.actor_email ?? "sem-operador";
-      const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
       const current = scores.get(key);
-      if (!current) continue; // ignorar operadores não encontrados no mapa
-
+      if (!current) continue;
       if (log.created_at >= todayStart) current.sentToday += 1;
       if (!current.lastSentAt || log.created_at > current.lastSentAt) current.lastSentAt = log.created_at;
       scores.set(key, current);
     }
+
 
     const totalEligible = Math.max(0, (totalPeople ?? 0) - doNotContact);
     // Status é a fonte de verdade: pessoas efetivamente abordadas no banco
@@ -185,8 +183,11 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       dailyGoal: Math.ceil(totalRemaining / daysRemaining),
       sentToday,
       operatorScores: Array.from(scores.values())
-        .filter((s) => s.totalSent > 0)
-        .sort((a, b) => b.totalSent - a.totalSent),
+        .filter((score) => score.totalSent > 0 || score.sentToday > 0)
+        .sort((left, right) => {
+          if (right.totalSent !== left.totalSent) return right.totalSent - left.totalSent;
+          return right.sentToday - left.sentToday;
+        }),
     };
   } catch (error) {
     handleSupabaseReadError("getOutreachGoalStats", error);
