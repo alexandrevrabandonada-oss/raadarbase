@@ -125,47 +125,27 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       });
     }
 
-    // Contabilizar totalSent por operador via ig_people.responsible_id (paginado)
-    // Esta é a fonte mais completa: cobre 100% dos envios históricos,
-    // inclusive anteriores ao sistema de audit_logs
-    const sentPeople: Array<{ responsible_id: string | null }> = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data, error } = await supabase
-        .from("ig_people")
-        .select("responsible_id")
-        .in("status", ["abordado", "respondeu", "contato_confirmado"])
-        .not("responsible_id", "is", null)
-        .range(from, from + PAGE_SIZE - 1);
-      if (error) throw error;
-      sentPeople.push(...(data ?? []));
-      if (!data || data.length < PAGE_SIZE) break;
-    }
-
-    for (const person of sentPeople) {
-      const key = person.responsible_id!;
-      const operator = operatorsById.get(key);
-      const current = scores.get(key) ?? {
-        operatorId: key,
-        operatorEmail: operator?.email ?? null,
-        operatorName: operator?.full_name || operator?.email || "Operador",
-        totalSent: 0,
-        sentToday: 0,
-        lastSentAt: null,
-      };
-      current.totalSent += 1;
-      scores.set(key, current);
-    }
-
-    // Complementar sentToday e lastSentAt via audit_logs (precisão de data/hora)
+    // Contabilizar totalSent/sentToday/lastSentAt via audit_logs (paginado sem limite)
+    // audit_logs com action="contact.dm_sent" é a fonte correta para atribuição por operador
     for (const log of logs) {
       const key = log.actor_id ?? log.actor_email ?? "sem-operador";
-      const current = scores.get(key);
-      if (!current) continue;
+      const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
+      const current =
+        scores.get(key) ??
+        {
+          operatorId: log.actor_id,
+          operatorEmail: log.actor_email,
+          operatorName: operator?.full_name || log.actor_email || "Sem operador identificado",
+          totalSent: 0,
+          sentToday: 0,
+          lastSentAt: null,
+        };
+
+      current.totalSent += 1;
       if (log.created_at >= todayStart) current.sentToday += 1;
       if (!current.lastSentAt || log.created_at > current.lastSentAt) current.lastSentAt = log.created_at;
       scores.set(key, current);
     }
-
 
     const totalEligible = Math.max(0, (totalPeople ?? 0) - doNotContact);
     // Status é a fonte de verdade: pessoas efetivamente abordadas no banco
