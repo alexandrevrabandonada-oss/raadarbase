@@ -2731,3 +2731,18 @@ export const Constants = {
     },
   },
 } as const
+
+// ---------------------------------------------------------------------------
+// Convenience aliases used throughout the codebase.
+// TablesInsert / TablesUpdate / Tables are the canonical Supabase-generated
+// helpers; TableInsert / TableUpdate / TableRow are shorthand aliases that
+// keep import lines concise without changing any behaviour.
+// ---------------------------------------------------------------------------
+export type TableRow<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Row"];
+
+export type TableInsert<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Insert"];
+
+export type TableUpdate<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Update"];
