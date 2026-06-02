@@ -49,7 +49,7 @@ async function countPeopleByStatus(statuses: PersonStatus[]) {
   return total;
 }
 
-async function listDmSentAuditLogs() {
+async function listDmSentAuditLogs(limit = 2000) {
   const supabase = getSupabaseAdminClient();
   const rows: Array<{
     actor_id: string | null;
@@ -57,13 +57,14 @@ async function listDmSentAuditLogs() {
     created_at: string;
   }> = [];
 
-  for (let from = 0; ; from += PAGE_SIZE) {
+  for (let from = 0; rows.length < limit; from += PAGE_SIZE) {
+    const to = Math.min(from + PAGE_SIZE - 1, from + (limit - rows.length) - 1);
     const { data, error } = await supabase
       .from("audit_logs")
       .select("actor_id, actor_email, created_at")
       .eq("action", "contact.dm_sent")
       .order("created_at", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
+      .range(from, to);
     if (error) throw error;
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE_SIZE) break;

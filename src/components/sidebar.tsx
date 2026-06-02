@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/logout-button";
 import { ConnectionIndicator } from "@/components/connection-indicator";
+import { PwaInstallCta } from "@/components/pwa-install-cta";
 import type { LucideIcon } from "lucide-react";
 
 type NavItem = {
@@ -383,6 +384,8 @@ export function Sidebar({
             Modo demo ativo: dados simulados para leitura e validacao.
           </div>
         ) : null}
+
+        <PwaInstallCta />
 
         <ConnectionIndicator variant="desktop" />
 

@@ -3,6 +3,7 @@ import { USE_MOCKS } from "@/lib/config";
 import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
+import { PwaInstallCta } from "@/components/pwa-install-cta";
 import { AdventureStrip } from "@/components/radar/adventure-strip";
 import { getAdventureProgress } from "@/lib/data/adventure-progress";
 
@@ -30,6 +31,10 @@ export default async function AppShell({ children }: { children: React.ReactNode
         
         <MobileNavMenu userEmail={user?.email ?? undefined} useMocks={USE_MOCKS} />
       </header>
+
+      <div className="radar-paper border-b border-cement px-4 py-2 xl:hidden">
+        <PwaInstallCta />
+      </div>
 
       <AdventureStrip progress={adventureProgress} />
 

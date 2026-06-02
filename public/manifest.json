@@ -2,11 +2,14 @@
   "name": "Radar de Base",
   "short_name": "Radar",
   "description": "Gestão e escuta ativa de base da VR Abandonada",
-  "start_url": "/minha-fila",
+  "id": "/",
+  "start_url": "/pessoas",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#E7E0D2",
   "theme_color": "#F2A900",
   "orientation": "portrait-primary",
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/logo.png",

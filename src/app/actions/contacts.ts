@@ -281,11 +281,41 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
       }
 
       const supabase = getSupabaseAdminClient();
+      const nowIso = new Date().toISOString();
+      const { data: currentPerson, error: currentPersonError } = await supabase
+        .from("ig_people")
+        .select("status")
+        .eq("id", personId)
+        .maybeSingle();
+      if (currentPersonError) throw new Error(currentPersonError.message);
+
+      const { data: existingTask, error: existingTaskError } = await supabase
+        .from("outreach_tasks")
+        .select("id, column_key")
+        .eq("person_id", personId)
+        .is("completed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existingTaskError) throw new Error(existingTaskError.message);
+
+      const alreadyWaiting =
+        currentPerson?.status === "abordado" &&
+        existingTask?.column_key === "esperando_resposta";
+
+      if (alreadyWaiting) {
+        const { error: contactError } = await supabase
+          .from("contacts")
+          .update({ last_contacted_at: nowIso })
+          .eq("person_id", personId);
+        if (contactError) throw new Error(contactError.message);
+        return;
+      }
 
       // 1. Atualizar status da pessoa
       const { error: personError } = await supabase
         .from("ig_people")
-        .update({ status: "abordado", updated_at: new Date().toISOString() })
+        .update({ status: "abordado", updated_at: nowIso })
         .eq("id", personId);
       if (personError) throw new Error(personError.message);
 
@@ -299,7 +329,7 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
       // 3. Atualizar last_contacted_at
       const { error: contactError } = await supabase
         .from("contacts")
-        .update({ last_contacted_at: new Date().toISOString() })
+        .update({ last_contacted_at: nowIso })
         .eq("person_id", personId);
       if (contactError) throw new Error(contactError.message);
     },

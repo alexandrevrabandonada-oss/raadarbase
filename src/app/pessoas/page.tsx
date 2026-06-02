@@ -17,7 +17,7 @@ export default async function PessoasPage() {
   try {
     const [mainPeople, sentPeople, activeOperators, goalStats] = await Promise.all([
       listPriorityPeople({ statuses: ["novo", "responder"], limit: 1000 }),
-      listPriorityPeople({ statuses: ["abordado", "respondeu", "contato_confirmado"] }),
+      listPriorityPeople({ statuses: ["abordado", "respondeu", "contato_confirmado"], limit: 300 }),
       import("../abordagem/team-actions").then(m => m.getActiveOperators()),
       getOutreachGoalStats(),
     ]);

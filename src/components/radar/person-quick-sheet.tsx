@@ -272,7 +272,7 @@ export function PersonQuickSheet({
   const [createConfirmationTask, setCreateConfirmationTask] = React.useState<boolean>(true);
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "confirmed">("idle");
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "sending" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = React.useState("");
 
   const loadHistory = React.useCallback(async (personId: string) => {
@@ -303,17 +303,35 @@ export function PersonQuickSheet({
   }, []);
 
   React.useEffect(() => {
-    if (open && person) {
-      trackOperationalEvent("quick_sheet_opened", person.id, { username: person.username });
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsResolved(false);
-       
-      setNote(person.notes || "");
+    if (!open || !person) return;
+
+    trackOperationalEvent("quick_sheet_opened", person.id, { username: person.username });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsResolved(false);
+    setCopyStatus("idle");
+    setActiveModal(null);
+    setInteractions([]);
+    setSelectedReferral(null);
+    setSelectedEventId("manual");
+    setNote(person.notes || "");
+    setEditedMessage(person.suggestedMessage || "");
+
+    const timeoutId = window.setTimeout(() => {
       loadHistory(person.id);
-      loadEvents();
-      setEditedMessage(person.suggestedMessage || "");
-    }
-  }, [open, person, loadHistory, loadEvents]);
+    }, 650);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      setIsLoadingHistory(false);
+    };
+  }, [open, person, loadHistory]);
+
+  React.useEffect(() => {
+    if (activeModal !== "referral" || events.length > 0) return;
+
+    const timeoutId = window.setTimeout(loadEvents, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeModal, events.length, loadEvents]);
 
   if (!person) return null;
 
@@ -416,37 +434,44 @@ export function PersonQuickSheet({
   };
 
   const handleCopyDM = async (text: string, location: string) => {
-    if (isBlocked) return;
+    if (isBlocked || copyStatus !== "idle") return;
+    setCopyStatus("sending");
     
-    // 1. Copiar
-    await navigator.clipboard.writeText(text);
-    
-    // 2. Abrir Direct do Instagram
-    const igUsername = person.username.replace(/^@+/, "");
-    const igUrl = `https://www.instagram.com/${igUsername}/`;
-    window.open(igUrl, "_blank");
+    try {
+      // 1. Copiar
+      await navigator.clipboard.writeText(text);
+      
+      // 2. Abrir Direct do Instagram
+      const igUsername = person.username.replace(/^@+/, "");
+      const igUrl = `https://www.instagram.com/${igUsername}/`;
+      window.open(igUrl, "_blank");
 
-    toast({ title: "Mensagem copiada", description: "Direct aberto. O envio foi registrado e o contato foi para esperando resposta." });
-    if (isTraining) {
-      onTrainingAction?.("dm_copied", { location });
-      onTrainingAction?.("dm_sent");
-      setCopyStatus("confirmed");
-      return;
-    }
-
-    trackOperationalEvent("dm_copied", person.id, { location });
-    await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
-
-    startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
-      if (result.ok) {
+      toast({ title: "Mensagem copiada", description: "Direct aberto. O envio foi registrado e o contato foi para esperando resposta." });
+      if (isTraining) {
+        onTrainingAction?.("dm_copied", { location });
+        onTrainingAction?.("dm_sent");
         setCopyStatus("confirmed");
-        onActionComplete?.(person.id, { openNext: true });
-        router.refresh();
-      } else {
-        toast({ title: "Erro", description: result.error, variant: "destructive" });
+        return;
       }
-    });
+
+      trackOperationalEvent("dm_copied", person.id, { location });
+      await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
+
+      startTransition(async () => {
+        const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
+        if (result.ok) {
+          setCopyStatus("confirmed");
+          onActionComplete?.(person.id, { openNext: true });
+          router.refresh();
+        } else {
+          setCopyStatus("idle");
+          toast({ title: "Erro", description: result.error, variant: "destructive" });
+        }
+      });
+    } catch {
+      setCopyStatus("idle");
+      toast({ title: "Erro", description: "Não foi possível copiar a mensagem.", variant: "destructive" });
+    }
   };
 
   return (
@@ -670,10 +695,10 @@ export function PersonQuickSheet({
                           <Button
                             className="h-11 w-full border border-[#13212b] bg-[#13212b] text-xs font-black uppercase tracking-[0.16em] text-white hover:bg-[#0d1820]"
                             onClick={() => handleCopyDM(editedMessage, "mission_primary_action")}
-                            disabled={isPending}
+                            disabled={isPending || copyStatus !== "idle"}
                           >
-                            <Copy className="mr-2 h-4 w-4" />
-                            {isPending ? "Registrando envio..." : copyStatus === "confirmed" ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
+                            {copyStatus === "sending" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+                            {copyStatus === "sending" ? "Registrando envio..." : copyStatus === "confirmed" ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
                           </Button>
                         ) : null}
                         {missionView.secondaryActionLabels.length > 0 ? (
@@ -828,10 +853,10 @@ export function PersonQuickSheet({
                       variant="outline"
                       className="h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]"
                       title="Copiar e Abrir Direct" 
-                      disabled={!editedMessage || isPending} 
+                      disabled={!editedMessage || isPending || copyStatus !== "idle"} 
                       onClick={() => handleCopyDM(editedMessage, "floating_footer")}
                     >
-                      <Copy className="h-4 w-4" />
+                      {copyStatus === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
                     </Button>
                     <Button 
                       size="icon" 

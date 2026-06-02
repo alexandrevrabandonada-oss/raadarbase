@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +15,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Radar de Base",
   description: "Painel interno da VR Abandonada para escuta popular e gestão ética de contatos.",
+  applicationName: "Radar de Base",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Radar de Base",
+  },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#F2A900",
 };
 
 import { TooltipProvider } from "@/components/ui/tooltip";

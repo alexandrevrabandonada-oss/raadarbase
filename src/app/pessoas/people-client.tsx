@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useEffect, useTransition } from "react";
 import type { OutreachGoalStats } from "@/lib/data/outreach-goal";
@@ -39,7 +40,6 @@ import { useToast } from "@/hooks/use-toast";
 import { PersonPriorityCard } from "@/components/radar/person-priority-card";
 import { EmptyState } from "@/components/radar/empty-state";
 import { OperationalStatusBar } from "@/components/radar/operational-status-bar";
-import { PersonQuickSheet } from "@/components/radar/person-quick-sheet";
 import { PersonOperationalList } from "@/components/radar/person-operational-list";
 import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
@@ -53,6 +53,11 @@ import { Progress } from "@/components/ui/progress";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 const LIST_RENDER_BATCH = 250;
+
+const PersonQuickSheet = dynamic(
+  () => import("@/components/radar/person-quick-sheet").then((module) => module.PersonQuickSheet),
+  { ssr: false },
+);
 
 export function PeopleClient({
   priorityPeople,
@@ -159,36 +164,46 @@ export function PeopleClient({
   const visibleListCount = visibleListState.key === visibleListKey ? visibleListState.count : LIST_RENDER_BATCH;
 
   useEffect(() => {
-    const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
-    const totalActive = active.length;
-    const totalSent = active.filter(p => p.isPendingResponse).length;
+    const maybeSync = () => {
+      const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
+      const totalActive = active.length;
+      const totalSent = active.filter(p => p.isPendingResponse).length;
 
-    if (totalActive > 0 && totalSent >= totalActive * 0.5) {
+      if (totalActive <= 0 || totalSent < totalActive * 0.5) return;
+
       const lastSync = localStorage.getItem("radar_last_auto_sync_comments");
       const now = Date.now();
-      if (!lastSync || now - Number(lastSync) > 10 * 60 * 1000) {
-        localStorage.setItem("radar_last_auto_sync_comments", String(now));
-        
-        toast({
-          title: "Atualizando prioridades 🔄",
-          description: "A maioria da lista já recebeu mensagens. Sincronizando novas interações do Instagram...",
-        });
+      if (lastSync && now - Number(lastSync) <= 10 * 60 * 1000) return;
 
-        startTransition(async () => {
-          try {
-            const result = await syncMetaRecentCommentsAction();
-            if (result.ok) {
-              toast({
-                title: "Prioridades atualizadas! 🎉",
-                description: "Novas interações do Instagram foram sincronizadas e a lista foi atualizada.",
-              });
-            }
-          } catch (err) {
-            console.error("Failed to run auto sync:", err);
+      localStorage.setItem("radar_last_auto_sync_comments", String(now));
+      
+      toast({
+        title: "Atualizando prioridades",
+        description: "Sincronizando novas interações do Instagram em segundo plano.",
+      });
+
+      startTransition(async () => {
+        try {
+          const result = await syncMetaRecentCommentsAction();
+          if (result.ok) {
+            toast({
+              title: "Prioridades atualizadas",
+              description: "Novas interações do Instagram foram sincronizadas.",
+            });
           }
-        });
-      }
+        } catch (err) {
+          console.error("Failed to run auto sync:", err);
+        }
+      });
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(maybeSync, { timeout: 5000 });
+      return () => window.cancelIdleCallback(idleId);
     }
+
+    const timeoutId = globalThis.setTimeout(maybeSync, 2500);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [toast, visiblePriorityPeople]);
 
   useEffect(() => {
@@ -496,10 +511,10 @@ export function PeopleClient({
               </div>
             </div>
             <div className="grid gap-2 md:grid-cols-3">
-              {[
+              {[ 
                 { icon: Copy, title: "Preparar", detail: "Copiar a mensagem da pessoa." },
                 { icon: Instagram, title: "Enviar", detail: "Personalizar e mandar manualmente." },
-              { icon: CheckCircle2, title: "Registrar", detail: "Marcar envio e seguir para a próxima pessoa." },
+                { icon: CheckCircle2, title: "Registrar", detail: "O sistema registra o envio automaticamente e abre a próxima." },
               ].map(({ icon: Icon, title, detail }) => (
                 <div key={title} className="flex min-w-0 items-start gap-2 border-2 border-black bg-white p-3 rounded-[2px]">
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-charcoal" />
