@@ -348,68 +348,6 @@ export type Database = {
           },
         ]
       }
-      contacts: {
-        Row: {
-          consent_given: boolean
-          consent_purpose: string
-          consent_recorded_at: string | null
-          consent_status: Database["public"]["Enums"]["consent_status"]
-          contact_channel: string
-          contact_value: string | null
-          created_at: string
-          email: string | null
-          id: string
-          last_contacted_at: string | null
-          person_id: string
-          phone: string | null
-          privacy_policy_url: string | null
-          source: string
-          updated_at: string
-        }
-        Insert: {
-          consent_given?: boolean
-          consent_purpose: string
-          consent_recorded_at?: string | null
-          consent_status?: Database["public"]["Enums"]["consent_status"]
-          contact_channel: string
-          contact_value?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          last_contacted_at?: string | null
-          person_id: string
-          phone?: string | null
-          privacy_policy_url?: string | null
-          source?: string
-          updated_at?: string
-        }
-        Update: {
-          consent_given?: boolean
-          consent_purpose?: string
-          consent_recorded_at?: string | null
-          consent_status?: Database["public"]["Enums"]["consent_status"]
-          contact_channel?: string
-          contact_value?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          last_contacted_at?: string | null
-          person_id?: string
-          phone?: string | null
-          privacy_policy_url?: string | null
-          source?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contacts_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: true
-            referencedRelation: "ig_people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       campaign_squad_members: {
         Row: {
           id: string
@@ -488,6 +426,101 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_volunteer_applications: {
+        Row: {
+          availability: Json
+          city: string | null
+          consent_to_contact: boolean
+          consent_to_store_data: boolean
+          contact_email: string | null
+          contact_phone: string | null
+          contact_preference: string
+          converted_volunteer_id: string | null
+          created_at: string
+          display_name: string
+          id: string
+          interests: Json
+          metadata: Json
+          neighborhood: string | null
+          redacted_at: string | null
+          redacted_by: string | null
+          redacted_by_email: string | null
+          retention_reason: string | null
+          retention_status: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_email: string | null
+          scheduled_redaction_at: string | null
+          skills: Json
+          status: string
+        }
+        Insert: {
+          availability?: Json
+          city?: string | null
+          consent_to_contact?: boolean
+          consent_to_store_data?: boolean
+          contact_email?: string | null
+          contact_phone?: string | null
+          contact_preference?: string
+          converted_volunteer_id?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          interests?: Json
+          metadata?: Json
+          neighborhood?: string | null
+          redacted_at?: string | null
+          redacted_by?: string | null
+          redacted_by_email?: string | null
+          retention_reason?: string | null
+          retention_status?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_email?: string | null
+          scheduled_redaction_at?: string | null
+          skills?: Json
+          status?: string
+        }
+        Update: {
+          availability?: Json
+          city?: string | null
+          consent_to_contact?: boolean
+          consent_to_store_data?: boolean
+          contact_email?: string | null
+          contact_phone?: string | null
+          contact_preference?: string
+          converted_volunteer_id?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          interests?: Json
+          metadata?: Json
+          neighborhood?: string | null
+          redacted_at?: string | null
+          redacted_by?: string | null
+          redacted_by_email?: string | null
+          retention_reason?: string | null
+          retention_status?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_email?: string | null
+          scheduled_redaction_at?: string | null
+          skills?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_volunteer_applications_converted_volunteer_id_fkey"
+            columns: ["converted_volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_volunteers: {
         Row: {
           availability: Json
@@ -554,97 +587,64 @@ export type Database = {
         }
         Relationships: []
       }
-      campaign_volunteer_applications: {
+      contacts: {
         Row: {
-          availability: Json
-          city: string | null
-          consent_to_contact: boolean
-          consent_to_store_data: boolean
-          contact_email: string | null
-          contact_phone: string | null
-          contact_preference: string
-          converted_volunteer_id: string | null
+          consent_given: boolean
+          consent_purpose: string
+          consent_recorded_at: string | null
+          consent_status: Database["public"]["Enums"]["consent_status"]
+          contact_channel: string
+          contact_value: string | null
           created_at: string
-          display_name: string
+          email: string | null
           id: string
-          interests: Json
-          metadata: Json
-          neighborhood: string | null
-          redacted_at: string | null
-          redacted_by: string | null
-          redacted_by_email: string | null
-          review_notes: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          reviewed_by_email: string | null
-          retention_reason: string | null
-          retention_status: string
-          scheduled_redaction_at: string | null
-          skills: Json
-          status: string
+          last_contacted_at: string | null
+          person_id: string
+          phone: string | null
+          privacy_policy_url: string | null
+          source: string
+          updated_at: string
         }
         Insert: {
-          availability?: Json
-          city?: string | null
-          consent_to_contact?: boolean
-          consent_to_store_data?: boolean
-          contact_email?: string | null
-          contact_phone?: string | null
-          contact_preference?: string
-          converted_volunteer_id?: string | null
+          consent_given?: boolean
+          consent_purpose: string
+          consent_recorded_at?: string | null
+          consent_status?: Database["public"]["Enums"]["consent_status"]
+          contact_channel: string
+          contact_value?: string | null
           created_at?: string
-          display_name: string
+          email?: string | null
           id?: string
-          interests?: Json
-          metadata?: Json
-          neighborhood?: string | null
-          redacted_at?: string | null
-          redacted_by?: string | null
-          redacted_by_email?: string | null
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          reviewed_by_email?: string | null
-          retention_reason?: string | null
-          retention_status?: string
-          scheduled_redaction_at?: string | null
-          skills?: Json
-          status?: string
+          last_contacted_at?: string | null
+          person_id: string
+          phone?: string | null
+          privacy_policy_url?: string | null
+          source?: string
+          updated_at?: string
         }
         Update: {
-          availability?: Json
-          city?: string | null
-          consent_to_contact?: boolean
-          consent_to_store_data?: boolean
-          contact_email?: string | null
-          contact_phone?: string | null
-          contact_preference?: string
-          converted_volunteer_id?: string | null
+          consent_given?: boolean
+          consent_purpose?: string
+          consent_recorded_at?: string | null
+          consent_status?: Database["public"]["Enums"]["consent_status"]
+          contact_channel?: string
+          contact_value?: string | null
           created_at?: string
-          display_name?: string
+          email?: string | null
           id?: string
-          interests?: Json
-          metadata?: Json
-          neighborhood?: string | null
-          redacted_at?: string | null
-          redacted_by?: string | null
-          redacted_by_email?: string | null
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          reviewed_by_email?: string | null
-          retention_reason?: string | null
-          retention_status?: string
-          scheduled_redaction_at?: string | null
-          skills?: Json
-          status?: string
+          last_contacted_at?: string | null
+          person_id?: string
+          phone?: string | null
+          privacy_policy_url?: string | null
+          source?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "campaign_volunteer_applications_converted_volunteer_id_fkey"
-            columns: ["converted_volunteer_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_volunteers"
+            foreignKeyName: "contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "ig_people"
             referencedColumns: ["id"]
           },
         ]
@@ -902,13 +902,13 @@ export type Database = {
           last_interaction_at: string | null
           notes: string
           raw: Json | null
+          responsible_id: string | null
           status: Database["public"]["Enums"]["person_status"]
           synced_at: string | null
           themes: string[]
           total_interactions: number
           updated_at: string
           username: string
-          responsible_id: string | null
         }
         Insert: {
           created_at?: string
@@ -919,13 +919,13 @@ export type Database = {
           last_interaction_at?: string | null
           notes?: string
           raw?: Json | null
+          responsible_id?: string | null
           status?: Database["public"]["Enums"]["person_status"]
           synced_at?: string | null
           themes?: string[]
           total_interactions?: number
           updated_at?: string
           username: string
-          responsible_id?: string | null
         }
         Update: {
           created_at?: string
@@ -936,15 +936,96 @@ export type Database = {
           last_interaction_at?: string | null
           notes?: string
           raw?: Json | null
+          responsible_id?: string | null
           status?: Database["public"]["Enums"]["person_status"]
           synced_at?: string | null
           themes?: string[]
           total_interactions?: number
           updated_at?: string
           username?: string
-          responsible_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ig_people_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ig_person_referrals: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          id: string
+          last_event_at: string | null
+          last_event_source: string | null
+          last_event_type: string | null
+          metadata: Json
+          notes: string
+          person_id: string
+          responsible_id: string | null
+          status: Database["public"]["Enums"]["referral_status"]
+          target_id: string | null
+          target_type: Database["public"]["Enums"]["referral_target_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          last_event_source?: string | null
+          last_event_type?: string | null
+          metadata?: Json
+          notes?: string
+          person_id: string
+          responsible_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          target_id?: string | null
+          target_type: Database["public"]["Enums"]["referral_target_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          last_event_at?: string | null
+          last_event_source?: string | null
+          last_event_type?: string | null
+          metadata?: Json
+          notes?: string
+          person_id?: string
+          responsible_id?: string | null
+          status?: Database["public"]["Enums"]["referral_status"]
+          target_id?: string | null
+          target_type?: Database["public"]["Enums"]["referral_target_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ig_person_referrals_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "ig_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_person_referrals_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ig_person_referrals_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "field_agenda_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ig_posts: {
         Row: {
@@ -1136,7 +1217,7 @@ export type Database = {
           category: string | null
           created_at: string
           id: string
-          is_campaign_default: boolean
+          is_campaign_default: boolean | null
           name: string
           theme: string | null
           updated_at: string
@@ -1148,7 +1229,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
-          is_campaign_default?: boolean
+          is_campaign_default?: boolean | null
           name: string
           theme?: string | null
           updated_at?: string
@@ -1160,79 +1241,13 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
-          is_campaign_default?: boolean
+          is_campaign_default?: boolean | null
           name?: string
           theme?: string | null
           updated_at?: string
           when_to_use?: string | null
         }
         Relationships: []
-      }
-      ig_person_referrals: {
-        Row: {
-          id: string
-          person_id: string
-          target_type: Database["public"]["Enums"]["referral_target_type"]
-          target_id: string | null
-          status: Database["public"]["Enums"]["referral_status"]
-          notes: string
-          created_at: string
-          updated_at: string
-          responsible_id: string | null
-          external_id: string | null
-          last_event_at: string | null
-          last_event_type: string | null
-          last_event_source: string | null
-          metadata: Json
-        }
-        Insert: {
-          id?: string
-          person_id: string
-          target_type: Database["public"]["Enums"]["referral_target_type"]
-          target_id?: string | null
-          status?: Database["public"]["Enums"]["referral_status"]
-          notes?: string
-          created_at?: string
-          updated_at?: string
-          responsible_id?: string | null
-          external_id?: string | null
-          last_event_at?: string | null
-          last_event_type?: string | null
-          last_event_source?: string | null
-          metadata?: Json
-        }
-        Update: {
-          id?: string
-          person_id?: string
-          target_type?: Database["public"]["Enums"]["referral_target_type"]
-          target_id?: string | null
-          status?: Database["public"]["Enums"]["referral_status"]
-          notes?: string
-          created_at?: string
-          updated_at?: string
-          responsible_id?: string | null
-          external_id?: string | null
-          last_event_at?: string | null
-          last_event_type?: string | null
-          last_event_source?: string | null
-          metadata?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ig_person_referrals_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "ig_people"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ig_person_referrals_target_id_fkey"
-            columns: ["target_id"]
-            isOneToOne: false
-            referencedRelation: "field_agenda_events"
-            referencedColumns: ["id"]
-          }
-        ]
       }
       meta_account_snapshots: {
         Row: {
@@ -1620,6 +1635,38 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_locks: {
+        Row: {
+          created_at: string
+          expires_at: string
+          operator_id: string
+          operator_name: string
+          person_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          operator_id: string
+          operator_name: string
+          person_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          operator_id?: string
+          operator_name?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_locks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "ig_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_tasks: {
         Row: {
           column_key: string
@@ -1629,9 +1676,9 @@ export type Database = {
           id: string
           notes: string
           person_id: string
+          responsible_id: string | null
           title: string
           updated_at: string
-          responsible_id: string | null
         }
         Insert: {
           column_key: string
@@ -1641,9 +1688,9 @@ export type Database = {
           id?: string
           notes?: string
           person_id: string
+          responsible_id?: string | null
           title: string
           updated_at?: string
-          responsible_id?: string | null
         }
         Update: {
           column_key?: string
@@ -1653,9 +1700,9 @@ export type Database = {
           id?: string
           notes?: string
           person_id?: string
+          responsible_id?: string | null
           title?: string
           updated_at?: string
-          responsible_id?: string | null
         }
         Relationships: [
           {
@@ -1663,6 +1710,13 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "ig_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_tasks_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "internal_users"
             referencedColumns: ["id"]
           },
         ]
@@ -2277,6 +2331,39 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_categories: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       volunteer_review_rounds: {
         Row: {
           approved_count: number
@@ -2328,39 +2415,6 @@ export type Database = {
           reviewed_pending_count?: number
           status?: string
           title?: string
-        }
-        Relationships: []
-      }
-      topic_categories: {
-        Row: {
-          active: boolean
-          color: string | null
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          slug?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -2451,13 +2505,19 @@ export type Database = {
     }
     Enums: {
       consent_status: "pending" | "confirmed" | "revoked"
-      referral_target_type:
-        | "evento_campo"
-        | "voluntariado"
-        | "grupo_lista"
-        | "missao_eluta"
-        | "missao_simples"
-        | "revisar_depois"
+      interaction_type:
+        | "comentario"
+        | "curtida"
+        | "resposta_story"
+        | "dm_manual"
+        | "mencao"
+      internal_user_status: "pending" | "active" | "disabled"
+      person_status:
+        | "novo"
+        | "responder"
+        | "abordado"
+        | "respondeu"
+        | "contato_confirmado"
         | "nao_abordar"
       referral_status:
         | "recomendado"
@@ -2475,19 +2535,13 @@ export type Database = {
         | "fez_primeira_missao"
         | "colaborador"
         | "pode_puxar_missao"
-      interaction_type:
-        | "comentario"
-        | "curtida"
-        | "resposta_story"
-        | "dm_manual"
-        | "mencao"
-      internal_user_status: "pending" | "active" | "disabled"
-      person_status:
-        | "novo"
-        | "responder"
-        | "abordado"
-        | "respondeu"
-        | "contato_confirmado"
+      referral_target_type:
+        | "evento_campo"
+        | "voluntariado"
+        | "grupo_lista"
+        | "missao_eluta"
+        | "missao_simples"
+        | "revisar_depois"
         | "nao_abordar"
       work_type:
         | "branding"
@@ -2624,13 +2678,20 @@ export const Constants = {
   public: {
     Enums: {
       consent_status: ["pending", "confirmed", "revoked"],
-      referral_target_type: [
-        "evento_campo",
-        "voluntariado",
-        "grupo_lista",
-        "missao_eluta",
-        "missao_simples",
-        "revisar_depois",
+      interaction_type: [
+        "comentario",
+        "curtida",
+        "resposta_story",
+        "dm_manual",
+        "mencao",
+      ],
+      internal_user_status: ["pending", "active", "disabled"],
+      person_status: [
+        "novo",
+        "responder",
+        "abordado",
+        "respondeu",
+        "contato_confirmado",
         "nao_abordar",
       ],
       referral_status: [
@@ -2650,20 +2711,13 @@ export const Constants = {
         "colaborador",
         "pode_puxar_missao",
       ],
-      interaction_type: [
-        "comentario",
-        "curtida",
-        "resposta_story",
-        "dm_manual",
-        "mencao",
-      ],
-      internal_user_status: ["pending", "active", "disabled"],
-      person_status: [
-        "novo",
-        "responder",
-        "abordado",
-        "respondeu",
-        "contato_confirmado",
+      referral_target_type: [
+        "evento_campo",
+        "voluntariado",
+        "grupo_lista",
+        "missao_eluta",
+        "missao_simples",
+        "revisar_depois",
         "nao_abordar",
       ],
       work_type: [
@@ -2677,8 +2731,3 @@ export const Constants = {
     },
   },
 } as const
-
-// Backward compatibility aliases
-export type TableRow<T extends keyof Database["public"]["Tables"]> = Tables<T>;
-export type TableInsert<T extends keyof Database["public"]["Tables"]> = TablesInsert<T>;
-export type TableUpdate<T extends keyof Database["public"]["Tables"]> = TablesUpdate<T>;

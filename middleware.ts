@@ -7,29 +7,32 @@ import {
 } from "@/lib/config";
 import { isInternalUserActive, type InternalAccessReason } from "@/lib/supabase/internal-users";
 
-const protectedPaths = [
-  "/dashboard",
-  "/pessoas",
-  "/abordagem",
-  "/mensagens",
-  "/integracoes",
-  "/operacao",
-  "/configuracoes",
-  "/acoes",
-  "/campo",
-  "/escuta/bairro/admin",
-  "/execucao",
-  "/governanca",
-  "/memoria",
-  "/minha-fila",
-  "/posts",
-  "/radar",
-  "/recibo/escuta/distribuicao",
-  "/relatorios",
-  "/ritmo",
-  "/temas",
-  "/voluntarios",
-];
+// Single source of truth for protected routes
+const PROTECTED_ROUTE_PREFIXES = [
+  "dashboard",
+  "pessoas",
+  "abordagem",
+  "mensagens",
+  "integracoes",
+  "operacao",
+  "configuracoes",
+  "acoes",
+  "campo",
+  "escuta/bairro/admin",
+  "execucao",
+  "governanca",
+  "memoria",
+  "minha-fila",
+  "posts",
+  "radar",
+  "recibo/escuta/distribuicao",
+  "relatorios",
+  "ritmo",
+  "temas",
+  "voluntarios",
+] as const;
+
+const protectedPaths = PROTECTED_ROUTE_PREFIXES.map((p) => `/${p}`);
 
 export async function middleware(request: NextRequest) {
   const e2eBypassOptedOut =
@@ -88,18 +91,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (isProtected && !data.user) {
+  if (isProtected && (!data.user || accessReason)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  if (isProtected && accessReason) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
-    loginUrl.searchParams.set("reason", accessReason);
+    if (accessReason) {
+      loginUrl.searchParams.set("reason", accessReason);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
@@ -114,27 +112,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/pessoas/:path*",
-    "/abordagem/:path*",
-    "/mensagens/:path*",
-    "/integracoes/:path*",
-    "/operacao/:path*",
-    "/configuracoes/:path*",
-    "/acoes/:path*",
-    "/campo/:path*",
-    "/escuta/bairro/admin/:path*",
-    "/execucao/:path*",
-    "/governanca/:path*",
-    "/memoria/:path*",
-    "/minha-fila/:path*",
-    "/posts/:path*",
-    "/radar/:path*",
-    "/recibo/escuta/distribuicao/:path*",
-    "/relatorios/:path*",
-    "/ritmo/:path*",
-    "/temas/:path*",
-    "/voluntarios/:path*",
+    ...PROTECTED_ROUTE_PREFIXES.map((p) => `/${p}/:path*`),
     "/login",
   ],
 };

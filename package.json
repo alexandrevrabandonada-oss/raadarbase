@@ -4,45 +4,54 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run supabase:types",
     "build": "next build",
     "start": "next start",
+    
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    
     "check:rls": "node scripts/check-rls.mjs",
     "check:health": "node scripts/check-health.mjs",
+    
     "e2e": "node scripts/run-e2e-if-configured.mjs",
     "e2e:ci": "node scripts/run-e2e-ci.mjs",
     "e2e:ui": "playwright test --ui",
+    
     "ci": "npm run lint && npm run build && npm run test && npm run check:health && npm run e2e:ci",
+    "verify": "npm run lint && npm run build && npm run test && npm run check:rls && npm run check:health && npm run e2e",
+    
     "test:webhook:local": "node scripts/test-meta-webhook-local.mjs",
+    
     "staging:webhook:dry-run": "node scripts/staging-webhook-dry-run.mjs",
     "staging:webhook:config-check": "node scripts/staging-webhook-config-check.mjs",
-    "staging:check-url": "node scripts/check-staging-url.mjs",
-    "staging:db-check": "node scripts/staging-db-check.mjs",
     "staging:webhook:evidence": "node scripts/staging-webhook-evidence.mjs",
     "staging:webhook:observation": "node scripts/staging-webhook-observation.mjs",
+    "staging:webhook:report": "node scripts/generate-staging-webhook-report.mjs",
     "staging:webhook:go-no-go": "node scripts/staging-webhook-go-no-go.mjs",
+    "staging:check-url": "node scripts/check-staging-url.mjs",
+    "staging:db-check": "node scripts/staging-db-check.mjs",
     "staging:devolution-db-check": "node scripts/staging-devolution-db-check.mjs",
     "staging:meta-api-check": "node scripts/staging-meta-api-check.mjs",
     "staging:meta-api-smoke": "node scripts/staging-meta-api-smoke.mjs",
+    
     "production:webhook:preflight": "node scripts/production-webhook-preflight.mjs",
+    "production:webhook-smoke": "node scripts/production-webhook-smoke.mjs",
     "production:shadow-check": "node scripts/production-shadow-check.mjs",
     "production:shadow-report": "node scripts/generate-production-shadow-report.mjs",
     "production:route-audit": "node scripts/production-route-access-audit.mjs",
     "production:rls-audit": "node scripts/production-rls-audit.mjs",
     "production:role-audit": "node scripts/production-role-audit.mjs",
     "production:access-audit-report": "node scripts/generate-production-access-audit-report.mjs",
+    "production:activation-check": "node scripts/production-activation-check.mjs",
+    "production:go-no-go": "node scripts/production-go-no-go.mjs",
     "production:final-decision:validate": "node scripts/production-final-decision-validate.mjs",
     "production:final-decision-pack": "node scripts/generate-production-final-decision-pack.mjs",
-    "production:activation-check": "node scripts/production-activation-check.mjs",
-    "production:webhook-smoke": "node scripts/production-webhook-smoke.mjs",
-    "production:go-no-go": "node scripts/production-go-no-go.mjs",
     "production:decision-pack": "node scripts/generate-production-decision-pack.mjs",
     "production:decision:validate": "node scripts/validate-production-decision.mjs",
-    "staging:webhook:report": "node scripts/generate-staging-webhook-report.mjs",
+    
     "readiness": "node scripts/production-readiness.mjs",
-    "verify": "npm run lint && npm run build && npm run test && npm run check:rls && npm run check:health && npm run e2e",
     "supabase:types": "node scripts/generate-supabase-types.mjs"
   },
   "dependencies": {

@@ -1,9 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 import { getSupabasePublishableKey } from "@/lib/config";
 
-export async function getSupabaseServerClient() {
+// Memoize the server client per request to avoid recreation
+export const getSupabaseServerClient = cache(async () => {
   const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = getSupabasePublishableKey();
@@ -24,4 +26,4 @@ export async function getSupabaseServerClient() {
       },
     },
   });
-}
+});

@@ -94,8 +94,7 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const daysRemaining = daysUntilTarget(now);
 
-    const [sentByStatus, doNotContact, logs, operatorsResult] = await Promise.all([
-      countPeopleByStatus(["abordado", "respondeu", "contato_confirmado"]),
+    const [doNotContact, logs, operatorsResult] = await Promise.all([
       countPeopleByStatus(["nao_abordar"]),
       listDmSentAuditLogs(),
       supabase.from("internal_users").select("id, email, full_name").eq("status", "active"),
@@ -123,6 +122,15 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       });
     }
 
+    // Get distinct people who received DMs (avoid counting duplicate DMs to same person)
+    const { data: dmsPerPerson } = await supabase
+      .from("audit_logs")
+      .select("entity_id")
+      .eq("action", "contact.dm_sent")
+      .order("entity_id");
+
+    const uniquePeopleWithDms = new Set(dmsPerPerson?.map(log => log.entity_id) ?? []);
+
     for (const log of logs) {
       const key = log.actor_id ?? log.actor_email ?? "sem-operador";
       const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
@@ -144,7 +152,8 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
     }
 
     const totalEligible = Math.max(0, (totalPeople ?? 0) - doNotContact);
-    const totalSent = Math.min(sentByStatus, totalEligible);
+    // Use audit logs as source of truth for totalSent (count unique people who received DMs)
+    const totalSent = Math.min(uniquePeopleWithDms.size, totalEligible);
     const totalRemaining = Math.max(0, totalEligible - totalSent);
     const progressPercent = totalEligible > 0 ? Math.round((totalSent / totalEligible) * 1000) / 10 : 0;
 

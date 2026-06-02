@@ -446,10 +446,11 @@ export function PeopleClient({
             <div className="space-y-2">
               {outreachGoal.operatorScores.length === 0 ? (
                 <p className="rounded-[2px] border border-white/20 p-3 text-sm font-semibold text-white/70">Nenhum envio registrado ainda.</p>
-              ) : (
-                outreachGoal.operatorScores.slice(0, 8).map((operator, index) => {
-                  const maxSent = Math.max(1, outreachGoal.operatorScores[0]?.totalSent ?? 1);
-                  const width = Math.max(4, Math.round((operator.totalSent / maxSent) * 100));
+              ) : (() => {
+                const totalSent = outreachGoal.operatorScores.reduce((sum, op) => sum + op.totalSent, 0);
+                const displayScores = outreachGoal.operatorScores.slice(0, 8);
+                return displayScores.map((operator, index) => {
+                  const width = totalSent > 0 ? Math.round((operator.totalSent / totalSent) * 100) : 0;
                   return (
                     <div key={operator.operatorId ?? operator.operatorEmail ?? index} className="rounded-[2px] border border-white/15 bg-white/5 p-3">
                       <div className="flex items-center justify-between gap-3">
@@ -463,12 +464,12 @@ export function PeopleClient({
                         </div>
                       </div>
                       <div className="mt-2 h-2 rounded-[2px] bg-white/10">
-                        <div className="h-full rounded-[2px] bg-burnt-yellow" style={{ width: `${width}%` }} />
+                        <div className="h-full rounded-[2px] bg-burnt-yellow transition-all duration-300" style={{ width: `${Math.max(0, width)}%` }} />
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </div>
         </div>

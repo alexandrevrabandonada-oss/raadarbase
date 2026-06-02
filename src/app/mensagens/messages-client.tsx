@@ -39,34 +39,7 @@ import {
   writeAnnouncementPublicationState,
   type AnnouncementChannelId,
 } from "@/lib/announcement-publications";
-
-// Play copy sound using Web Audio API (tactical feedback)
-function playCopySound() {
-  try {
-    if (typeof window !== "undefined") {
-      const isMuted = localStorage.getItem("radar_audio_muted") === "true";
-      if (isMuted) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextClass) return;
-      const ctx = new AudioContextClass();
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, now); // D5
-      osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.1); // A5
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    }
-  } catch {
-    // Ignore audio context failures gracefully
-  }
-}
+import { playCopySound } from "@/lib/audio";
 
 const publicPreCandidacyAnnouncement =
   "Comunicado publico: estou me colocando como pre-candidato para abrir uma etapa de escuta, organizacao e construcao coletiva na cidade. Vou compartilhar os proximos encontros, pautas e formas de participacao pelos canais abertos. Quem quiser acompanhar pode responder por aqui ou procurar a equipe.";
