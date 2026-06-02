@@ -16,7 +16,7 @@ export function valueOf(formData: FormData, key: string): string {
  */
 export function boolOf(formData: FormData, key: string): boolean {
   const value = formData.get(key);
-  return value === "on" || value === "true" || value === true;
+  return value === "on" || value === "true";
 }
 
 /**
