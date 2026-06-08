@@ -887,152 +887,78 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       );
     }
 
-    if (initialQueue.length > 0) {
-      return (
-        <div className="mx-auto max-w-5xl px-4 py-10">
-          <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
-            <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
-              <Trophy className="h-6 w-6" />
-            </div>
-            <div className="absolute bottom-6 right-6 text-burnt-yellow/45 animate-pulse">
-              <Sparkles className="h-6 w-6" />
-            </div>
-
-            <div className="relative flex flex-col items-center justify-center text-center space-y-8 py-12">
-              <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
-                <Flame className="h-3.5 w-3.5 fill-burnt-yellow" />
-                Fila Limpa • Vitória
-              </div>
-
-              <div className="space-y-3 max-w-2xl">
-                <h2 className="text-4xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
-                  Missão Cumprida!
-                </h2>
-                <p className="text-sm font-semibold leading-6 text-zinc-300 max-w-lg mx-auto">
-                  Excelente trabalho, <span className="text-white font-bold">{operatorName}</span>! Você processou todos os contatos da sua fila de hoje. A base de dados agora está em paz e atualizada.
-                </p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid gap-4 sm:grid-cols-3 w-full max-w-2xl mt-4">
-                <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
-                  <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Contatos Hoje</span>
-                  <span className="text-3xl font-black text-white mt-2">{initialQueue.length}</span>
-                  <span className="text-[10px] text-zinc-500 font-semibold mt-1">Concluídos na sessão</span>
-                </div>
-                <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/15 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.3)] flex flex-col items-center justify-center">
-                  <span className="text-xs font-black uppercase tracking-[0.15em] text-burnt-yellow flex items-center gap-1"><Flame className="h-3.5 w-3.5 fill-burnt-yellow" /> Ações Diárias</span>
-                  <span className="text-3xl font-black text-burnt-yellow mt-2">{streak}</span>
-                  <span className="text-[10px] text-burnt-yellow/80 font-semibold mt-1">Em sequência diária</span>
-                </div>
-                <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
-                  <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Combo Ativo</span>
-                  <span className="text-3xl font-black text-white mt-2">{multiDayStreak} {multiDayStreak === 1 ? 'Dia' : 'Dias'}</span>
-                  <span className="text-[10px] text-zinc-500 font-semibold mt-1">Frequência mantida 🔥</span>
-                </div>
-              </div>
-
-              {/* Operator Wellness & Zen Check */}
-              <div className="border-2 border-cement bg-charcoal/40 p-4 max-w-md rounded-[2px] text-xs font-semibold leading-normal text-zinc-400">
-                <p className="text-white uppercase font-black tracking-widest text-[10px] mb-1 flex items-center justify-center gap-1.5">
-                  🧘 Ritmo Concreto Zen
-                </p>
-                A consistência protege contra o burnout. Seus dias de descanso programados estão mantendo sua saúde mental e seu combo de dias protegidos. Respire, hidrate-se e descanse!
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <Button
-                  className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
-                  onClick={() => window.location.reload()}
-                >
-                  🔄 Atualizar Fila
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 shadow-[3px_3px_0px_0px_rgba(255,255,255,0.05)]"
-                  onClick={() => {
-                    playSynthSuccess();
-                  }}
-                >
-                  🔊 Tocar Comemoração
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
           <div className="absolute top-6 left-6 text-burnt-yellow/45 animate-pulse">
-            <Sparkles className="h-6 w-6" />
+            <Trophy className="h-6 w-6" />
           </div>
           <div className="absolute bottom-6 right-6 text-burnt-yellow/45 animate-pulse">
             <Sparkles className="h-6 w-6" />
           </div>
 
-          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
-            <div className="space-y-5 text-left">
-              <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
-                <Sparkles className="h-3.5 w-3.5" />
-                Primeira jornada
-              </div>
-              <div className="space-y-3">
-                <h2 className="max-w-[9ch] text-4xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
-                  Aprenda antes de operar
-                </h2>
-                <p className="max-w-xl text-sm font-semibold leading-6 text-zinc-300 md:text-base md:leading-7">
-                  Sua fila real está limpa agora. Comece pelo simulador e pela jornada guiada para entender como abordar, registrar e respeitar os limites éticos da operação.
-                </p>
-              </div>
+          <div className="relative flex flex-col items-center justify-center text-center space-y-8 py-12">
+            <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+              <Flame className="h-3.5 w-3.5 fill-burnt-yellow" />
+              Fila Limpa • Vitória
+            </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["01", "Jogar simulador"],
-                  ["02", "Ver guia do operador"],
-                  ["03", "Assumir aviso real"],
-                ].map(([step, label]) => (
-                  <div key={step} className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-burnt-yellow">{step}</p>
-                    <p className="mt-2 text-sm font-black text-white">{label}</p>
-                  </div>
-                ))}
+            <div className="space-y-3 max-w-2xl">
+              <h2 className="text-4xl font-black uppercase leading-none tracking-tight text-white md:text-6xl">
+                {initialQueue.length > 0 ? "Missão Cumprida!" : "Fila Limpa!"}
+              </h2>
+              <p className="text-sm font-semibold leading-6 text-zinc-300 max-w-lg mx-auto">
+                {initialQueue.length > 0 ? (
+                  <>Excelente trabalho, <span className="text-white font-bold">{operatorName}</span>! Você processou todos os contatos da sua fila de hoje. A base de dados agora está em paz e atualizada.</>
+                ) : (
+                  <>Olá, <span className="text-white font-bold">{operatorName}</span>! Sua fila de prioridades está totalmente limpa hoje. A base de dados está em paz e atualizada.</>
+                )}
+              </p>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid gap-4 sm:grid-cols-3 w-full max-w-2xl mt-4">
+              <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Contatos Hoje</span>
+                <span className="text-3xl font-black text-white mt-2">{initialQueue.length}</span>
+                <span className="text-[10px] text-zinc-500 font-semibold mt-1">Concluídos na sessão</span>
+              </div>
+              <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/15 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.3)] flex flex-col items-center justify-center">
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-burnt-yellow flex items-center gap-1"><Flame className="h-3.5 w-3.5 fill-burnt-yellow" /> Ações Diárias</span>
+                <span className="text-3xl font-black text-burnt-yellow mt-2">{streak}</span>
+                <span className="text-[10px] text-burnt-yellow/80 font-semibold mt-1">Em sequência diária</span>
+              </div>
+              <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Combo Ativo</span>
+                <span className="text-3xl font-black text-white mt-2">{multiDayStreak} {multiDayStreak === 1 ? 'Dia' : 'Dias'}</span>
+                <span className="text-[10px] text-zinc-500 font-semibold mt-1">Frequência mantida 🔥</span>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow p-5 text-charcoal shadow-[4px_4px_0px_0px_rgba(231,224,210,0.35)]">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[2px] border-2 border-charcoal bg-off-white">
-                    <Play className="h-6 w-6 fill-charcoal text-charcoal" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em]">Simulador interativo</p>
-                    <h3 className="mt-1 text-2xl font-black tracking-tight">Estação VR Abandonada</h3>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-charcoal/80">
-                      Treine três decisões reais: abordagem manual, privacidade e fechamento de coordenação.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  className="mt-5 h-12 w-full rounded-[2px] border-2 border-charcoal bg-charcoal px-6 text-xs font-black uppercase tracking-wider text-off-white hover:bg-charcoal/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,0.4)]"
-                  nativeButton={false}
-                  render={<Link href="/treinamento/mini-game" />}
-                >
-                  Jogar mini game <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+            {/* Operator Wellness & Zen Check */}
+            <div className="border-2 border-cement bg-charcoal/40 p-4 max-w-md rounded-[2px] text-xs font-semibold leading-normal text-zinc-400">
+              <p className="text-white uppercase font-black tracking-widest text-[10px] mb-1 flex items-center justify-center gap-1.5">
+                🧘 Ritmo Concreto Zen
+              </p>
+              A consistência protege contra o burnout. Seus dias de descanso programados estão mantendo sua saúde mental e seu combo de dias protegidos. Respire, hidrate-se e descanse!
+            </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] sm:col-span-2"
-                  onClick={() => window.location.reload()}
-                >
-                  🔄 Recarregar e Buscar Avisos
-                </Button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
+                onClick={() => window.location.reload()}
+              >
+                🔄 Atualizar Fila
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15 shadow-[3px_3px_0px_0px_rgba(255,255,255,0.05)]"
+                onClick={() => {
+                  playSynthSuccess();
+                }}
+              >
+                🔊 Tocar Comemoração
+              </Button>
             </div>
           </div>
         </div>
