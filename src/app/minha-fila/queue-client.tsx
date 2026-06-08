@@ -77,6 +77,11 @@ interface QueueClientProps {
   oldPendencies?: PriorityPerson[];
   operatorName: string;
   missionPlan?: QueueMissionPlan | null;
+  dailyStats: {
+    mySentCount: number;
+    othersSentCount: number;
+    goal: number;
+  };
 }
 
 const RESPONSE_OPTIONS: Array<{
@@ -231,10 +236,15 @@ function getDailyGoalStatus(streak: number) {
   }
 }
 
-export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null }: QueueClientProps) {
+export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null, dailyStats }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
+  const [stats, setStats] = useState(() => ({
+    mySent: dailyStats?.mySentCount || 0,
+    othersSent: dailyStats?.othersSentCount || 0,
+    goal: dailyStats?.goal || 15,
+  }));
   const [filterQuentes, setFilterQuentes] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -330,6 +340,11 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       }
       return next;
     });
+
+    setStats((prev) => ({
+      ...prev,
+      mySent: prev.mySent + 1,
+    }));
 
     if (typeof window !== "undefined") {
       const updated = updateStreakOnActivity();
@@ -919,19 +934,23 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             {/* Stats Grid */}
             <div className="grid gap-4 sm:grid-cols-3 w-full max-w-2xl mt-4">
               <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
-                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Contatos Hoje</span>
-                <span className="text-3xl font-black text-white mt-2">{initialQueue.length}</span>
-                <span className="text-[10px] text-zinc-500 font-semibold mt-1">Concluídos na sessão</span>
-              </div>
-              <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/15 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.3)] flex flex-col items-center justify-center">
-                <span className="text-xs font-black uppercase tracking-[0.15em] text-burnt-yellow flex items-center gap-1"><Flame className="h-3.5 w-3.5 fill-burnt-yellow" /> Ações Diárias</span>
-                <span className="text-3xl font-black text-burnt-yellow mt-2">{streak}</span>
-                <span className="text-[10px] text-burnt-yellow/80 font-semibold mt-1">Em sequência diária</span>
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Você Enviou</span>
+                <span className="text-3xl font-black text-white mt-2">{stats.mySent}</span>
+                <span className="text-[10px] text-zinc-500 font-semibold mt-1">DMs confirmadas hoje</span>
               </div>
               <div className="rounded-[2px] border-2 border-cement bg-charcoal/60 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.15)] flex flex-col items-center justify-center">
-                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Combo Ativo</span>
-                <span className="text-3xl font-black text-white mt-2">{multiDayStreak} {multiDayStreak === 1 ? 'Dia' : 'Dias'}</span>
-                <span className="text-[10px] text-zinc-500 font-semibold mt-1">Frequência mantida 🔥</span>
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-zinc-400">Outros Enviaram</span>
+                <span className="text-3xl font-black text-white mt-2">{stats.othersSent}</span>
+                <span className="text-[10px] text-zinc-500 font-semibold mt-1">DMs da equipe hoje</span>
+              </div>
+              <div className="rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/15 p-5 text-center shadow-[3px_3px_0px_0px_rgba(242,169,0,0.3)] flex flex-col items-center justify-center">
+                <span className="text-xs font-black uppercase tracking-[0.15em] text-burnt-yellow flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5 fill-burnt-yellow" /> Falta para a Meta
+                </span>
+                <span className="text-3xl font-black text-burnt-yellow mt-2">
+                  {Math.max(0, stats.goal - stats.mySent)}
+                </span>
+                <span className="text-[10px] text-burnt-yellow/80 font-semibold mt-1">Meta: {stats.goal} DMs</span>
               </div>
             </div>
 

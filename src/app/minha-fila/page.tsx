@@ -11,6 +11,7 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { QueueClient } from "./queue-client";
 import { Metadata } from "next";
 import { shouldUseMockData } from "@/lib/config";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 
 export const metadata: Metadata = {
@@ -25,15 +26,47 @@ export default async function MinhaFilaPage() {
 
   let priorityPeople;
   let outreachTasks;
+  let dailyStats = {
+    mySentCount: 0,
+    othersSentCount: 0,
+    goal: 15,
+  };
+
   try {
-    [priorityPeople, outreachTasks] = await Promise.all([
-      shouldUseMockData()
+    const isMock = shouldUseMockData();
+    const [priorityPeopleRes, outreachTasksRes, todayLogsRes] = await Promise.all([
+      isMock
         ? listPriorityPeople()
         : listPriorityPeople({ responsibleId: session.internalUser.id, limit: 1000 }),
-      shouldUseMockData()
+      isMock
         ? listOutreachTasks()
         : listOutreachTasks({ responsibleId: session.internalUser.id }),
+      isMock
+        ? Promise.resolve({ data: null })
+        : getSupabaseAdminClient()
+            .from("audit_logs")
+            .select("actor_id, actor_email")
+            .eq("action", "contact.dm_sent")
+            .gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     ]);
+
+    priorityPeople = priorityPeopleRes;
+    outreachTasks = outreachTasksRes;
+
+    if (isMock) {
+      dailyStats.mySentCount = 5;
+      dailyStats.othersSentCount = 12;
+    } else if (todayLogsRes && todayLogsRes.data) {
+      const myId = session.internalUser.id;
+      const myEmail = session.email;
+      todayLogsRes.data.forEach((log: any) => {
+        if (log.actor_id === myId || log.actor_email === myEmail) {
+          dailyStats.mySentCount++;
+        } else {
+          dailyStats.othersSentCount++;
+        }
+      });
+    }
   } catch (error) {
     return (
       <AppShell>
@@ -51,9 +84,23 @@ export default async function MinhaFilaPage() {
     ? (priorityPeople || []).filter(person => !person.responsibleId || person.responsibleId === "e2e-internal-user")
     : (priorityPeople || []);
 
-  const oldPendencies = myQueue.filter(person => person.isPendingResponse);
+  // Filtrar pessoas que ainda faltam mandar mensagens
+  const filteredQueue = myQueue.filter(person => {
+    // 1. Excluir quem tem restrição ética ou está marcado para não abordar
+    if (person.status === "nao_abordar" || person.doNotContactReason) return false;
+    
+    // 2. Excluir quem já confirmou contato ou concluiu o ciclo (contato_confirmado)
+    if (person.status === "contato_confirmado") return false;
+    
+    // 3. Excluir quem já possui encaminhamento (hasReferral)
+    if (person.hasReferral) return false;
+    
+    return true;
+  });
 
-  const activeQueue = myQueue.filter(person => !person.isPendingResponse);
+  const oldPendencies = filteredQueue.filter(person => person.isPendingResponse);
+
+  const activeQueue = filteredQueue.filter(person => !person.isPendingResponse);
 
   let missionPlan = null;
   let orderedActiveQueue = activeQueue;
@@ -97,6 +144,7 @@ export default async function MinhaFilaPage() {
         oldPendencies={oldPendencies}
         missionPlan={missionPlan}
         operatorName={session.internalUser.full_name || session.email || "Operador"} 
+        dailyStats={dailyStats}
       />
     </AppShell>
   );
