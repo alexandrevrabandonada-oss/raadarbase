@@ -236,12 +236,31 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
   const [filterQuentes, setFilterQuentes] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const filteredQueue = useMemo(() => {
-    if (!filterQuentes) return queue;
-    return queue.filter((p) => p.temperature === "quente");
-  }, [queue, filterQuentes]);
+    let result = queue;
+    if (filterQuentes) {
+      result = result.filter((p) => p.temperature === "quente");
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (p) =>
+          (p.displayName && p.displayName.toLowerCase().includes(q)) ||
+          p.username.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [queue, filterQuentes, searchQuery]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentPerson = filteredQueue[currentIndex];
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [searchQuery, filterQuentes]);
   const [isPending, startTransition] = useTransition();
   const [sunMode, setSunMode] = useState(false);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
@@ -761,6 +780,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           e.preventDefault();
           setShowShortcutsDialog(true);
           break;
+        case "/":
+          e.preventDefault();
+          searchInputRef.current?.focus();
+          break;
         default:
           break;
       }
@@ -793,6 +816,37 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   if (filteredQueue.length === 0) {
     if (queue.length > 0) {
+      if (searchQuery.trim()) {
+        return (
+          <div className="mx-auto max-w-5xl px-4 py-10">
+            <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
+              <div className="relative flex flex-col items-center justify-center text-center space-y-6 py-12">
+                <div className="inline-flex items-center gap-2 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">
+                  🔍 Busca Ativa
+                </div>
+                <div className="space-y-3 max-w-lg">
+                  <h2 className="text-3xl font-black uppercase leading-none tracking-tight text-white md:text-5xl">
+                    Nenhum resultado
+                  </h2>
+                  <p className="text-sm font-semibold leading-6 text-zinc-300">
+                    Nenhum contato na fila corresponde ao termo &ldquo;<strong className="text-white">{searchQuery}</strong>&rdquo;.
+                  </p>
+                </div>
+
+                <Button
+                  className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
+                  onClick={() => {
+                    playSynthConfirm();
+                    setSearchQuery("");
+                  }}
+                >
+                  Limpar Busca
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="mx-auto max-w-5xl px-4 py-10">
           <div className="relative overflow-hidden rounded-[2px] border-2 border-black bg-charcoal p-6 text-white shadow-[6px_6px_0px_0px_rgba(242,169,0,0.3)] md:p-8">
@@ -889,10 +943,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)]"
-                  nativeButton={false}
-                  render={<Link href="/dashboard" />}
+                  onClick={() => window.location.reload()}
                 >
-                  Ir para o Painel
+                  🔄 Atualizar Fila
                 </Button>
                 <Button
                   variant="outline"
@@ -974,20 +1027,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <Button
-                  variant="outline"
-                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15"
-                  nativeButton={false}
-                  render={<Link href="/treinamento" />}
+                  className="h-12 rounded-[2px] border-2 border-black bg-burnt-yellow px-6 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-burnt-yellow/90 shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] sm:col-span-2"
+                  onClick={() => window.location.reload()}
                 >
-                  <Trophy className="mr-2 h-4 w-4" /> Jornada guiada
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-12 rounded-[2px] border-2 border-cement bg-charcoal text-xs font-black uppercase tracking-wider text-off-white hover:bg-cement/15"
-                  nativeButton={false}
-                  render={<Link href="/abordagem?filter=sem_responsavel" />}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Assumir aviso real
+                  🔄 Recarregar e Buscar Avisos
                 </Button>
               </div>
             </div>
@@ -1031,78 +1074,98 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   return (
     <div className={cn("transition-colors duration-300 w-full min-h-screen", sunMode ? "sun-mode bg-[#FFF7CD] pb-24" : "")}>
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20">
-        <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 pt-4 border-b border-cement/15 pb-3 w-full">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
-              Filtro:
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-b border-cement/15 pb-4 w-full">
+          <div className="flex items-center gap-2 w-full sm:w-80">
+            <span className="text-[10px] font-black uppercase tracking-widest text-cement shrink-0">
+              Buscar:
             </span>
-            <button
-              onClick={() => {
-                playSynthConfirm();
-                setFilterQuentes(!filterQuentes);
-                setCurrentIndex(0);
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Nome ou @usuario... (Atalho: /)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.currentTarget.blur();
+                }
               }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-                filterQuentes
-                  ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-              )}
-            >
-              🔥 Foco nas Mais Engajadas
-            </button>
+              className="w-full h-8 px-3 border-2 border-black rounded-[2px] bg-white text-xs font-semibold text-charcoal focus:ring-0 focus:outline-none placeholder:text-cement/70 shadow-[1.5px_1.5px_0px_0px_rgba(11,11,11,1)]"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
-              Envio:
-            </span>
-            <button
-              onClick={() => {
-                playSynthConfirm();
-                handleToggleExpressMode();
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-                expressMode
-                  ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-              )}
-            >
-              🚀 Envio Expresso {expressMode ? "Ativo" : "Inativo"}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
-              Visualização:
-            </span>
-            <button
-              onClick={() => {
-                playSynthConfirm();
-                setSunMode(!sunMode);
-              }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
-                sunMode
-                  ? "border-black bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] animate-pulse"
-                  : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
-              )}
-            >
-              {sunMode ? "☀️ Modo Sol Ativo" : "🔆 Ativar Modo Sol"}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-cement">
-              Ajuda:
-            </span>
-            <button
-              onClick={() => {
-                playSynthConfirm();
-                setShowShortcutsDialog(true);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1 border-2 border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all"
-            >
-              ⌨️ Atalhos (?)
-            </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+                Filtro:
+              </span>
+              <button
+                onClick={() => {
+                  playSynthConfirm();
+                  setFilterQuentes(!filterQuentes);
+                  setCurrentIndex(0);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                  filterQuentes
+                    ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                    : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                )}
+              >
+                🔥 Quentes
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+                Envio:
+              </span>
+              <button
+                onClick={() => {
+                  playSynthConfirm();
+                  handleToggleExpressMode();
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                  expressMode
+                    ? "border-black bg-burnt-yellow text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                    : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                )}
+              >
+                🚀 Expresso {expressMode ? "Ativo" : "Inativo"}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+                Visualização:
+              </span>
+              <button
+                onClick={() => {
+                  playSynthConfirm();
+                  setSunMode(!sunMode);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 border-2 text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all",
+                  sunMode
+                    ? "border-black bg-white text-charcoal shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] animate-pulse"
+                    : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
+                )}
+              >
+                {sunMode ? "☀️ Sol" : "🔆 Sol"}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-cement">
+                Ajuda:
+              </span>
+              <button
+                onClick={() => {
+                  playSynthConfirm();
+                  setShowShortcutsDialog(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 border-2 border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal text-[10px] font-black uppercase tracking-wider rounded-[2px] transition-all"
+              >
+                ⌨️ Atalhos (?)
+              </button>
+            </div>
           </div>
         </div>
       {focusMode ? (
@@ -1376,15 +1439,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <Button
                   variant="outline"
                   className="h-12 border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
-                  nativeButton={false}
-                  render={<Link href="/abordagem" />}
-                >
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Quadro de Avisos
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-12 border-2 border-black bg-white text-charcoal hover:bg-burnt-yellow rounded-[2px] shadow-[3px_3px_0px_0px_rgba(11,11,11,1)] transition-all"
                   onClick={openZenSettings}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
@@ -1480,9 +1534,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               },
             ]}
             shortcutAction={{
-              label: "Abrir Central de Ritmo",
-              href: "/ritmo",
-              icon: TowerControl,
+              label: "Fila de Prioridades",
+              href: "/minha-fila",
+              icon: Route,
             }}
           />
 
@@ -1640,7 +1694,15 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
             <aside className="space-y-6">
               {isCompact ? (
-                <QueueList tasks={filteredQueue} currentIndex={currentIndex} onSelect={setCurrentIndex} compact />
+                <QueueList
+                  tasks={filteredQueue}
+                  currentPersonId={currentPerson?.id || ""}
+                  onSelect={(personId) => {
+                    const idx = filteredQueue.findIndex((p) => p.id === personId);
+                    if (idx >= 0) setCurrentIndex(idx);
+                  }}
+                  compact
+                />
               ) : null}
               {recommendedMissions.length > 0 ? (
                 <Card className="bloco-concreto relative overflow-hidden py-0">
@@ -1739,16 +1801,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                         description="Ao concluir este bloco, faça uma pausa antes de abrir mais conversas."
                       />
                     ) : null}
-                    {wellness.level !== "healthy" ? (
-                      <Button
-                        variant="outline"
-                        className="h-11 border-2 border-black bg-white rounded-[2px] text-xs font-black uppercase tracking-wider hover:bg-burnt-yellow"
-                        nativeButton={false}
-                        render={<Link href="/abordagem?filter=sem_responsavel" />}
-                      >
-                        Redistribuir com coordenação
-                      </Button>
-                    ) : null}
+                    {/* Botão de redistribuição desativado no modo foco */}
                   </div>
                 </CardContent>
               </Card>
@@ -1904,7 +1957,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <p className="text-xs leading-relaxed text-cement font-semibold">
                   As próximas cinco aparecem como caminho imediato da jornada. O foco continua em uma pessoa por vez, sem virar fila infinita.
                 </p>
-                {!isCompact ? <QueueList tasks={filteredQueue} currentIndex={currentIndex} onSelect={setCurrentIndex} /> : null}
+                {!isCompact ? (
+                  <QueueList
+                    tasks={filteredQueue}
+                    currentPersonId={currentPerson?.id || ""}
+                    onSelect={(personId) => {
+                      const idx = filteredQueue.findIndex((p) => p.id === personId);
+                      if (idx >= 0) setCurrentIndex(idx);
+                    }}
+                  />
+                ) : null}
               </CardContent>
             </Card>
           </section>

@@ -52,166 +52,14 @@ type NavGroup = {
 
 const navigation: NavGroup[] = [
   {
-    label: "Base",
-    description: "Centro da operação.",
-    items: [
-      {
-        href: "/dashboard",
-        label: "Base de Operações",
-        icon: LayoutDashboard,
-        microcopy: "Ver sinais, missão do dia e portais da operação.",
-      },
-    ],
-  },
-  {
     label: "Jornada",
-    description: "Missões e vínculos.",
+    description: "Fila de envios prioritários.",
     items: [
       {
         href: "/minha-fila",
         label: "Minha Jornada",
         icon: Route,
-        microcopy: "Continuar a próxima missão com trilha guiada.",
-      },
-      {
-        href: "/pessoas",
-        label: "Prioridades da Equipe",
-        icon: Flame,
-        microcopy: "Ler contexto, risco e próxima ação dos vínculos.",
-      },
-      {
-        href: "/abordagem",
-        label: "Mural de Missões",
-        icon: KanbanSquare,
-        microcopy: "Mover cada missão entre preparar, conversar e concluir.",
-      },
-      {
-        href: "/mensagens",
-        label: "Modelos de Mensagem",
-        icon: MessageSquareText,
-        microcopy: "Preparar abordagens humanas com guardrails claros.",
-      },
-    ],
-  },
-  {
-    label: "Território",
-    description: "Bairros, temas e tração.",
-    items: [
-      {
-        href: "/relatorios/territorios",
-        label: "Mapa da Mobilização",
-        icon: Map,
-        microcopy: "Ler calor, fase e ação recomendada por bairro.",
-        match: ["/territorios", "/relatorios/territorios"],
-      },
-      {
-        href: "/temas",
-        label: "Temas e Pautas",
-        icon: Hash,
-        microcopy: "Ver o que puxa território, campo e continuidade.",
-      },
-    ],
-  },
-  {
-    label: "Campo",
-    description: "Convites, presença e fechamento.",
-    items: [
-      {
-        href: "/campo",
-        label: "Missões de Campo",
-        icon: Landmark,
-        microcopy: "Acompanhar convites, confirmações e follow-up.",
-      },
-      {
-        href: "/voluntarios",
-        label: "Base de Voluntários",
-        icon: Users,
-        microcopy: "Cuidar da presença recorrente e apoio à campanha.",
-      },
-    ],
-  },
-  {
-    label: "Memória",
-    description: "Aprendizados e continuidade.",
-    items: [
-      {
-        href: "/memoria",
-        label: "Memória da Equipe",
-        icon: Lightbulb,
-        microcopy: "Revisar registros que sustentam decisões futuras.",
-      },
-      {
-        href: "/relatorios",
-        label: "Relatórios e Piloto",
-        icon: BookOpenCheck,
-        microcopy: "Fechar ciclos, publicar leituras e abrir decisões.",
-      },
-    ],
-  },
-  {
-    label: "Comando",
-    description: "Ritmo e coordenação.",
-    items: [
-      {
-        href: "/ritmo",
-        label: "Central de Ritmo",
-        icon: Gauge,
-        microcopy: "Ver carga, travas e cuidado da base.",
-      },
-      {
-        href: "/acoes",
-        label: "Plano de Ação",
-        icon: ClipboardList,
-        microcopy: "Transformar leitura em campanhas e frentes concretas.",
-      },
-      {
-        href: "/execucao",
-        label: "Execução",
-        icon: Play,
-        microcopy: "Acompanhar o que já está rodando em campo e rede.",
-      },
-      {
-        href: "/radar/silencios",
-        label: "Ações Sugeridas",
-        icon: Radar,
-        microcopy: "Ler silêncios e descobrir onde agir em seguida.",
-      },
-    ],
-  },
-  {
-    label: "Sistema",
-    description: "Infraestrutura e governança.",
-    collapsible: true,
-    items: [
-      {
-        href: "/integracoes/meta",
-        label: "Conexão Instagram",
-        icon: Cable,
-        microcopy: "Ver integração, sync e saúde da entrada de dados.",
-      },
-      {
-        href: "/operacao",
-        label: "Saúde do Sistema",
-        icon: Activity,
-        microcopy: "Conferir filas técnicas, syncs e estabilidade.",
-      },
-      {
-        href: "/operacao/incidentes",
-        label: "Incidentes",
-        icon: AlertCircle,
-        microcopy: "Rastrear eventos críticos e pontos de atenção.",
-      },
-      {
-        href: "/governanca",
-        label: "Ética e Dados",
-        icon: ShieldCheck,
-        microcopy: "Auditar guardrails, risco e revisão de dados.",
-      },
-      {
-        href: "/configuracoes",
-        label: "Configurações",
-        icon: Settings,
-        microcopy: "Ajustar parâmetros operacionais do ambiente.",
+        microcopy: "Continuar o fluxo de envio prioritário guiado.",
       },
     ],
   },
@@ -280,7 +128,7 @@ export function Sidebar({
         className,
       )}
     >
-      <Link href="/dashboard" className="mb-5 shrink-0 rounded-[4px] border-2 border-cement bg-charcoal p-4 shadow-[4px_4px_0px_0px_rgba(242,169,0,0.85)]">
+      <Link href="/minha-fila" className="mb-5 shrink-0 rounded-[4px] border-2 border-cement bg-charcoal p-4 shadow-[4px_4px_0px_0px_rgba(242,169,0,0.85)]">
         <div className="flex items-center gap-3">
           <div className="flex size-11 items-center justify-center rounded-[2px] border-2 border-burnt-yellow bg-charcoal overflow-hidden shadow-[2px_2px_0px_0px_rgba(242,169,0,0.4)]">
             <Image src="/logo.png" className="size-full object-cover" alt="RB logo" width={44} height={44} />

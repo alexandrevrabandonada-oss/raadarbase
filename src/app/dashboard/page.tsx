@@ -1,6 +1,7 @@
 import AppShell from "@/components/app-shell";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
+import { redirect } from "next/navigation";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPilotDashboardData } from "@/lib/data/pilot-stats";
 import { listPriorityPeople } from "@/lib/data/people-priority";
@@ -424,39 +425,5 @@ async function loadDashboardData(session: Awaited<ReturnType<typeof requireInter
 }
 
 export default async function DashboardPage() {
-  const session = await requireInternalPageSession("/dashboard");
-
-  let loaded:
-    | Awaited<ReturnType<typeof loadDashboardData>>
-    | null = null;
-  let loadError: string | null = null;
-
-  try {
-    loaded = await loadDashboardData(session);
-  } catch (error) {
-    loadError = error instanceof Error ? error.message : "Não foi possível carregar o hub principal do sistema.";
-  }
-
-  if (!loaded) {
-    return (
-      <AppShell>
-        <RuntimeAlert
-          title="Falha ao carregar a Base de Operações"
-          description={loadError ?? "Não foi possível carregar o hub principal do sistema."}
-        />
-      </AppShell>
-    );
-  }
-
-  return (
-    <AppShell>
-      <DashboardClient
-        session={session}
-        priorityPeople={loaded.priorityPeople}
-        myQueueCount={loaded.myQueueCount}
-        cycleAlerts={loaded.cycleAlerts}
-        data={loaded.dashboardData}
-      />
-    </AppShell>
-  );
+  redirect("/minha-fila");
 }

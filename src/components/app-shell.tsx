@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { PwaInstallCta } from "@/components/pwa-install-cta";
-import { AdventureStrip } from "@/components/radar/adventure-strip";
 import { getAdventureProgress } from "@/lib/data/adventure-progress";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
@@ -36,7 +35,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
         <PwaInstallCta />
       </div>
 
-      <AdventureStrip progress={adventureProgress} />
+      {/* Adventure progress strip hidden for priority flow focus */}
 
       <div className="mx-auto flex w-full max-w-[1680px] flex-1 flex-col xl:flex-row">
         {/* Desktop Sidebar (Hidden on mobile) */}
