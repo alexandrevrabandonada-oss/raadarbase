@@ -72,6 +72,8 @@ import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import { buildRecommendedMissionBlock, type MinhaJornadaWorkMode, type QueueMissionPlan } from "@/lib/missions/queue-mission-adapter";
 
+import type { MessageTemplate } from "@/lib/types";
+
 interface QueueClientProps {
   initialQueue: PriorityPerson[];
   oldPendencies?: PriorityPerson[];
@@ -82,6 +84,7 @@ interface QueueClientProps {
     othersSentCount: number;
     goal: number;
   };
+  templates?: MessageTemplate[];
 }
 
 const RESPONSE_OPTIONS: Array<{
@@ -236,7 +239,7 @@ function getDailyGoalStatus(streak: number) {
   }
 }
 
-export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null, dailyStats }: QueueClientProps) {
+export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null, dailyStats, templates = [] }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
   const [queue, setQueue] = useState(initialQueue);
@@ -352,6 +355,32 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     if (!currentPerson) return;
     setEditedMessages((current) => ({ ...current, [currentPerson.id]: text }));
   };
+
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Record<string, string>>({});
+  const selectedTemplateId = currentPerson
+    ? (selectedTemplateIds[currentPerson.id] ?? currentPerson.suggestedTemplateId ?? "")
+    : "";
+
+  const handleTemplateChange = useCallback((templateId: string) => {
+    if (!currentPerson) return;
+    setSelectedTemplateIds((current) => ({ ...current, [currentPerson.id]: templateId }));
+    
+    if (!templateId) {
+      updateEditedMessage("");
+      return;
+    }
+    
+    const t = templates.find((x) => x.id === templateId);
+    if (t) {
+      const resolved = t.body
+        .replaceAll("{username}", currentPerson.username.replace(/^@+/, ""))
+        .replaceAll("{tema}", currentPerson.mainTheme ?? "a pauta que você trouxe")
+        .replaceAll("{link_grupo}", "[link do grupo]")
+        .replaceAll("{link_formulario}", "[link do formulário]")
+        .replaceAll("@@", "@");
+      updateEditedMessage(resolved);
+    }
+  }, [currentPerson, templates]);
 
   const [focusMode, setFocusMode] = useState(false);
   const [expressMode, setExpressMode] = useState(() => {
@@ -634,10 +663,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
       if (expressMode) {
         toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato avançado!" });
-        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
         
         startTransition(async () => {
-          const confirmResult = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+          const confirmResult = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
           if (confirmResult.ok) {
             const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
             if (responseResult.ok) {
@@ -658,7 +687,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         });
       } else {
         toast({ title: "Mensagem copiada e direct aberto", description: "Envie a mensagem no Instagram e confirme." });
-        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
         setCopyStatus("waiting");
       }
     }
@@ -672,12 +701,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     queue,
     filterQuentes,
     currentIndex,
+    selectedTemplateId,
   ]);
 
   const handleConfirmSent = useCallback(async () => {
     if (!currentPerson) return;
     startTransition(async () => {
-      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", currentPerson.suggestedTemplateId], toast);
+      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
       if (result.ok) {
         const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
         if (responseResult.ok) {
@@ -702,7 +732,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         toast({ title: "Erro", description: result.error, variant: "destructive" });
       }
     });
-  }, [currentPerson, toast, startTransition, incrementStreak, queue, filterQuentes, currentIndex]);
+  }, [currentPerson, toast, startTransition, incrementStreak, queue, filterQuentes, currentIndex, selectedTemplateId]);
 
   const handlePostSendResponse = async (kind: PersonResponseKind) => {
     startTransition(async () => {
@@ -1318,6 +1348,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               focusMode={focusMode}
               editedMessage={editedMessage}
               setEditedMessage={updateEditedMessage}
+              templates={templates}
+              selectedTemplateId={selectedTemplateId}
+              onTemplateChange={handleTemplateChange}
             />
 
             <div className="flex items-center justify-between pt-2 pb-24 md:pb-0">
@@ -1673,6 +1706,11 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 onConfirmSent={handleConfirmSent}
                 onCancelCopy={() => setCopyStatus("idle")}
                 focusMode={focusMode}
+                editedMessage={editedMessage}
+                setEditedMessage={updateEditedMessage}
+                templates={templates}
+                selectedTemplateId={selectedTemplateId}
+                onTemplateChange={handleTemplateChange}
               />
 
               {isCompact ? (

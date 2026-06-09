@@ -5,6 +5,7 @@ import { getOutreachGoalStats } from "@/lib/data/outreach-goal";
 import { listPriorityPeople } from "@/lib/data/people-priority";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { PeopleClient } from "./people-client";
+import { listMessageTemplates } from "@/lib/data/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,14 @@ export default async function PessoasPage() {
   let people;
   let operators;
   let outreachGoal;
+  let templates = [];
   try {
-    const [mainPeople, sentPeople, activeOperators, goalStats] = await Promise.all([
+    const [mainPeople, sentPeople, activeOperators, goalStats, templatesRes] = await Promise.all([
       listPriorityPeople({ statuses: ["novo", "responder"], limit: 1000 }),
       listPriorityPeople({ statuses: ["abordado", "respondeu", "contato_confirmado"], limit: 300 }),
       import("../abordagem/team-actions").then(m => m.getActiveOperators()),
       getOutreachGoalStats(),
+      listMessageTemplates(),
     ]);
     const seen = new Set<string>();
     people = [...sentPeople, ...mainPeople].filter((person) => {
@@ -29,6 +32,7 @@ export default async function PessoasPage() {
     });
     operators = activeOperators;
     outreachGoal = goalStats;
+    templates = (templatesRes || []).filter((t) => t.active);
   } catch (error) {
     return (
       <AppShell>
@@ -54,6 +58,7 @@ export default async function PessoasPage() {
         operators={operators}
         outreachGoal={outreachGoal}
         currentOperatorId={session.internalUser.id}
+        templates={templates}
       />
     </AppShell>
   );

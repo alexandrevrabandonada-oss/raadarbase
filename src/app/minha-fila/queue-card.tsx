@@ -1,6 +1,6 @@
 "use client";
 
-import { PriorityPerson } from "@/lib/types";
+import { PriorityPerson, MessageTemplate } from "@/lib/types";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import {
   Instagram,
@@ -39,6 +39,9 @@ interface QueueCardProps {
   focusMode?: boolean;
   editedMessage?: string;
   setEditedMessage?: (text: string) => void;
+  templates?: MessageTemplate[];
+  selectedTemplateId?: string;
+  onTemplateChange?: (templateId: string) => void;
 }
 
 function resolvePhaseRibbon(person: PriorityPerson) {
@@ -92,6 +95,9 @@ export function QueueCard({
   focusMode = false,
   editedMessage = "",
   setEditedMessage,
+  templates = [],
+  selectedTemplateId = "",
+  onTemplateChange,
 }: QueueCardProps) {
   const isBlocked = Boolean(contactDisabled || mission?.state === "BLOQUEADA" || mission?.guardrail.blocksContact || person.riskFlags.doNotContact);
   const phase = resolvePhaseRibbon(person);
@@ -189,9 +195,26 @@ export function QueueCard({
           <div className="space-y-5">
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
-                  Mensagem para envio individual
-                </label>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
+                  <label className="block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                    Mensagem para envio individual
+                  </label>
+                  {templates.length > 0 && onTemplateChange && (
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => onTemplateChange(e.target.value)}
+                      className="text-xs font-black uppercase tracking-tight bg-white border-2 border-black rounded-[2px] px-2.5 py-1 text-charcoal focus:ring-0 focus:outline-none cursor-pointer shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                      disabled={isBlocked}
+                    >
+                      <option value="">-- Personalizado / Nenhum --</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 <div className="relative">
                   {setEditedMessage ? (
                     <textarea
@@ -466,9 +489,26 @@ export function QueueCard({
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
-                    Mensagem para envio individual
-                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.24em] text-cement">
+                      Mensagem para envio individual
+                    </label>
+                    {templates.length > 0 && onTemplateChange && (
+                      <select
+                        value={selectedTemplateId}
+                        onChange={(e) => onTemplateChange(e.target.value)}
+                        className="text-xs font-black uppercase tracking-tight bg-white border-2 border-black rounded-[2px] px-2.5 py-1 text-charcoal focus:ring-0 focus:outline-none cursor-pointer shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
+                        disabled={isBlocked}
+                      >
+                        <option value="">-- Personalizado / Nenhum --</option>
+                        {templates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                   <div className="relative">
                     {setEditedMessage ? (
                       <textarea

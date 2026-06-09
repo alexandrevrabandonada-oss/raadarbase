@@ -34,7 +34,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType, PersonReferralStatus } from "@/lib/types";
+import type { PriorityPerson, InteractionWithPost, PersonResponseKind, PersonReferralType, PersonReferralStatus, MessageTemplate } from "@/lib/types";
 import { PersonScoreBadge } from "./person-score-badge";
 import { AnnouncementStatusBadge } from "./announcement-status-badge";
 import { useToast } from "@/hooks/use-toast";
@@ -148,6 +148,7 @@ interface PersonQuickSheetProps {
   onNextPerson?: () => void;
   isTraining?: boolean;
   onTrainingAction?: (action: string, payload?: unknown) => void;
+  templates?: MessageTemplate[];
 }
 
 type QuickSheetMissionView = {
@@ -243,7 +244,8 @@ export function PersonQuickSheet({
   onActionComplete,
   onNextPerson,
   isTraining,
-  onTrainingAction 
+  onTrainingAction,
+  templates = []
 }: PersonQuickSheetProps) {
   const [isMobile, setIsMobile] = React.useState(false);
   const router = useRouter();
@@ -274,6 +276,7 @@ export function PersonQuickSheet({
 
   const [copyStatus, setCopyStatus] = React.useState<"idle" | "sending" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = React.useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState("");
 
   const loadHistory = React.useCallback(async (personId: string) => {
     if (isTraining) {
@@ -315,6 +318,7 @@ export function PersonQuickSheet({
     setSelectedEventId("manual");
     setNote(person.notes || "");
     setEditedMessage(person.suggestedMessage || "");
+    setSelectedTemplateId(person.suggestedTemplateId || "");
 
     const timeoutId = window.setTimeout(() => {
       loadHistory(person.id);
@@ -332,6 +336,25 @@ export function PersonQuickSheet({
     const timeoutId = window.setTimeout(loadEvents, 0);
     return () => window.clearTimeout(timeoutId);
   }, [activeModal, events.length, loadEvents]);
+
+  const handleTemplateChange = (templateId: string) => {
+    if (!person) return;
+    setSelectedTemplateId(templateId);
+    if (!templateId) {
+      setEditedMessage("");
+      return;
+    }
+    const t = templates.find((x) => x.id === templateId);
+    if (t) {
+      const resolved = t.body
+        .replaceAll("{username}", person.username.replace(/^@+/, ""))
+        .replaceAll("{tema}", person.mainTheme ?? "a pauta que você trouxe")
+        .replaceAll("{link_grupo}", "[link do grupo]")
+        .replaceAll("{link_formulario}", "[link do formulário]")
+        .replaceAll("@@", "@");
+      setEditedMessage(resolved);
+    }
+  };
 
   if (!person) return null;
 
@@ -455,10 +478,10 @@ export function PersonQuickSheet({
       }
 
       trackOperationalEvent("dm_copied", person.id, { location });
-      await recordDMPreparedAction(person.id, location, person.suggestedTemplateId);
+      await recordDMPreparedAction(person.id, location, selectedTemplateId || null);
 
       startTransition(async () => {
-        const result = await confirmDMSentAction(person.id, "ficha_rapida", person.suggestedTemplateId);
+        const result = await confirmDMSentAction(person.id, "ficha_rapida", selectedTemplateId || null);
         if (result.ok) {
           setCopyStatus("confirmed");
           onActionComplete?.(person.id, { openNext: true });
@@ -648,7 +671,24 @@ export function PersonQuickSheet({
                   </div>
 
                   <div className="space-y-4">
-                    <label className="block px-1 text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Modelo de conversa</label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
+                      <label className="block text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Modelo de conversa</label>
+                      {templates.length > 0 && (
+                        <select
+                          value={selectedTemplateId}
+                          onChange={(e) => handleTemplateChange(e.target.value)}
+                          className="text-xs font-bold bg-[#faf6ee] border border-[#dccdaf] rounded-lg px-2 py-1 text-zinc-700 focus:outline-none cursor-pointer"
+                          disabled={isBlocked}
+                        >
+                          <option value="">-- Personalizado / Nenhum --</option>
+                          {templates.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                     <div className="relative group">
                       <textarea
                         value={editedMessage}

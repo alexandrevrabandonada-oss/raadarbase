@@ -59,16 +59,20 @@ const PersonQuickSheet = dynamic(
   { ssr: false },
 );
 
+import type { MessageTemplate } from "@/lib/types";
+
 export function PeopleClient({
   priorityPeople,
   operators = [],
   outreachGoal,
   currentOperatorId,
+  templates = [],
 }: {
   priorityPeople: PriorityPerson[];
   operators?: Operator[];
   outreachGoal: OutreachGoalStats;
   currentOperatorId: string;
+  templates?: MessageTemplate[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -861,6 +865,7 @@ export function PeopleClient({
         onOpenChange={setIsSheetOpen}
         onNextPerson={handleNextPerson}
         onActionComplete={(personId, options) => handleActionComplete(personId, options)}
+        templates={templates}
       />
 
       {/* Governance Banner */}

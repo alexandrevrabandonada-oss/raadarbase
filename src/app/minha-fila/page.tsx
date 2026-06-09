@@ -16,6 +16,8 @@ import { getOutreachGoalStats } from "@/lib/data/outreach-goal";
 import { getActiveOperators } from "../abordagem/team-actions";
 import { PeopleClient } from "../pessoas/people-client";
 
+import { listMessageTemplates } from "@/lib/data/messages";
+
 export const metadata: Metadata = {
   title: "Prioridades da Equipe | Modo Operador",
   description: "Trabalhe nas missões ativas da base organizadas por urgência, dono e próximo passo.",
@@ -35,6 +37,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
   if (isFocusMode) {
     let priorityPeople;
     let outreachTasks;
+    let templates = [];
     let dailyStats = {
       mySentCount: 0,
       othersSentCount: 0,
@@ -43,7 +46,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
 
     try {
       const isMock = shouldUseMockData();
-      const [priorityPeopleRes, outreachTasksRes, todayLogsRes] = await Promise.all([
+      const [priorityPeopleRes, outreachTasksRes, todayLogsRes, templatesRes] = await Promise.all([
         isMock
           ? listPriorityPeople()
           : listPriorityPeople({ responsibleId: session.internalUser.id, limit: 1000 }),
@@ -57,10 +60,12 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
               .select("actor_id, actor_email")
               .eq("action", "contact.dm_sent")
               .gte("created_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+        listMessageTemplates(),
       ]);
 
       priorityPeople = priorityPeopleRes;
       outreachTasks = outreachTasksRes;
+      templates = (templatesRes || []).filter((t) => t.active);
 
       if (isMock) {
         dailyStats.mySentCount = 5;
@@ -153,6 +158,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
           missionPlan={missionPlan}
           operatorName={session.internalUser.full_name || session.email || "Operador"} 
           dailyStats={dailyStats}
+          templates={templates}
         />
       </AppShell>
     );
@@ -161,13 +167,15 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
     let people;
     let operators;
     let outreachGoal;
+    let templates = [];
 
     try {
-      const [mainPeople, sentPeople, activeOperators, goalStats] = await Promise.all([
+      const [mainPeople, sentPeople, activeOperators, goalStats, templatesRes] = await Promise.all([
         listPriorityPeople({ statuses: ["novo", "responder"], limit: 1000 }),
         listPriorityPeople({ statuses: ["abordado", "respondeu", "contato_confirmado"], limit: 300 }),
         getActiveOperators(),
         getOutreachGoalStats(),
+        listMessageTemplates(),
       ]);
       const seen = new Set<string>();
       people = [...sentPeople, ...mainPeople].filter((person) => {
@@ -177,6 +185,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
       });
       operators = activeOperators;
       outreachGoal = goalStats;
+      templates = (templatesRes || []).filter((t) => t.active);
     } catch (error) {
       return (
         <AppShell>
@@ -202,6 +211,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
           operators={operators}
           outreachGoal={outreachGoal}
           currentOperatorId={session.internalUser.id}
+          templates={templates}
         />
       </AppShell>
     );
