@@ -267,10 +267,76 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentPerson = filteredQueue[currentIndex];
+  const hasRestoredRef = useRef(false);
 
+  // Load search, filter and selected index from localStorage on mount
   useEffect(() => {
-    setCurrentIndex(0);
+    if (typeof window !== "undefined" && !hasRestoredRef.current) {
+      try {
+        const savedSearch = localStorage.getItem("radar_queue_search");
+        const savedQuentes = localStorage.getItem("radar_queue_filter_quentes");
+        
+        let loadedSearch = "";
+        let loadedQuentes = false;
+
+        if (savedSearch) {
+          loadedSearch = savedSearch;
+          setSearchQuery(savedSearch);
+        }
+        if (savedQuentes) {
+          loadedQuentes = savedQuentes === "true";
+          setFilterQuentes(loadedQuentes);
+        }
+
+        let tempQueue = initialQueue;
+        if (loadedQuentes) {
+          tempQueue = tempQueue.filter((p) => p.temperature === "quente");
+        }
+        if (loadedSearch.trim()) {
+          const q = loadedSearch.toLowerCase().trim();
+          tempQueue = tempQueue.filter(
+            (p) =>
+              (p.displayName && p.displayName.toLowerCase().includes(q)) ||
+              p.username.toLowerCase().includes(q)
+          );
+        }
+
+        const savedId = localStorage.getItem("radar_last_person_id");
+        if (savedId && tempQueue.length > 0) {
+          const idx = tempQueue.findIndex((p) => p.id === savedId);
+          if (idx !== -1) {
+            setCurrentIndex(idx);
+          }
+        }
+      } catch (e) {
+        console.error("Error restoring queue states:", e);
+      } finally {
+        hasRestoredRef.current = true;
+      }
+    }
+  }, [initialQueue]);
+
+  // Reset index when filters change, but only after initial restore is completed
+  useEffect(() => {
+    if (hasRestoredRef.current) {
+      setCurrentIndex(0);
+    }
   }, [searchQuery, filterQuentes]);
+
+  // Save search, filter, and current person ID to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && hasRestoredRef.current) {
+      try {
+        localStorage.setItem("radar_queue_search", searchQuery);
+        localStorage.setItem("radar_queue_filter_quentes", String(filterQuentes));
+        if (currentPerson) {
+          localStorage.setItem("radar_last_person_id", currentPerson.id);
+        }
+      } catch (e) {
+        console.error("Error saving queue states:", e);
+      }
+    }
+  }, [searchQuery, filterQuentes, currentPerson]);
   const [isPending, startTransition] = useTransition();
   const [sunMode, setSunMode] = useState(false);
   const [showResponseDialog, setShowResponseDialog] = useState(false);

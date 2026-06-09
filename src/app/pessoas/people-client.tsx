@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useEffect, useTransition } from "react";
+import { useMemo, useState, useEffect, useTransition, useRef } from "react";
 import type { OutreachGoalStats } from "@/lib/data/outreach-goal";
 import type { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,43 @@ export function PeopleClient({
   const [activeTab, setActiveTab] = useState<"nao_enviadas" | "enviadas">("nao_enviadas");
   const [isPending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"cards" | "list">("list");
+  const hasRestoredRef = useRef(false);
+
+  // Restore filters, tab, view mode on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && !hasRestoredRef.current) {
+      try {
+        const savedQuery = localStorage.getItem("radar_pessoas_query");
+        const savedFilter = localStorage.getItem("radar_pessoas_filter");
+        const savedTab = localStorage.getItem("radar_pessoas_tab");
+        const savedView = localStorage.getItem("radar_pessoas_view");
+
+        if (savedQuery) setQuery(savedQuery);
+        if (savedFilter) setPriorityFilter(savedFilter);
+        if (savedTab === "nao_enviadas" || savedTab === "enviadas") setActiveTab(savedTab);
+        if (savedView === "cards" || savedView === "list") setViewMode(savedView);
+      } catch (e) {
+        console.error("Error restoring people-client states:", e);
+      } finally {
+        hasRestoredRef.current = true;
+      }
+    }
+  }, []);
+
+  // Save changes to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && hasRestoredRef.current) {
+      try {
+        localStorage.setItem("radar_pessoas_query", query);
+        localStorage.setItem("radar_pessoas_filter", priorityFilter);
+        localStorage.setItem("radar_pessoas_tab", activeTab);
+        localStorage.setItem("radar_pessoas_view", viewMode);
+      } catch (e) {
+        console.error("Error saving people-client states:", e);
+      }
+    }
+  }, [query, priorityFilter, activeTab, viewMode]);
+
   const [dismissedPersonIds, setDismissedPersonIds] = useState<string[]>([]);
   const [visibleListState, setVisibleListState] = useState({ key: "", count: LIST_RENDER_BATCH });
 
