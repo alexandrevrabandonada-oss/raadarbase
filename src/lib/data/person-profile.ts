@@ -95,6 +95,7 @@ export function buildPersonOperationalProfile(
       theme: interaction.theme,
     })),
     currentTask,
+    auditLogs,
     templates,
     now,
   );

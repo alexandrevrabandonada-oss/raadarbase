@@ -60,8 +60,26 @@ export async function assumePersonResponsible(personId: string): Promise<ActionR
         .update({ responsible_id: actor.id })
         .eq("id", personId);
       if (error) throw new Error(error.message);
+
+      const { data: openTask, error: openTaskError } = await supabase
+        .from("outreach_tasks")
+        .select("id, responsible_id")
+        .eq("person_id", personId)
+        .is("completed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (openTaskError) throw new Error(openTaskError.message);
+
+      if (openTask && openTask.responsible_id !== actor.id) {
+        const { error: taskAssignError } = await supabase
+          .from("outreach_tasks")
+          .update({ responsible_id: actor.id, updated_at: new Date().toISOString() })
+          .eq("id", openTask.id);
+        if (taskAssignError) throw new Error(taskAssignError.message);
+      }
     },
-    revalidate: ["/pessoas", `/pessoas/${personId}`, "/abordagem"],
+    revalidate: ["/pessoas", `/pessoas/${personId}`, "/abordagem", "/minha-fila"],
   });
 }
 

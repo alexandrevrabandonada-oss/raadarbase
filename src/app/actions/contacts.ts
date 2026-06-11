@@ -23,6 +23,7 @@ import type {
 import type { TableInsert, TableUpdate } from "@/lib/supabase/database.types";
 import {
   type ActionResult,
+  requireActor,
   validateId,
   validateNotes,
   validateTags,
@@ -259,82 +260,118 @@ export async function recordDMPreparedAction(personId: string, origin: string, t
 
 export async function confirmDMSentAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
   validateId(personId, "Pessoa");
-  return performAction({
-    action: "contact.dm_sent",
-    entityType: "ig_people",
-    entityId: personId,
-    summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
-    metadata: { origin, auto_status: true, template_id: templateId ?? null },
-    mutate: async () => {
-      await requireRole(["admin", "operador"]);
+  try {
+    const actor = await requireActor();
+    await requireRole(["admin", "operador"]);
 
-      if (shouldUseMockData()) {
-        updateMockPerson(personId, (person) => {
-          person.status = "abordado";
-        });
-        upsertMockTask(personId, {
-          column: "esperando_resposta",
-          title: "Aguardar retorno da pessoa (Auto-Status)",
-          notes: `Confirmado envio manual via ${origin}.`,
-        });
-        return;
-      }
+    if (shouldUseMockData()) {
+      updateMockPerson(personId, (person) => {
+        person.status = "abordado";
+      });
+      upsertMockTask(personId, {
+        column: "esperando_resposta",
+        title: "Aguardar retorno da pessoa (Auto-Status)",
+        notes: `Confirmado envio manual via ${origin}.`,
+      });
+      await writeAuditLog({
+        ...actor,
+        action: "contact.dm_sent",
+        entityType: "ig_people",
+        entityId: personId,
+        summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
+        metadata: { origin, auto_status: true, template_id: templateId ?? null },
+      });
+      revalidatePath("/pessoas");
+      revalidatePath(`/pessoas/${personId}`);
+      revalidatePath("/abordagem");
+      revalidatePath("/minha-fila");
+      return { ok: true, message: "DM confirmada como enviada manualmente." };
+    }
 
-      const supabase = getSupabaseAdminClient();
-      const nowIso = new Date().toISOString();
-      const { data: currentPerson, error: currentPersonError } = await supabase
-        .from("ig_people")
-        .select("status")
-        .eq("id", personId)
-        .maybeSingle();
-      if (currentPersonError) throw new Error(currentPersonError.message);
+    const supabase = getSupabaseAdminClient();
+    const nowIso = new Date().toISOString();
+    const duplicateWindowIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
-      const { data: existingTask, error: existingTaskError } = await supabase
+    const [{ data: currentPerson, error: currentPersonError }, { data: existingTask, error: existingTaskError }, { data: recentSentLog, error: recentSentLogError }] = await Promise.all([
+      supabase.from("ig_people").select("status").eq("id", personId).maybeSingle(),
+      supabase
         .from("outreach_tasks")
         .select("id, column_key")
         .eq("person_id", personId)
         .is("completed_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
-      if (existingTaskError) throw new Error(existingTaskError.message);
+        .maybeSingle(),
+      supabase
+        .from("audit_logs")
+        .select("id, created_at")
+        .eq("entity_type", "ig_people")
+        .eq("entity_id", personId)
+        .eq("action", "contact.dm_sent")
+        .gte("created_at", duplicateWindowIso)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-      const alreadyWaiting =
-        currentPerson?.status === "abordado" &&
-        existingTask?.column_key === "esperando_resposta";
+    if (currentPersonError) throw new Error(currentPersonError.message);
+    if (existingTaskError) throw new Error(existingTaskError.message);
+    if (recentSentLogError) throw new Error(recentSentLogError.message);
 
-      if (alreadyWaiting) {
-        const { error: contactError } = await supabase
-          .from("contacts")
-          .update({ last_contacted_at: nowIso })
-          .eq("person_id", personId);
-        if (contactError) throw new Error(contactError.message);
-        return;
-      }
+    const alreadyWaiting =
+      currentPerson?.status === "abordado" &&
+      existingTask?.column_key === "esperando_resposta";
 
-      // 1. Atualizar status da pessoa
+    const isDuplicateConfirmation = Boolean(recentSentLog) && alreadyWaiting;
+
+    if (!alreadyWaiting) {
       const { error: personError } = await supabase
         .from("ig_people")
         .update({ status: "abordado", updated_at: nowIso })
         .eq("id", personId);
       if (personError) throw new Error(personError.message);
 
-      // 2. Mover/Criar tarefa no Kanban
       await upsertOutreachTaskForPerson(personId, {
         column: "esperando_resposta",
         title: "Aguardar retorno da pessoa (Auto-Status)",
         notes: `Confirmação de envio manual realizada via ${origin}. Sistema moveu automaticamente para Aguardando Retorno.`,
       });
+    }
 
-      // 3. Atualizar last_contacted_at
-      const { error: contactError } = await supabase
-        .from("contacts")
-        .update({ last_contacted_at: nowIso })
-        .eq("person_id", personId);
-      if (contactError) throw new Error(contactError.message);
-    },
-    revalidate: ["/pessoas", `/pessoas/${personId}`, "/abordagem", "/minha-fila"],
-  });
+    const { error: contactError } = await supabase
+      .from("contacts")
+      .update({ last_contacted_at: nowIso })
+      .eq("person_id", personId);
+    if (contactError) throw new Error(contactError.message);
+
+    if (!isDuplicateConfirmation) {
+      await writeAuditLog({
+        ...actor,
+        action: "contact.dm_sent",
+        entityType: "ig_people",
+        entityId: personId,
+        summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
+        metadata: { origin, auto_status: true, template_id: templateId ?? null },
+      });
+    }
+
+    revalidatePath("/pessoas");
+    revalidatePath(`/pessoas/${personId}`);
+    revalidatePath("/abordagem");
+    revalidatePath("/minha-fila");
+
+    return {
+      ok: true,
+      message: isDuplicateConfirmation
+        ? "Envio já estava registrado neste ciclo."
+        : "DM confirmada como enviada manualmente.",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Falha ao confirmar envio de DM.",
+    };
+  }
 }
 
 export async function markResponded(personId: string): Promise<ActionResult> {
@@ -906,7 +943,7 @@ export async function updatePersonThemeAction(personId: string, themes: string[]
   });
 }
 
-export async function acquireLockAction(personId: string): Promise<{ ok: boolean; success: boolean; ownerName?: string }> {
+export async function acquireLockAction(personId: string): Promise<{ ok: boolean; success: boolean; ownerName?: string; unavailable?: boolean }> {
   try {
     validateId(personId, "Pessoa");
     const actor = await requireRole(["admin", "operador"]);
@@ -933,7 +970,7 @@ export async function releaseLockAction(personId: string): Promise<{ ok: boolean
 
 export async function checkLockAction(
   personId: string,
-): Promise<{ ok: boolean; locked: boolean; lockedByOther: boolean; ownerName?: string; expiresAt?: number }> {
+): Promise<{ ok: boolean; locked: boolean; lockedByOther: boolean; ownerName?: string; expiresAt?: number; unavailable?: boolean }> {
   try {
     validateId(personId, "Pessoa");
     const actor = await requireRole(["admin", "operador"]);
@@ -941,6 +978,6 @@ export async function checkLockAction(
     const result = await checkOutreachLock(personId, actor.id);
     return { ok: true, ...result };
   } catch {
-    return { ok: false, locked: false, lockedByOther: false };
+    return { ok: false, locked: true, lockedByOther: true, ownerName: "verificacao_indisponivel", unavailable: true };
   }
 }

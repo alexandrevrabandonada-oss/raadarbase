@@ -38,7 +38,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
     let priorityPeople;
     let outreachTasks;
     let templates = [];
-    let dailyStats = {
+    const dailyStats = {
       mySentCount: 0,
       othersSentCount: 0,
       goal: 15,
@@ -73,7 +73,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
       } else if (todayLogsRes && todayLogsRes.data) {
         const myId = session.internalUser.id;
         const myEmail = session.email;
-        todayLogsRes.data.forEach((log: any) => {
+        todayLogsRes.data.forEach((log: { actor_id: string | null; actor_email: string | null }) => {
           if (log.actor_id === myId || log.actor_email === myEmail) {
             dailyStats.mySentCount++;
           } else {
@@ -112,8 +112,12 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
       return true;
     });
 
-    const oldPendencies = filteredQueue.filter(person => person.isPendingResponse);
-    const activeQueue = filteredQueue.filter(person => !person.isPendingResponse);
+    const oldPendencies = filteredQueue.filter(
+      (person) => person.isPendingResponse || person.announcementStatus === "enviado",
+    );
+    const activeQueue = filteredQueue.filter(
+      (person) => !person.isPendingResponse && person.announcementStatus !== "enviado",
+    );
 
     let missionPlan = null;
     let orderedActiveQueue = activeQueue;

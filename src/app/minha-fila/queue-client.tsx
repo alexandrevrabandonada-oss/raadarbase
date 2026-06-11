@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { PriorityPerson, PersonResponseKind, PersonReferralType } from "@/lib/types";
 import { QueueCard } from "./queue-card";
 import { QueueList } from "./queue-list";
@@ -11,7 +10,6 @@ import { GamefulHero, GamefulHeroBadge } from "@/components/radar/gameful-hero";
 import { GamefulMetricCard } from "@/components/radar/gameful-metric-card";
 import { OperationalCommandBar } from "@/components/radar/operational-command-bar";
 import {
-  PlusCircle,
   CheckCircle2,
   XCircle,
   HelpCircle,
@@ -28,7 +26,6 @@ import {
   Coffee,
   MapPinned,
   PauseCircle,
-  Play,
   Route,
   TowerControl,
   Instagram,
@@ -248,8 +245,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     othersSent: dailyStats?.othersSentCount || 0,
     goal: dailyStats?.goal || 15,
   }));
-  const [filterQuentes, setFilterQuentes] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterQuentes, setFilterQuentes] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("radar_queue_filter_quentes") === "true";
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("radar_queue_search") ?? "";
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const filteredQueue = useMemo(() => {
@@ -268,67 +271,45 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     return result;
   }, [queue, filterQuentes, searchQuery]);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const currentPerson = filteredQueue[currentIndex];
-  const hasRestoredRef = useRef(false);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
 
-  // Load search, filter and selected index from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined" && !hasRestoredRef.current) {
-      try {
-        const savedSearch = localStorage.getItem("radar_queue_search");
-        const savedQuentes = localStorage.getItem("radar_queue_filter_quentes");
-        
-        let loadedSearch = "";
-        let loadedQuentes = false;
+    const savedSearch = localStorage.getItem("radar_queue_search") ?? "";
+    const savedQuentes = localStorage.getItem("radar_queue_filter_quentes") === "true";
+    const savedId = localStorage.getItem("radar_last_person_id");
 
-        if (savedSearch) {
-          loadedSearch = savedSearch;
-          setSearchQuery(savedSearch);
-        }
-        if (savedQuentes) {
-          loadedQuentes = savedQuentes === "true";
-          setFilterQuentes(loadedQuentes);
-        }
-
-        let tempQueue = initialQueue;
-        if (loadedQuentes) {
-          tempQueue = tempQueue.filter((p) => p.temperature === "quente");
-        }
-        if (loadedSearch.trim()) {
-          const q = loadedSearch.toLowerCase().trim();
-          tempQueue = tempQueue.filter(
-            (p) =>
-              (p.displayName && p.displayName.toLowerCase().includes(q)) ||
-              p.username.toLowerCase().includes(q)
-          );
-        }
-
-        const savedId = localStorage.getItem("radar_last_person_id");
-        if (savedId && tempQueue.length > 0) {
-          const idx = tempQueue.findIndex((p) => p.id === savedId);
-          if (idx !== -1) {
-            setCurrentIndex(idx);
-          }
-        }
-      } catch (e) {
-        console.error("Error restoring queue states:", e);
-      } finally {
-        hasRestoredRef.current = true;
-      }
+    let tempQueue = initialQueue;
+    if (savedQuentes) {
+      tempQueue = tempQueue.filter((p) => p.temperature === "quente");
     }
-  }, [initialQueue]);
+    if (savedSearch.trim()) {
+      const q = savedSearch.toLowerCase().trim();
+      tempQueue = tempQueue.filter(
+        (p) =>
+          (p.displayName && p.displayName.toLowerCase().includes(q)) ||
+          p.username.toLowerCase().includes(q),
+      );
+    }
+
+    if (!savedId || tempQueue.length === 0) return 0;
+    const idx = tempQueue.findIndex((p) => p.id === savedId);
+    return idx >= 0 ? idx : 0;
+  });
+  const currentPerson = filteredQueue[currentIndex];
+  const hasInitializedIndexRef = useRef(false);
 
   // Reset index when filters change, but only after initial restore is completed
   useEffect(() => {
-    if (hasRestoredRef.current) {
-      setCurrentIndex(0);
+    if (!hasInitializedIndexRef.current) {
+      hasInitializedIndexRef.current = true;
+      return;
     }
+    setCurrentIndex(0);
   }, [searchQuery, filterQuentes]);
 
   // Save search, filter, and current person ID to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined" && hasRestoredRef.current) {
+    if (typeof window !== "undefined") {
       try {
         localStorage.setItem("radar_queue_search", searchQuery);
         localStorage.setItem("radar_queue_filter_quentes", String(filterQuentes));
@@ -351,10 +332,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const editedMessage = currentPerson
     ? (editedMessages[currentPerson.id] ?? currentPerson.suggestedMessage ?? "")
     : "";
-  const updateEditedMessage = (text: string) => {
+  const updateEditedMessage = useCallback((text: string) => {
     if (!currentPerson) return;
     setEditedMessages((current) => ({ ...current, [currentPerson.id]: text }));
-  };
+  }, [currentPerson]);
 
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Record<string, string>>({});
   const selectedTemplateId = currentPerson
@@ -380,7 +361,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         .replaceAll("@@", "@");
       updateEditedMessage(resolved);
     }
-  }, [currentPerson, templates]);
+  }, [currentPerson, templates, updateEditedMessage]);
 
   const [focusMode, setFocusMode] = useState(false);
   const [expressMode, setExpressMode] = useState(() => {
@@ -495,7 +476,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
 
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
   const [workMode, setWorkMode] = useState<MinhaJornadaWorkMode>("recommended");
-  const [lockState, setLockState] = useState<{ locked: boolean; lockedByOther: boolean; ownerName?: string } | null>(null);
+  const [lockState, setLockState] = useState<{ locked: boolean; lockedByOther: boolean; ownerName?: string; unavailable?: boolean } | null>(null);
 
   useEffect(() => {
     trackOperationalEvent("minha_fila_opened");
@@ -514,11 +495,12 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       const checkRes = await checkLockAction(currentPerson.id);
       if (!active) return;
 
-      if (checkRes.ok && checkRes.lockedByOther) {
+      if (checkRes.lockedByOther) {
         setLockState({
           locked: true,
           lockedByOther: true,
-          ownerName: checkRes.ownerName
+          ownerName: checkRes.ownerName,
+          unavailable: checkRes.unavailable,
         });
       } else {
         const acquireRes = await acquireLockAction(currentPerson.id);
@@ -533,7 +515,8 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
           setLockState({
             locked: true,
             lockedByOther: true,
-            ownerName: acquireRes.ownerName || "outro operador"
+            ownerName: acquireRes.ownerName || "outro operador",
+            unavailable: acquireRes.unavailable,
           });
         }
       }
@@ -1098,7 +1081,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const currentHoldLabel = currentMission?.guardrail.message
     || (currentBlocked
       ? lockState?.lockedByOther
-        ? `Bloqueado temporariamente: sendo atendido por ${lockState.ownerName}.`
+        ? lockState?.unavailable
+          ? "Bloqueado temporariamente: verificacao de seguranca indisponivel. Aguarde estabilizar ou avance para outra pessoa."
+          : `Bloqueado temporariamente: sendo atendido por ${lockState.ownerName}.`
         : currentPerson.doNotContactReason || "Restrição ética ativa."
       : currentWaiting
         ? currentPerson.riskFlags.recentOutreach
@@ -1314,7 +1299,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 <div>
                   <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
                   <p className="text-zinc-300 font-semibold mt-1">
-                    O operador <strong className="text-white">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
+                    {lockState.unavailable ? (
+                      "A verificação de segurança do lock está indisponível agora. Para evitar mensagem duplicada, este contato foi bloqueado temporariamente."
+                    ) : (
+                      <>
+                        O operador <strong className="text-white">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -1686,7 +1677,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                   <div>
                     <p className="font-black uppercase text-rust tracking-wider">Acesso Concorrente Bloqueado</p>
                     <p className="text-zinc-700 font-semibold mt-1">
-                      O operador <strong className="text-black">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
+                      {lockState.unavailable ? (
+                        "A verificação de segurança do lock está indisponível agora. Para evitar mensagem duplicada, este contato foi bloqueado temporariamente."
+                      ) : (
+                        <>
+                          O operador <strong className="text-black">{lockState.ownerName}</strong> abriu a tela deste contato recentemente. Para evitar mensagens duplicadas, aguarde o tempo de lock ou avance para a próxima pessoa.
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

@@ -52,7 +52,7 @@ export async function acquireOutreachLock(
   personId: string,
   operatorId: string,
   operatorName: string
-): Promise<{ success: boolean; ownerName?: string }> {
+): Promise<{ success: boolean; ownerName?: string; unavailable?: boolean }> {
   if (USE_MOCKS) {
     const now = Date.now();
     const currentLock = memoryLocks.get(personId);
@@ -121,15 +121,8 @@ export async function acquireOutreachLock(
     if (upsertError) throw upsertError;
     return { success: true };
   } catch (err) {
-    console.error("Database lock acquisition failed, falling back to memory:", err);
-    // Fallback de contingência para evitar travar a operação
-    const now = Date.now();
-    memoryLocks.set(personId, {
-      operatorId,
-      operatorName,
-      expiresAt: now + 5 * 60 * 1000,
-    });
-    return { success: true };
+    console.error("Database lock acquisition failed; blocking contact conservatively:", err);
+    return { success: false, unavailable: true, ownerName: "verificacao_indisponivel" };
   }
 }
 
@@ -167,7 +160,7 @@ export async function releaseOutreachLock(personId: string, operatorId: string):
 export async function checkOutreachLock(
   personId: string,
   operatorId: string
-): Promise<{ locked: boolean; lockedByOther: boolean; ownerName?: string; expiresAt?: number }> {
+): Promise<{ locked: boolean; lockedByOther: boolean; ownerName?: string; expiresAt?: number; unavailable?: boolean }> {
   if (USE_MOCKS) {
     const now = Date.now();
     const currentLock = memoryLocks.get(personId);
@@ -209,20 +202,12 @@ export async function checkOutreachLock(
 
     return { locked: false, lockedByOther: false };
   } catch (err) {
-    console.error("Database lock check failed, falling back to memory:", err);
-    const now = Date.now();
-    const currentLock = memoryLocks.get(personId);
-
-    if (currentLock && currentLock.expiresAt > now) {
-      const isSelf = currentLock.operatorId === operatorId;
-      return {
-        locked: true,
-        lockedByOther: !isSelf,
-        ownerName: currentLock.operatorName,
-        expiresAt: currentLock.expiresAt,
-      };
-    }
-
-    return { locked: false, lockedByOther: false };
+    console.error("Database lock check failed; blocking contact conservatively:", err);
+    return {
+      locked: true,
+      lockedByOther: true,
+      ownerName: "verificacao_indisponivel",
+      unavailable: true,
+    };
   }
 }

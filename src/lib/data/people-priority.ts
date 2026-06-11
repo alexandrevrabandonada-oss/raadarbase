@@ -274,10 +274,58 @@ function getLatestInteractionLabel(interaction: InteractionSummary | null) {
   return `${typeLabel[interaction.type]} em ${formattedDate}`;
 }
 
+function computeAnnouncementStatus(
+  person: PersonWithContact,
+  auditLogs: AuditLogEntry[],
+): PriorityPerson["announcementStatus"] {
+  if (person.status === "respondeu" || person.status === "contato_confirmado") {
+    return "respondeu";
+  }
+
+  const sentLogs = auditLogs.filter((log) => log.action === "contact.dm_sent");
+  const preparedLogs = auditLogs.filter((log) => log.action === "contact.dm_prepared");
+  const responseRecordedLogs = auditLogs
+    .filter((log) => log.action === "contact.response_recorded")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (responseRecordedLogs.length > 0) {
+    const latestLog = responseRecordedLogs[0];
+    const metadata = latestLog.metadata;
+    if (metadata && typeof metadata === "object") {
+      const meta = metadata as Record<string, unknown>;
+      if (meta.responseType === "revisar_depois" || meta.responseType === "manter_aguardando") {
+        return "revisar_depois";
+      }
+    }
+  }
+
+  if (person.status === "abordado" || sentLogs.length > 0) {
+    const latestSentTime = sentLogs.reduce((latest, log) => {
+      const timestamp = new Date(log.createdAt).getTime();
+      return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
+    }, 0);
+
+    const hasPreparedAfterSent =
+      latestSentTime > 0 &&
+      preparedLogs.some((log) => new Date(log.createdAt).getTime() > latestSentTime);
+
+    if (!hasPreparedAfterSent) {
+      return "enviado";
+    }
+  }
+
+  if (preparedLogs.length > 0) {
+    return "preparado";
+  }
+
+  return "nao_iniciado";
+}
+
 function buildPriorityPerson(
   person: PersonWithContact,
   interactions: InteractionSummary[],
   task: OutreachTaskWithPerson | null,
+  auditLogs: AuditLogEntry[],
   templates: MessageTemplate[],
   now: Date,
 ): PriorityPerson {
@@ -321,6 +369,7 @@ function buildPriorityPerson(
 
   const suggestedTemplate = getSuggestedTemplate(task, person, mainTheme, templates);
   const priorityEligible = person.status !== "nao_abordar" && !person.doNotContactReason;
+  const announcementStatus = computeAnnouncementStatus(person, auditLogs);
 
   return {
     ...person,
@@ -343,6 +392,7 @@ function buildPriorityPerson(
     isPendingResponse,
     hasReferral,
     priorityEligible,
+    announcementStatus,
     scoreLabel,
     scoreIntensity,
     scoreTooltip,
@@ -354,16 +404,18 @@ export function buildPriorityPersonProfile(
   person: PersonWithContact,
   interactions: InteractionSummary[],
   task: OutreachTaskWithPerson | null,
+  auditLogs: AuditLogEntry[],
   templates: MessageTemplate[],
   now = new Date(),
 ) {
-  return buildPriorityPerson(person, interactions, task, templates, now);
+  return buildPriorityPerson(person, interactions, task, auditLogs, templates, now);
 }
 
 export function buildPriorityPeople(
   people: PersonWithContact[],
   interactions: InteractionSummaryWithPerson[],
   tasks: OutreachTaskWithPerson[],
+  auditLogs: AuditLogEntry[],
   templates: MessageTemplate[],
   now = new Date(),
 ) {
@@ -390,8 +442,25 @@ export function buildPriorityPeople(
     if (nextDue < currentDue) tasksByPerson.set(task.personId, task);
   }
 
+  const auditLogsByPerson = new Map<string, AuditLogEntry[]>();
+  for (const auditLog of auditLogs) {
+    if (!auditLog.entityId) continue;
+    const current = auditLogsByPerson.get(auditLog.entityId) ?? [];
+    current.push(auditLog);
+    auditLogsByPerson.set(auditLog.entityId, current);
+  }
+
   return people
-    .map((person) => buildPriorityPerson(person, interactionsByPerson.get(person.id) ?? [], tasksByPerson.get(person.id) ?? null, templates, now))
+    .map((person) =>
+      buildPriorityPerson(
+        person,
+        interactionsByPerson.get(person.id) ?? [],
+        tasksByPerson.get(person.id) ?? null,
+        auditLogsByPerson.get(person.id) ?? [],
+        templates,
+        now,
+      ),
+    )
     .sort((a, b) => {
       if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
       return new Date(b.lastInteractionAt ?? 0).getTime() - new Date(a.lastInteractionAt ?? 0).getTime();
@@ -438,7 +507,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
     const mockPeopleSource = options?.responsibleId
       ? mockPeople.filter((person) => person.responsibleId === options.responsibleId)
       : mockPeople;
-    const priorityPeople = buildPriorityPeople(mockPeopleSource, mockInteractionsSummary(), mockTasks, mockTemplates, now);
+    const priorityPeople = buildPriorityPeople(mockPeopleSource, mockInteractionsSummary(), mockTasks, mockAuditLogs, mockTemplates, now);
     return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
       priorityPeople,
       interactions: mockInteractionsSummary(),
@@ -506,14 +575,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
       personId: interaction.person_id,
     }));
 
-    const historyPeople = people.filter(
-      (person) =>
-        person.status !== "novo" ||
-        person.totalInteractions > 0 ||
-        person.lastInteractionAt ||
-        Boolean(person.doNotContactReason),
-    );
-    const personIds = historyPeople.slice(0, HISTORY_PERSON_LOOKUP_LIMIT).map((person) => person.id);
+    const personIds = people.slice(0, HISTORY_PERSON_LOOKUP_LIMIT).map((person) => person.id);
     let referrals: PersonReferral[] = [];
     let auditLogs: AuditLogEntry[] = [];
 
@@ -576,7 +638,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
       }));
     }
 
-    const priorityPeople = buildPriorityPeople(people, interactions, tasks, templates, now);
+    const priorityPeople = buildPriorityPeople(people, interactions, tasks, auditLogs, templates, now);
 
     return sortPriorityPeopleByMission(attachMissionMetadataToPriorityPeople({
       priorityPeople,

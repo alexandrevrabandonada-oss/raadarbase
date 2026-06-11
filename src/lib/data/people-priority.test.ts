@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPriorityPeople } from "./people-priority";
-import type { ContactRecord, MessageTemplate, PersonWithContact } from "@/lib/types";
+import type { AuditLogEntry, ContactRecord, MessageTemplate, PersonWithContact } from "@/lib/types";
 
 const now = new Date("2026-05-07T12:00:00.000Z");
 
@@ -61,6 +61,21 @@ const templates: MessageTemplate[] = [
   },
 ];
 
+function auditLog(overrides: Partial<AuditLogEntry>): AuditLogEntry {
+  return {
+    id: "audit-1",
+    actorId: "operator-1",
+    actorEmail: "operador@radar.camp",
+    action: "contact.dm_sent",
+    entityType: "ig_people",
+    entityId: "person-1",
+    summary: "DM enviada",
+    metadata: {},
+    createdAt: "2026-05-06T11:00:00.000Z",
+    ...overrides,
+  };
+}
+
 describe("people priority", () => {
   it("prioriza interação recente com relato e tarefa pendente", () => {
     const ranked = buildPriorityPeople(
@@ -96,6 +111,7 @@ describe("people priority", () => {
           person: null,
         },
       ],
+      [],
       templates,
       now,
     );
@@ -109,6 +125,7 @@ describe("people priority", () => {
   it("exclui não abordar da prioridade elegível", () => {
     const ranked = buildPriorityPeople(
       [person({ status: "nao_abordar", doNotContactReason: "Pediu para não receber contato." })],
+      [],
       [],
       [],
       templates,
@@ -132,6 +149,7 @@ describe("people priority", () => {
         },
       ],
       [],
+      [],
       templates,
       now,
     );
@@ -153,10 +171,24 @@ describe("people priority", () => {
         },
       ],
       [],
+      [],
       templates,
       now,
     );
 
     expect(ranked[0].suggestedTemplateName).toBe("Grupo");
+  });
+
+  it("marca como enviado quando existe dm_sent no histórico mesmo com status antigo", () => {
+    const ranked = buildPriorityPeople(
+      [person({ status: "novo", contact: contact({ last_contacted_at: "2026-05-06T11:00:00.000Z" }) })],
+      [],
+      [],
+      [auditLog()],
+      templates,
+      now,
+    );
+
+    expect(ranked[0].announcementStatus).toBe("enviado");
   });
 });
