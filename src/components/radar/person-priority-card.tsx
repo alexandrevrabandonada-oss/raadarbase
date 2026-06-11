@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
-import { assumePersonResponsible, confirmDMSentAction } from "@/app/actions";
+import { assumePersonResponsible } from "@/app/actions";
 import { JourneyProgress } from "./journey-progress";
 import { MissionCard } from "./mission-card";
 import { useToast } from "@/hooks/use-toast";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 import {
   getPriorityPersonHoldState,
   getPriorityPersonHoldText,
@@ -57,7 +58,7 @@ export function PersonPriorityCard({
 
   function handleMarkSent() {
     startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "card_prioridades", person.suggestedTemplateId);
+      const result = await executeOrQueueAction("confirmDMSent", [person.id, "card_prioridades", person.suggestedTemplateId], toast);
       if (result.ok) {
         toast({ title: "Enviado registrado", description: "A pessoa foi movida para a lista de aguardando retorno." });
         onActionComplete?.();

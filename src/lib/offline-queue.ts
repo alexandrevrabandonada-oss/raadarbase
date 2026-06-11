@@ -41,6 +41,22 @@ type OfflineToast = (input: {
   variant?: "default" | "destructive";
 }) => void;
 
+function shouldKeepTaskForRetry(error?: string | null) {
+  if (!error) return true;
+  const normalized = error.toLowerCase();
+  return [
+    "indispon",
+    "timeout",
+    "network",
+    "fetch",
+    "temporar",
+    "lock",
+    "supabase",
+    "falha",
+    "erro desconhecido",
+  ].some((token) => normalized.includes(token));
+}
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined" || !window.indexedDB) {
@@ -191,14 +207,13 @@ export async function syncOfflineTasks(
       } else {
         console.error(`Offline action ${task.action} failed with server error:`, result?.error);
         errorCount++;
-        // In case of error (e.g. database validation), we keep it or discard it depending on business logic.
-        // For state-wide campaign, we discard to prevent blocking the queue with dead tasks, but log it.
-        await removeOfflineTask(task.id);
+        if (!shouldKeepTaskForRetry(result?.error)) {
+          await removeOfflineTask(task.id);
+        }
       }
     } catch (err) {
       console.error(`Offline action ${task.action} failed to execute:`, err);
       errorCount++;
-      await removeOfflineTask(task.id);
     }
   }
 

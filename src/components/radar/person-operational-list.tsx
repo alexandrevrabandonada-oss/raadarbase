@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { recordDMPreparedAction, confirmDMSentAction } from "@/app/actions";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 import { useRouter } from "next/navigation";
 import { JourneyProgress } from "@/components/radar/journey-progress";
 import { AnnouncementStatusBadge } from "@/components/radar/announcement-status-badge";
@@ -62,9 +62,9 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       window.open(igUrl, "_blank");
 
       toast({ title: "Mensagem copiada", description: "Direct aberto. O contato vai direto para esperando resposta." });
-      await recordDMPreparedAction(person.id, "lista_operacional", person.suggestedTemplateId);
+      await executeOrQueueAction("recordDMPrepared", [person.id, "lista_operacional", person.suggestedTemplateId], toast);
       startTransition(async () => {
-        const result = await confirmDMSentAction(person.id, "lista_operacional", person.suggestedTemplateId);
+        const result = await executeOrQueueAction("confirmDMSent", [person.id, "lista_operacional", person.suggestedTemplateId], toast);
         if (result.ok) {
           toast({ title: "Envio registrado", description: "Contato foi movido para a aba de já enviadas." });
           handleSentSuccess();
@@ -78,7 +78,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const handleMarkSent = async (e: React.MouseEvent) => {
     e.stopPropagation();
     startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "lista_operacional_atalho", person.suggestedTemplateId);
+      const result = await executeOrQueueAction("confirmDMSent", [person.id, "lista_operacional_atalho", person.suggestedTemplateId], toast);
       if (result.ok) {
         toast({ title: "Enviado registrado", description: "Contato foi movido para a aba de já enviadas." });
         handleSentSuccess();

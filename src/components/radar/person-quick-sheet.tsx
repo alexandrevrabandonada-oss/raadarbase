@@ -49,8 +49,6 @@ import {
   updatePersonNotes,
   listFieldAgendaEventsAction,
   trackOperationalEvent,
-  recordDMPreparedAction,
-  confirmDMSentAction
 } from "@/app/actions";
 import { PERSON_RESPONSE_OPTIONS } from "@/lib/data/person-profile";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +61,7 @@ import {
 } from "@/components/ui/select";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 import { JourneyBar } from "@/components/radar/journey-bar";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
@@ -478,10 +477,10 @@ export function PersonQuickSheet({
       }
 
       trackOperationalEvent("dm_copied", person.id, { location });
-      await recordDMPreparedAction(person.id, location, selectedTemplateId || null);
+      await executeOrQueueAction("recordDMPrepared", [person.id, location, selectedTemplateId || null], toast);
 
       startTransition(async () => {
-        const result = await confirmDMSentAction(person.id, "ficha_rapida", selectedTemplateId || null);
+        const result = await executeOrQueueAction("confirmDMSent", [person.id, "ficha_rapida", selectedTemplateId || null], toast);
         if (result.ok) {
           setCopyStatus("confirmed");
           onActionComplete?.(person.id, { openNext: true });
