@@ -191,4 +191,25 @@ describe("people priority", () => {
 
     expect(ranked[0].announcementStatus).toBe("enviado");
   });
+
+  it("marca como enviado com sinal legado de contato mesmo sem audit log", () => {
+    const ranked = buildPriorityPeople(
+      [person({ status: "novo", contact: contact({ last_contacted_at: "2026-05-06T11:00:00.000Z" }) })],
+      [
+        {
+          personId: "person-1",
+          type: "dm_manual",
+          occurredAt: "2026-05-06T10:00:00.000Z",
+          text: "Mensagem enviada manualmente",
+          theme: "saúde",
+        },
+      ],
+      [],
+      [],
+      templates,
+      now,
+    );
+
+    expect(ranked[0].announcementStatus).toBe("enviado");
+  });
 });

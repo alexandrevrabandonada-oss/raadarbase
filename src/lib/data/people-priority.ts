@@ -276,6 +276,7 @@ function getLatestInteractionLabel(interaction: InteractionSummary | null) {
 
 function computeAnnouncementStatus(
   person: PersonWithContact,
+  interactions: InteractionSummary[],
   auditLogs: AuditLogEntry[],
 ): PriorityPerson["announcementStatus"] {
   if (person.status === "respondeu" || person.status === "contato_confirmado") {
@@ -284,6 +285,7 @@ function computeAnnouncementStatus(
 
   const sentLogs = auditLogs.filter((log) => log.action === "contact.dm_sent");
   const preparedLogs = auditLogs.filter((log) => log.action === "contact.dm_prepared");
+  const manualDmInteractions = interactions.filter((interaction) => interaction.type === "dm_manual");
   const responseRecordedLogs = auditLogs
     .filter((log) => log.action === "contact.response_recorded")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -299,15 +301,26 @@ function computeAnnouncementStatus(
     }
   }
 
-  if (person.status === "abordado" || sentLogs.length > 0) {
+  const hasLegacySentSignal =
+    Boolean(person.contact?.last_contacted_at) || manualDmInteractions.length > 0;
+
+  if (person.status === "abordado" || sentLogs.length > 0 || hasLegacySentSignal) {
     const latestSentTime = sentLogs.reduce((latest, log) => {
       const timestamp = new Date(log.createdAt).getTime();
       return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
     }, 0);
+    const latestManualDmTime = manualDmInteractions.reduce((latest, interaction) => {
+      const timestamp = new Date(interaction.occurredAt).getTime();
+      return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
+    }, 0);
+    const latestContactedAtTime = person.contact?.last_contacted_at
+      ? new Date(person.contact.last_contacted_at).getTime()
+      : 0;
+    const latestSentSignalTime = Math.max(latestSentTime, latestManualDmTime, latestContactedAtTime);
 
     const hasPreparedAfterSent =
-      latestSentTime > 0 &&
-      preparedLogs.some((log) => new Date(log.createdAt).getTime() > latestSentTime);
+      latestSentSignalTime > 0 &&
+      preparedLogs.some((log) => new Date(log.createdAt).getTime() > latestSentSignalTime);
 
     if (!hasPreparedAfterSent) {
       return "enviado";
@@ -369,7 +382,7 @@ function buildPriorityPerson(
 
   const suggestedTemplate = getSuggestedTemplate(task, person, mainTheme, templates);
   const priorityEligible = person.status !== "nao_abordar" && !person.doNotContactReason;
-  const announcementStatus = computeAnnouncementStatus(person, auditLogs);
+  const announcementStatus = computeAnnouncementStatus(person, interactions, auditLogs);
 
   return {
     ...person,
