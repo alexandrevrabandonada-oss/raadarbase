@@ -145,4 +145,37 @@ describe("priority person mission adapter", () => {
     expect(getPriorityPersonMissionReason(adapted)).toBe("Lógica antiga");
     expect(getPriorityPersonMissionNextStep(adapted)).toBe("Próxima ação antiga");
   });
+
+  it("preserva status enviado já calculado antes de anexar missões", () => {
+    const [adapted] = attachMissionMetadataToPriorityPeople({
+      priorityPeople: [
+        buildPriorityPerson({
+          announcementStatus: "enviado",
+        }),
+      ],
+      interactions: [],
+      tasks: [],
+      now: new Date("2026-05-14T12:00:00.000Z"),
+    });
+
+    expect(adapted.announcementStatus).toBe("enviado");
+  });
+
+  it("mantém contato legado como enviado quando há data de último contato", () => {
+    const [adapted] = attachMissionMetadataToPriorityPeople({
+      priorityPeople: [
+        buildPriorityPerson({
+          contact: {
+            person_id: "person-1",
+            last_contacted_at: "2026-05-13T12:00:00.000Z",
+          } as PriorityPerson["contact"],
+        }),
+      ],
+      interactions: [],
+      tasks: [],
+      now: new Date("2026-05-14T12:00:00.000Z"),
+    });
+
+    expect(adapted.announcementStatus).toBe("enviado");
+  });
 });

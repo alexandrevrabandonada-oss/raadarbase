@@ -45,6 +45,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const missionNextStep = getPriorityPersonMissionNextStep(person);
   const holdText = getPriorityPersonHoldText(person);
   const journey = getPriorityPersonJourney(person);
+  const isAlreadySent = person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado";
 
   const handleSentSuccess = () => {
     setCopyStatus("confirmed");
@@ -192,8 +193,8 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
                 : "text-zinc-400 hover:bg-[#11202a]/5 hover:text-[#11202a]",
             )}
             onClick={handleCopyDM}
-            disabled={!person.suggestedMessage || isBlocked}
-            title="Copiar e Abrir Direct"
+            disabled={!person.suggestedMessage || isBlocked || isAlreadySent}
+            title={isAlreadySent ? "Envio já registrado" : "Copiar e Abrir Direct"}
           >
             <Copy className="h-4 w-4" />
           </Button>
@@ -202,7 +203,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             variant="outline"
             className="h-8 border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px]"
             onClick={handleMarkSent}
-            disabled={isBlocked || isPending || person.isPendingResponse}
+            disabled={isBlocked || isPending || isAlreadySent}
           >
             Marcar enviado
           </Button>
@@ -289,7 +290,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
           <Button
             className="h-11 w-full border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
             onClick={handleCopyDM}
-            disabled={!person.suggestedMessage || isBlocked || isPending}
+            disabled={!person.suggestedMessage || isBlocked || isPending || isAlreadySent}
           >
             <Copy className="mr-2 h-4 w-4" />
             {isPending ? "Registrando..." : "Copiar e abrir"}
@@ -299,7 +300,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             <Button
               className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-charcoal/5"
               onClick={handleMarkSent}
-              disabled={isBlocked || isPending || person.isPendingResponse}
+              disabled={isBlocked || isPending || isAlreadySent}
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
               {copyStatus === "confirmed" ? "Enviado" : "Marcar enviado"}

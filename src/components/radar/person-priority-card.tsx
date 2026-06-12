@@ -48,6 +48,7 @@ export function PersonPriorityCard({
   const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
   const missionReason = getPriorityPersonMissionReason(person);
   const missionNextStep = getPriorityPersonMissionNextStep(person);
+  const isAlreadySent = person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado";
 
   function handleAssume() {
     startTransition(async () => {
@@ -132,7 +133,7 @@ export function PersonPriorityCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-black pt-4 md:border-0 md:pt-0">
-          {!isBlocked ? (
+          {!isBlocked && !isAlreadySent ? (
             <Button
               variant="outline"
               className="h-10 border-2 border-black bg-white px-5 text-xs font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
@@ -173,7 +174,7 @@ export function PersonPriorityCard({
       className={cn("group h-full rounded-[2px] border-2 border-black transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", isBlocked && "bg-zinc-50 opacity-75", className)}
       footer={
         <div className="flex flex-wrap items-center gap-2 mt-2">
-          {!isBlocked ? (
+          {!isBlocked && !isAlreadySent ? (
             <Button
               variant="outline"
               className="h-8 border-2 border-black bg-white text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px] px-3 shadow-[1px_1px_0px_0px_rgba(11,11,11,1)]"

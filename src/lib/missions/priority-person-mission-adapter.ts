@@ -248,6 +248,10 @@ function computeAnnouncementStatus(
     return "respondeu";
   }
 
+  if (person.announcementStatus === "respondeu" || person.announcementStatus === "revisar_depois") {
+    return person.announcementStatus;
+  }
+
   const responseRecordedLogs = personAudits
     .filter((log) => log.action === "contact.response_recorded")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -263,14 +267,32 @@ function computeAnnouncementStatus(
     }
   }
 
-  if (person.status === "abordado") {
-    return "enviado";
+  const sentLogs = personAudits.filter((log) => log.action === "contact.dm_sent");
+  const hasLegacySentSignal =
+    person.announcementStatus === "enviado" || Boolean(person.contact?.last_contacted_at);
+
+  if (person.status === "abordado" || sentLogs.length > 0 || hasLegacySentSignal) {
+    const preparedLogs = personAudits.filter((log) => log.action === "contact.dm_prepared");
+    const latestSentTime = sentLogs.reduce((latest, log) => {
+      const timestamp = new Date(log.createdAt).getTime();
+      return Number.isFinite(timestamp) ? Math.max(latest, timestamp) : latest;
+    }, 0);
+    const latestContactedAtTime = person.contact?.last_contacted_at
+      ? new Date(person.contact.last_contacted_at).getTime()
+      : 0;
+    const latestSentSignalTime = Math.max(latestSentTime, latestContactedAtTime);
+    const hasPreparedAfterSent =
+      latestSentSignalTime > 0 &&
+      preparedLogs.some((log) => new Date(log.createdAt).getTime() > latestSentSignalTime);
+
+    if (!hasPreparedAfterSent) {
+      return "enviado";
+    }
   }
 
   if (["novo", "responder", "para_abordar"].includes(person.status)) {
     const preparedLogs = personAudits.filter((log) => log.action === "contact.dm_prepared");
     if (preparedLogs.length > 0) {
-      const sentLogs = personAudits.filter((log) => log.action === "contact.dm_sent");
       if (sentLogs.length === 0) {
         return "preparado";
       } else {

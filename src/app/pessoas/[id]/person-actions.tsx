@@ -40,8 +40,6 @@ import {
   markDoNotContact,
   recordPersonReferral,
   updatePersonReferralStatus,
-  recordDMPreparedAction,
-  confirmDMSentAction,
 } from "@/app/actions";
 import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +48,7 @@ import { PERSON_RESPONSE_OPTIONS, type PersonOperationalProfile } from "@/lib/da
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { executeOrQueueAction } from "@/lib/offline-queue";
 
 // Radar Design System
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
@@ -91,6 +90,8 @@ export function PersonActions({
   const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
+  const isAlreadySent =
+    status === "abordado" || profile.priority.isPendingResponse || profile.priority.announcementStatus === "enviado";
   const contactGuardrailCopy =
     person.doNotContactReason ?? "Pedido de não contato respeitado.";
   const nextActionLabel =
@@ -100,12 +101,11 @@ export function PersonActions({
 
   async function copyMessage() {
     const messageToCopy = editedMessage || profile.priority.suggestedMessage || "";
-    if (!messageToCopy) return;
+    if (!messageToCopy || !canApproach || isAlreadySent) return;
     await navigator.clipboard.writeText(messageToCopy);
     setCopied("mensagem");
     
-    // Telemetria
-    await recordDMPreparedAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
+    await executeOrQueueAction("recordDMPrepared", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast);
 
     const igUsername = person.username.replace(/^@+/, "");
     const igUrl = `https://www.instagram.com/${igUsername}/`;
@@ -113,12 +113,12 @@ export function PersonActions({
 
     toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
     startTransition(async () => {
-      const result = await confirmDMSentAction(person.id, "perfil_pessoa", profile.priority.suggestedTemplateId);
+      const result = await executeOrQueueAction("confirmDMSent", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast);
       if (result.ok) {
         setCopyStatus("confirmed");
         setStatus("abordado");
       } else {
-        toast({ title: "Erro", description: result.error, variant: "destructive" });
+        toast({ title: "Erro", description: result.error ?? "Não foi possível registrar o envio.", variant: "destructive" });
       }
     });
   }
@@ -198,7 +198,7 @@ export function PersonActions({
                 const igUrl = `https://www.instagram.com/${igUsername}/`;
                 window.open(igUrl, "_blank");
               }}
-              disabled={!canApproach}
+              disabled={!canApproach || isAlreadySent}
             >
               <Instagram className="mr-2 h-4 w-4" /> Instagram
             </Button>
@@ -211,10 +211,10 @@ export function PersonActions({
                 copyStatus === "confirmed" ? "bg-moss/20 border-black text-moss" : ""
               )}
               onClick={copyMessage}
-              disabled={!canApproach}
+              disabled={!canApproach || isAlreadySent}
             >
               <Copy className="mr-2 h-4 w-4" /> 
-              {copyStatus === "confirmed" ? "Enviado!" : "Copiar e Abrir Direct"}
+              {copyStatus === "confirmed" || isAlreadySent ? "Enviado!" : "Copiar e Abrir Direct"}
             </Button>
           )}
         </div>
@@ -316,15 +316,15 @@ export function PersonActions({
                   value={editedMessage}
                   onChange={(e) => setEditedMessage(e.target.value)}
                   className="w-full min-h-[140px] bg-white p-4 rounded-[2px] border-2 border-black shadow-inner text-sm font-semibold leading-relaxed mb-4 text-charcoal focus:ring-0 focus:outline-none resize-y"
-                  disabled={!canApproach}
+                  disabled={!canApproach || isAlreadySent}
                   placeholder="Nenhum modelo ideal encontrado. Digite aqui..."
                 />
                 <div className="flex items-center justify-between">
                    <p className="text-[10px] font-bold text-burnt-yellow uppercase tracking-widest flex items-center gap-1">
                      <AlertTriangle className="h-3 w-3 text-burnt-yellow" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
-                   <Button onClick={copyMessage} disabled={!editedMessage || !canApproach} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
-                     <Copy className="mr-2 h-4 w-4" /> {copied ? "Copiado e Aberto" : "Copiar e Abrir Direct"}
+                   <Button onClick={copyMessage} disabled={!editedMessage || !canApproach || isAlreadySent} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+                     <Copy className="mr-2 h-4 w-4" /> {copied || isAlreadySent ? "Enviado" : "Copiar e Abrir Direct"}
                    </Button>
                 </div>
                 {!canApproach && (
