@@ -15,6 +15,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getOutreachGoalStats } from "@/lib/data/outreach-goal";
 import { getActiveOperators } from "../abordagem/team-actions";
 import { PeopleClient } from "../pessoas/people-client";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 import { listMessageTemplates } from "@/lib/data/messages";
 
@@ -112,12 +113,8 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
       return true;
     });
 
-    const oldPendencies = filteredQueue.filter(
-      (person) => person.isPendingResponse || person.announcementStatus === "enviado",
-    );
-    const activeQueue = filteredQueue.filter(
-      (person) => !person.isPendingResponse && person.announcementStatus !== "enviado",
-    );
+    const oldPendencies = filteredQueue.filter(isPriorityPersonAlreadySent);
+    const activeQueue = filteredQueue.filter((person) => !isPriorityPersonAlreadySent(person));
 
     let missionPlan = null;
     let orderedActiveQueue = activeQueue;

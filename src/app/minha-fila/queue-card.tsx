@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyBar } from "@/components/radar/journey-bar";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 interface QueueCardProps {
   person: PriorityPerson;
@@ -100,6 +101,7 @@ export function QueueCard({
   onTemplateChange,
 }: QueueCardProps) {
   const isBlocked = Boolean(contactDisabled || mission?.state === "BLOQUEADA" || mission?.guardrail.blocksContact || person.riskFlags.doNotContact);
+  const isAlreadySent = isPriorityPersonAlreadySent(person);
   const phase = resolvePhaseRibbon(person);
   const progress = progressPercentage(person);
   const holdState = mission?.state === "BLOQUEADA"
@@ -108,14 +110,14 @@ export function QueueCard({
       ? "waiting"
       : isBlocked
         ? "blocked"
-        : person.riskFlags.recentOutreach || person.isPendingResponse
+        : person.riskFlags.recentOutreach || isAlreadySent
           ? "waiting"
           : "free";
   const holdLabel = isBlocked
     ? mission?.guardrail.message || person.doNotContactReason || "Restrição ética ativa."
     : person.riskFlags.recentOutreach
       ? "Contato recente. Aguarde a janela ética antes de insistir."
-      : person.isPendingResponse
+      : isAlreadySent
         ? "Aguardando retorno da conversa já iniciada."
         : "Caminho livre para avançar nesta pessoa.";
   const quickStepTone = (active: boolean, done: boolean) => cn(
@@ -633,7 +635,7 @@ export function QueueCard({
               size="lg"
               className="h-12 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider text-xs"
               onClick={copyStatus === "waiting" ? onConfirmSent : copyStatus === "confirmed" ? onNext : onCopyDM}
-              disabled={copyStatus === "idle" && (!person.suggestedMessage || isBlocked)}
+              disabled={copyStatus === "idle" && (!person.suggestedMessage || isBlocked || isAlreadySent)}
             >
               {copyStatus === "waiting" ? (
                 <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -649,9 +651,9 @@ export function QueueCard({
               size="lg"
               className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-black hover:bg-concrete-dark hover:text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
               onClick={() => window.open(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`, "_blank")}
-              disabled={isBlocked}
+              disabled={isBlocked || isAlreadySent}
             >
-              <Instagram className="mr-2 h-4 w-4" /> Abrir Instagram
+              <Instagram className="mr-2 h-4 w-4" /> {isAlreadySent ? "Envio registrado" : "Abrir Instagram"}
             </Button>
 
             <Button

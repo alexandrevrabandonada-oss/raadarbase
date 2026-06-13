@@ -338,6 +338,7 @@ function buildPriorityPerson(
   person: PersonWithContact,
   interactions: InteractionSummary[],
   task: OutreachTaskWithPerson | null,
+  hasPendingResponseTask: boolean,
   auditLogs: AuditLogEntry[],
   templates: MessageTemplate[],
   now: Date,
@@ -353,7 +354,7 @@ function buildPriorityPerson(
       hasNarrative(interaction.text),
   );
   const hasPendingTask = Boolean(task && !task.completedAt);
-  const isPendingResponse = boardColumnIsPendingResponse(task?.column) || person.status === "abordado";
+  const isPendingResponse = hasPendingResponseTask || person.status === "abordado";
   const hasReferral = person.status === "contato_confirmado" || person.themes.some(t => t.startsWith("quer_"));
   const priorityScore = computePriorityScore(person, interactions, task, hasReferral, now);
   
@@ -421,7 +422,7 @@ export function buildPriorityPersonProfile(
   templates: MessageTemplate[],
   now = new Date(),
 ) {
-  return buildPriorityPerson(person, interactions, task, auditLogs, templates, now);
+  return buildPriorityPerson(person, interactions, task, boardColumnIsPendingResponse(task?.column), auditLogs, templates, now);
 }
 
 export function buildPriorityPeople(
@@ -443,8 +444,12 @@ export function buildPriorityPeople(
   }
 
   const tasksByPerson = new Map<string, OutreachTaskWithPerson>();
+  const pendingResponseTaskPersonIds = new Set<string>();
   for (const task of tasks) {
     if (task.completedAt) continue;
+    if (boardColumnIsPendingResponse(task.column)) {
+      pendingResponseTaskPersonIds.add(task.personId);
+    }
     const current = tasksByPerson.get(task.personId);
     if (!current) {
       tasksByPerson.set(task.personId, task);
@@ -469,6 +474,7 @@ export function buildPriorityPeople(
         person,
         interactionsByPerson.get(person.id) ?? [],
         tasksByPerson.get(person.id) ?? null,
+        pendingResponseTaskPersonIds.has(person.id),
         auditLogsByPerson.get(person.id) ?? [],
         templates,
         now,

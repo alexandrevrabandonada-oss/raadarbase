@@ -49,6 +49,7 @@ import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { executeOrQueueAction } from "@/lib/offline-queue";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 // Radar Design System
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
@@ -90,8 +91,7 @@ export function PersonActions({
   const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
-  const isAlreadySent =
-    status === "abordado" || profile.priority.isPendingResponse || profile.priority.announcementStatus === "enviado";
+  const isAlreadySent = isPriorityPersonAlreadySent({ ...profile.priority, status });
   const contactGuardrailCopy =
     person.doNotContactReason ?? "Pedido de não contato respeitado.";
   const nextActionLabel =

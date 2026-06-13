@@ -57,6 +57,7 @@ import {
   getPriorityPersonMissionReason,
   getPriorityPersonMissionTypeLabel,
 } from "@/lib/missions/priority-person-mission-adapter";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
@@ -833,6 +834,7 @@ function KanbanTaskCard({
   const missionNextStep = getPriorityPersonMissionNextStep(task.priority);
   const holdText = getPriorityPersonHoldText(task.priority);
   const blocksContact = holdState === "blocked";
+  const alreadySent = isPriorityPersonAlreadySent(task.priority) || task.boardColumn === "esperando_resposta";
 
   return (
     <MissionCard
@@ -921,12 +923,12 @@ function KanbanTaskCard({
 
           <ActionButtonGroup
             personId={task.personId}
-            instagramUsername={blocksContact ? undefined : task.person?.username}
+            instagramUsername={blocksContact || alreadySent ? undefined : task.person?.username}
             onAssume={onAssume}
             onCopyDM={onCopyDM}
             onRegisterResponse={onRegisterResponse}
             canAssume={!task.responsibleId && !blocksContact}
-            canCopyDM={!!task.priority.suggestedMessage && !blocksContact}
+            canCopyDM={!!task.priority.suggestedMessage && !blocksContact && !alreadySent}
             canRegisterResponse
             className="w-full justify-start mt-2"
           />

@@ -76,6 +76,7 @@ import {
   getPriorityPersonMissionTypeLabel,
 } from "@/lib/missions/priority-person-mission-adapter";
 import type { RadarMission } from "@/lib/missions/mission-types";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -186,7 +187,7 @@ function missionExpectedOutcome(mission: RadarMission | null, person: PriorityPe
     if (person.status === "nao_abordar" || person.doNotContactReason) {
       return "Conclusão esperada: pedido de não contato respeitado e histórico preservado.";
     }
-    if (person.isPendingResponse) {
+    if (isPriorityPersonAlreadySent(person)) {
       return "Conclusão esperada: registrar o retorno e salvar o próximo passo.";
     }
     return "Conclusão esperada: deixar a próxima etapa clara sem perder contexto.";
@@ -359,6 +360,7 @@ export function PersonQuickSheet({
 
   const missionView = buildQuickSheetMissionView(person);
   const isBlocked = missionView.contactBlocked;
+  const isAlreadySent = isPriorityPersonAlreadySent(person);
   const journey = getPriorityPersonJourney(person);
 
   const handleAssume = () => {
@@ -456,7 +458,7 @@ export function PersonQuickSheet({
   };
 
   const handleCopyDM = async (text: string, location: string) => {
-    if (isBlocked || copyStatus !== "idle") return;
+    if (isBlocked || isAlreadySent || copyStatus !== "idle") return;
     setCopyStatus("sending");
     
     try {
@@ -704,7 +706,7 @@ export function PersonQuickSheet({
                           {missionView.manualMessageWarning}
                         </p>
                       ) : null}
-                      {editedMessage && !isBlocked && copyStatus === "idle" && (
+                      {editedMessage && !isBlocked && !isAlreadySent && copyStatus === "idle" && (
                         <Button 
                           size="icon" 
                           variant="secondary" 
@@ -730,14 +732,14 @@ export function PersonQuickSheet({
                           <p className="text-[10px] font-black uppercase tracking-widest text-[#8f6e2e]">Ação primária</p>
                           <p className="mt-1 text-sm font-black text-[#13212b]">{missionView.primaryActionLabel}</p>
                         </div>
-                        {!isBlocked && editedMessage ? (
+                        {!isBlocked && !isAlreadySent && editedMessage ? (
                           <Button
                             className="h-11 w-full border border-[#13212b] bg-[#13212b] text-xs font-black uppercase tracking-[0.16em] text-white hover:bg-[#0d1820]"
                             onClick={() => handleCopyDM(editedMessage, "mission_primary_action")}
-                            disabled={isPending || copyStatus !== "idle"}
+                            disabled={isPending || copyStatus !== "idle" || isAlreadySent}
                           >
                             {copyStatus === "sending" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
-                            {copyStatus === "sending" ? "Registrando envio..." : copyStatus === "confirmed" ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
+                            {copyStatus === "sending" ? "Registrando envio..." : copyStatus === "confirmed" || isAlreadySent ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
                           </Button>
                         ) : null}
                         {missionView.secondaryActionLabels.length > 0 ? (
@@ -879,20 +881,20 @@ export function PersonQuickSheet({
                   const igUrl = `https://www.instagram.com/${igUsername}/`;
                   window.open(igUrl, '_blank');
                 }}
-                disabled={isBlocked}
+                disabled={isBlocked || isAlreadySent}
               >
-                <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : "Instagram"}
+                <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : isAlreadySent ? "Envio registrado" : "Instagram"}
               </Button>
               
               <div className="flex gap-2">
-                {!isBlocked && (
+                {!isBlocked && !isAlreadySent && (
                   <>
                     <Button 
                       size="icon" 
                       variant="outline"
                       className="h-12 w-12 border-[#d4c4a8] bg-white text-[#13212b]"
                       title="Copiar e Abrir Direct" 
-                      disabled={!editedMessage || isPending || copyStatus !== "idle"} 
+                      disabled={!editedMessage || isPending || copyStatus !== "idle" || isAlreadySent}
                       onClick={() => handleCopyDM(editedMessage, "floating_footer")}
                     >
                       {copyStatus === "sending" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}

@@ -178,4 +178,14 @@ describe("priority person mission adapter", () => {
 
     expect(adapted.announcementStatus).toBe("enviado");
   });
+
+  it("trata anúncio enviado como estado de espera mesmo sem flag de resposta pendente", () => {
+    const person = buildPriorityPerson({
+      announcementStatus: "enviado",
+      isPendingResponse: false,
+    });
+
+    expect(getPriorityPersonHoldState(person)).toBe("waiting");
+    expect(getPriorityPersonHoldText(person)).toMatch(/Registrar retorno/i);
+  });
 });

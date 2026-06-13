@@ -2,9 +2,10 @@
 
 import { PriorityPerson } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Clock, MapPinned, ShieldAlert, Flame } from "lucide-react";
+import { Clock, MapPinned, ShieldAlert, Flame } from "lucide-react";
 import { mapPersonToJourney } from "@/lib/data/journey-mapper";
 import { JourneyBar } from "@/components/radar/journey-bar";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 interface QueueListProps {
   tasks: PriorityPerson[];
@@ -57,6 +58,7 @@ export function QueueList({ tasks, currentPersonId, onSelect, className, compact
         {tasks.map((person, idx) => {
           const isCurrent = person.id === currentPersonId;
           const blocked = person.status === "nao_abordar" || person.riskFlags.doNotContact;
+          const alreadySent = isPriorityPersonAlreadySent(person);
           const journey = mapPersonToJourney(
             person.status,
             person.hasPendingTask,
@@ -109,7 +111,7 @@ export function QueueList({ tasks, currentPersonId, onSelect, className, compact
                     <span className="flex items-center gap-1 rounded-[2px] border-2 border-rust bg-rust/10 px-2 py-0.5 text-rust">
                       <ShieldAlert className="h-3 w-3" /> Bloqueio
                     </span>
-                  ) : person.isPendingResponse ? (
+                  ) : alreadySent ? (
                     <span className="flex items-center gap-1 rounded-[2px] border-2 border-burnt-yellow bg-burnt-yellow/10 px-2 py-0.5 text-dark-yellow">
                       <Clock className="h-3 w-3" /> Espera
                     </span>

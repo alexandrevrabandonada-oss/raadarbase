@@ -7,6 +7,7 @@ import type {
   PersonReferral,
   PriorityPerson,
 } from "@/lib/types";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 import { buildMissionFeed } from "./mission-engine";
 import { compareMissionPriority } from "./mission-priority";
 import type { MissionPersonInput, RadarMission } from "./mission-types";
@@ -195,7 +196,7 @@ export function getPriorityPersonHoldState(person: PriorityPerson): "blocked" | 
   if (person.status === "nao_abordar" || person.doNotContactReason || person.riskFlags?.doNotContact) {
     return "blocked";
   }
-  if (person.riskFlags?.recentOutreach || person.isPendingResponse) {
+  if (person.riskFlags?.recentOutreach || isPriorityPersonAlreadySent(person)) {
     return "waiting";
   }
   return "free";
@@ -220,7 +221,7 @@ export function getPriorityPersonHoldText(person: PriorityPerson): string {
   if (person.riskFlags?.recentOutreach) {
     return "Contato recente. Aguarde a janela ética antes de insistir.";
   }
-  if (person.isPendingResponse) {
+  if (isPriorityPersonAlreadySent(person)) {
     return "Conversa aberta. Registrar retorno quando houver resposta.";
   }
   return "Caminho livre. Sem bloqueio ativo agora.";

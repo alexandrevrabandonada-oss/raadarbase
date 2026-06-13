@@ -20,6 +20,7 @@ import {
   getPriorityPersonMissionReason,
   getPriorityPersonMissionTypeLabel,
 } from "@/lib/missions/priority-person-mission-adapter";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 interface PersonPriorityCardProps {
   person: PriorityPerson;
@@ -48,7 +49,7 @@ export function PersonPriorityCard({
   const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
   const missionReason = getPriorityPersonMissionReason(person);
   const missionNextStep = getPriorityPersonMissionNextStep(person);
-  const isAlreadySent = person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado";
+  const isAlreadySent = isPriorityPersonAlreadySent(person);
 
   function handleAssume() {
     startTransition(async () => {

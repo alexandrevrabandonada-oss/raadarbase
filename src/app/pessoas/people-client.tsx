@@ -50,13 +50,10 @@ import { LightweightOnboarding } from "@/components/radar/onboarding/lightweight
 import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import { Progress } from "@/components/ui/progress";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 const LIST_RENDER_BATCH = 250;
-
-function isAlreadySent(person: PriorityPerson) {
-  return person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado";
-}
 
 const PersonQuickSheet = dynamic(
   () => import("@/components/radar/person-quick-sheet").then((module) => module.PersonQuickSheet),
@@ -136,7 +133,7 @@ export function PeopleClient({
     return visiblePriorityPeople
       .filter((person) => {
         if (!person.priorityEligible) return false;
-        if (isAlreadySent(person)) return false;
+        if (isPriorityPersonAlreadySent(person)) return false;
 
         if (normalizedQuery) {
           const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();
@@ -185,7 +182,7 @@ export function PeopleClient({
     return visiblePriorityPeople
       .filter((person) => {
         if (!person.priorityEligible) return false;
-        if (!isAlreadySent(person)) return false;
+        if (!isPriorityPersonAlreadySent(person)) return false;
 
         if (normalizedQuery) {
           const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();
@@ -203,7 +200,7 @@ export function PeopleClient({
     const maybeSync = () => {
       const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar" && !p.doNotContactReason);
       const totalActive = active.length;
-      const totalSent = active.filter(isAlreadySent).length;
+      const totalSent = active.filter(isPriorityPersonAlreadySent).length;
 
       if (totalActive <= 0 || totalSent < totalActive * 0.5) return;
 
@@ -296,7 +293,7 @@ export function PeopleClient({
 
   const stats = useMemo(() => {
     const active = visiblePriorityPeople.filter(p => p.status !== "nao_abordar");
-    const esperando = active.filter(isAlreadySent);
+    const esperando = active.filter(isPriorityPersonAlreadySent);
     return {
       total: mainQueuePeople.length,
       totalBase: visiblePriorityPeople.length,

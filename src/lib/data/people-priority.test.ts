@@ -158,6 +158,46 @@ describe("people priority", () => {
     expect(ranked[0].nextAction).toMatch(/Acompanhar|Ver se houve resposta/i);
   });
 
+  it("marca pendente de resposta quando qualquer tarefa aberta está em espera", () => {
+    const ranked = buildPriorityPeople(
+      [person({ status: "novo" })],
+      [],
+      [
+        {
+          id: "task-1",
+          personId: "person-1",
+          column: "responder_comentario",
+          title: "Responder comentário",
+          notes: "",
+          dueAt: "2026-05-07T12:00:00.000Z",
+          completedAt: null,
+          createdAt: "2026-05-06T12:00:00.000Z",
+          updatedAt: "2026-05-06T12:00:00.000Z",
+          responsibleId: null,
+          person: null,
+        },
+        {
+          id: "task-2",
+          personId: "person-1",
+          column: "esperando_resposta",
+          title: "Aguardar retorno",
+          notes: "",
+          dueAt: null,
+          completedAt: null,
+          createdAt: "2026-05-06T13:00:00.000Z",
+          updatedAt: "2026-05-06T13:00:00.000Z",
+          responsibleId: null,
+          person: null,
+        },
+      ],
+      [],
+      templates,
+      now,
+    );
+
+    expect(ranked[0].isPendingResponse).toBe(true);
+  });
+
   it("prefere template de grupo para quem respondeu", () => {
     const ranked = buildPriorityPeople(
       [person({ status: "respondeu" })],

@@ -68,6 +68,7 @@ import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import { buildRecommendedMissionBlock, type MinhaJornadaWorkMode, type QueueMissionPlan } from "@/lib/missions/queue-mission-adapter";
+import { isPriorityPersonAlreadySent, onlyPendingFirstContact } from "@/lib/outreach-status";
 
 import type { MessageTemplate } from "@/lib/types";
 
@@ -239,7 +240,7 @@ function getDailyGoalStatus(streak: number) {
 export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null, dailyStats, templates = [] }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
-  const [queue, setQueue] = useState(initialQueue);
+  const [queue, setQueue] = useState(() => onlyPendingFirstContact(initialQueue));
   const [stats, setStats] = useState(() => ({
     mySent: dailyStats?.mySentCount || 0,
     othersSent: dailyStats?.othersSentCount || 0,
@@ -256,7 +257,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const filteredQueue = useMemo(() => {
-    let result = queue;
+    let result = onlyPendingFirstContact(queue);
     if (filterQuentes) {
       result = result.filter((p) => p.temperature === "quente");
     }
@@ -278,7 +279,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     const savedQuentes = localStorage.getItem("radar_queue_filter_quentes") === "true";
     const savedId = localStorage.getItem("radar_last_person_id");
 
-    let tempQueue = initialQueue;
+    let tempQueue = onlyPendingFirstContact(initialQueue);
     if (savedQuentes) {
       tempQueue = tempQueue.filter((p) => p.temperature === "quente");
     }
@@ -1067,13 +1068,14 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const currentMission = missionBySubjectId.get(currentPerson.id) ?? null;
   const nextFive = filteredQueue.slice(currentIndex + 1, currentIndex + 6);
   const phaseBadge = missionPhaseLabel(currentPerson);
+  const currentAlreadySent = isPriorityPersonAlreadySent(currentPerson);
   const holdTone = currentMission?.state === "BLOQUEADA"
     ? "blocked"
     : currentMission?.state === "EM_ESPERA"
       ? "waiting"
       : currentPerson.riskFlags.doNotContact
         ? "blocked"
-        : currentPerson.riskFlags.recentOutreach || currentPerson.isPendingResponse
+        : currentPerson.riskFlags.recentOutreach || currentAlreadySent
           ? "waiting"
           : "free";
   const currentBlocked = holdTone === "blocked" || Boolean(currentMission?.guardrail.blocksContact) || Boolean(lockState?.lockedByOther);

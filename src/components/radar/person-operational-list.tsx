@@ -22,6 +22,7 @@ import {
   getPriorityPersonMissionReason,
   getPriorityPersonMissionTypeLabel,
 } from "@/lib/missions/priority-person-mission-adapter";
+import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
 
 interface PersonOperationalRowProps {
   person: PriorityPerson;
@@ -45,7 +46,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const missionNextStep = getPriorityPersonMissionNextStep(person);
   const holdText = getPriorityPersonHoldText(person);
   const journey = getPriorityPersonJourney(person);
-  const isAlreadySent = person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado";
+  const isAlreadySent = isPriorityPersonAlreadySent(person);
 
   const handleSentSuccess = () => {
     setCopyStatus("confirmed");
