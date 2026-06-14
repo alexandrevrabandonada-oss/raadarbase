@@ -136,6 +136,42 @@ describe("people priority", () => {
     expect(ranked[0].priorityScore).toBeLessThan(0);
   });
 
+  it("ordena perfis sem histórico depois de pessoas com interação real em empate", () => {
+    const ranked = buildPriorityPeople(
+      [
+        person({
+          id: "sem-historico",
+          username: "semhistorico",
+          totalInteractions: 0,
+          lastInteractionAt: null,
+          themes: ["seguidor_instagram"],
+        }),
+        person({
+          id: "com-historico",
+          username: "comhistorico",
+          totalInteractions: 1,
+          lastInteractionAt: "2026-04-20T10:00:00.000Z",
+        }),
+      ],
+      [
+        {
+          personId: "com-historico",
+          type: "curtida",
+          occurredAt: "2026-04-20T10:00:00.000Z",
+          text: "",
+          theme: "saúde",
+        },
+      ],
+      [],
+      [],
+      templates,
+      now,
+    );
+
+    expect(ranked[0].id).toBe("com-historico");
+    expect(ranked[1].id).toBe("sem-historico");
+  });
+
   it("marca pendente de resposta quando já houve abordagem", () => {
     const ranked = buildPriorityPeople(
       [person({ status: "abordado", contact: contact() })],

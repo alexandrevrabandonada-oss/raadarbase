@@ -32,6 +32,30 @@ import {
   upsertMockTask,
 } from "./utils";
 
+async function upsertLastContactedAt(personId: string, contactedAt: string) {
+  const supabase = getSupabaseAdminClient();
+  const payload: TableInsert<"contacts"> = {
+    person_id: personId,
+    contact_channel: "Instagram",
+    source: "instagram_manual",
+    consent_given: false,
+    consent_purpose: "Contato comunitário via Instagram",
+    consent_status: "pending",
+    last_contacted_at: contactedAt,
+  };
+
+  const { error: insertError } = await supabase
+    .from("contacts")
+    .upsert(payload, { onConflict: "person_id", ignoreDuplicates: true });
+  if (insertError) throw new Error(insertError.message);
+
+  const { error: updateError } = await supabase
+    .from("contacts")
+    .update({ last_contacted_at: contactedAt })
+    .eq("person_id", personId);
+  if (updateError) throw new Error(updateError.message);
+}
+
 function getResponseTaskConfig(responseType: PersonResponseKind) {
   switch (responseType) {
     case "nao_respondeu":
@@ -219,25 +243,22 @@ export async function registerManualDm(personId: string): Promise<ActionResult> 
         return;
       }
       const supabase = getSupabaseAdminClient();
+      const nowIso = new Date().toISOString();
       const { error } = await supabase
         .from("ig_people")
-        .update({ status: "abordado", updated_at: new Date().toISOString() })
+        .update({ status: "abordado", updated_at: nowIso })
         .eq("id", personId);
       if (error) throw new Error(error.message);
       const interactionPayload: TableInsert<"ig_interactions"> = {
         person_id: personId,
         type: "dm_manual",
-        occurred_at: new Date().toISOString(),
+        occurred_at: nowIso,
         text_content: "DM manual registrada no painel interno.",
         raw_payload: { origin: "radar_de_base" },
       };
       const { error: interactionError } = await supabase.from("ig_interactions").insert(interactionPayload);
       if (interactionError) throw new Error(interactionError.message);
-      const { error: contactError } = await supabase
-        .from("contacts")
-        .update({ last_contacted_at: new Date().toISOString() })
-        .eq("person_id", personId);
-      if (contactError) throw new Error(contactError.message);
+      await upsertLastContactedAt(personId, nowIso);
     },
     revalidate: ["/pessoas", `/pessoas/${personId}`],
   });
@@ -338,11 +359,7 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
       });
     }
 
-    const { error: contactError } = await supabase
-      .from("contacts")
-      .update({ last_contacted_at: nowIso })
-      .eq("person_id", personId);
-    if (contactError) throw new Error(contactError.message);
+    await upsertLastContactedAt(personId, nowIso);
 
     if (!isDuplicateConfirmation) {
       await writeAuditLog({

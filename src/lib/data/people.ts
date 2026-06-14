@@ -93,6 +93,8 @@ export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: num
         .from("ig_people")
         .select("*, internal_users(full_name)")
         .in("status", statuses)
+        .order("total_interactions", { ascending: false })
+        .order("last_interaction_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .range(from, to);
       if (error) throw error;

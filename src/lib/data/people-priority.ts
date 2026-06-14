@@ -86,6 +86,7 @@ function computePriorityScore(person: PersonWithContact, interactions: Interacti
   if (person.status === "respondeu") score += 3;
   if (person.contact?.consent_status === "confirmed" || person.status === "contato_confirmado") score += 2;
   if (!hasReferral) score += 2;
+  if (person.totalInteractions === 0 && interactions.length === 0 && !task) score -= 2;
   if (person.status === "abordado") score -= 2;
   if (latest?.type === "curtida" && comments7d === 0 && storyReplies7d === 0 && mentions14d === 0) score -= 1;
 
@@ -425,6 +426,14 @@ export function buildPriorityPersonProfile(
   return buildPriorityPerson(person, interactions, task, boardColumnIsPendingResponse(task?.column), auditLogs, templates, now);
 }
 
+function stableTieBreaker(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
 export function buildPriorityPeople(
   people: PersonWithContact[],
   interactions: InteractionSummaryWithPerson[],
@@ -482,7 +491,11 @@ export function buildPriorityPeople(
     )
     .sort((a, b) => {
       if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
-      return new Date(b.lastInteractionAt ?? 0).getTime() - new Date(a.lastInteractionAt ?? 0).getTime();
+      const byLastInteraction = new Date(b.lastInteractionAt ?? 0).getTime() - new Date(a.lastInteractionAt ?? 0).getTime();
+      if (byLastInteraction !== 0) return byLastInteraction;
+      const byTotalInteractions = b.totalInteractions - a.totalInteractions;
+      if (byTotalInteractions !== 0) return byTotalInteractions;
+      return stableTieBreaker(a.id) - stableTieBreaker(b.id);
     });
 }
 
