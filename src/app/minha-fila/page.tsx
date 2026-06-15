@@ -179,7 +179,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
         listMessageTemplates(),
       ]);
       const seen = new Set<string>();
-      people = [...sentPeople, ...mainPeople].filter((person) => {
+      people = [...mainPeople, ...sentPeople].filter((person) => {
         if (seen.has(person.id)) return false;
         seen.add(person.id);
         return true;
