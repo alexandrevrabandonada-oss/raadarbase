@@ -5,7 +5,11 @@ type OutreachStatusPerson = Pick<PriorityPerson, "announcementStatus" | "isPendi
 export function isPriorityPersonAlreadySent(person: OutreachStatusPerson | null | undefined) {
   return Boolean(
     person &&
-      (person.isPendingResponse || person.status === "abordado" || person.announcementStatus === "enviado"),
+      (person.isPendingResponse ||
+        person.status === "abordado" ||
+        person.status === "respondeu" ||
+        person.status === "contato_confirmado" ||
+        person.announcementStatus === "enviado"),
   );
 }
 
