@@ -104,8 +104,6 @@ export function PersonActions({
     if (!messageToCopy || !canApproach || isAlreadySent) return;
     await navigator.clipboard.writeText(messageToCopy);
     setCopied("mensagem");
-    
-    await executeOrQueueAction("recordDMPrepared", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast);
 
     const igUsername = person.username.replace(/^@+/, "");
     const igUrl = `https://www.instagram.com/${igUsername}/`;
@@ -113,7 +111,10 @@ export function PersonActions({
 
     toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
     startTransition(async () => {
-      const result = await executeOrQueueAction("confirmDMSent", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast);
+      const [preparedRes, result] = await Promise.all([
+        executeOrQueueAction("recordDMPrepared", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast),
+        executeOrQueueAction("confirmDMSent", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast)
+      ]);
       if (result.ok) {
         setCopyStatus("confirmed");
         setStatus("abordado");

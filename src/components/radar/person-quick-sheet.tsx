@@ -479,10 +479,12 @@ export function PersonQuickSheet({
       }
 
       trackOperationalEvent("dm_copied", person.id, { location });
-      await executeOrQueueAction("recordDMPrepared", [person.id, location, selectedTemplateId || null], toast);
 
       startTransition(async () => {
-        const result = await executeOrQueueAction("confirmDMSent", [person.id, "ficha_rapida", selectedTemplateId || null], toast);
+        const [preparedRes, result] = await Promise.all([
+          executeOrQueueAction("recordDMPrepared", [person.id, location, selectedTemplateId || null], toast),
+          executeOrQueueAction("confirmDMSent", [person.id, "ficha_rapida", selectedTemplateId || null], toast)
+        ]);
         if (result.ok) {
           setCopyStatus("confirmed");
           onActionComplete?.(person.id, { openNext: true });

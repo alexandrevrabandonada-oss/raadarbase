@@ -64,9 +64,11 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       window.open(igUrl, "_blank");
 
       toast({ title: "Mensagem copiada", description: "Direct aberto. O contato vai direto para esperando resposta." });
-      await executeOrQueueAction("recordDMPrepared", [person.id, "lista_operacional", person.suggestedTemplateId], toast);
       startTransition(async () => {
-        const result = await executeOrQueueAction("confirmDMSent", [person.id, "lista_operacional", person.suggestedTemplateId], toast);
+        const [preparedRes, result] = await Promise.all([
+          executeOrQueueAction("recordDMPrepared", [person.id, "lista_operacional", person.suggestedTemplateId], toast),
+          executeOrQueueAction("confirmDMSent", [person.id, "lista_operacional", person.suggestedTemplateId], toast)
+        ]);
         if (result.ok) {
           toast({ title: "Envio registrado", description: "Contato foi movido para a aba de já enviadas." });
           handleSentSuccess();

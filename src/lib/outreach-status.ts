@@ -19,7 +19,8 @@ export function isPriorityPersonAlreadySent(person: OutreachStatusPerson | null 
   if (
     person.announcementStatus === "enviado" ||
     person.announcementStatus === "respondeu" ||
-    person.announcementStatus === "revisar_depois"
+    person.announcementStatus === "revisar_depois" ||
+    person.announcementStatus === "preparado"
   ) {
     return true;
   }
