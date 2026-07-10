@@ -13,6 +13,8 @@ const person: PersonWithContact = {
   notes: "",
   doNotContactReason: null,
   syncedAt: null,
+  responsibleId: null,
+  responsibleName: null,
   contact: null,
 };
 
@@ -38,6 +40,9 @@ const tasks: OutreachTaskWithPerson[] = [
     notes: "Pessoa quer continuar a conversa.",
     dueAt: null,
     completedAt: null,
+    createdAt: "2026-05-07T10:00:00.000Z",
+    updatedAt: "2026-05-07T10:00:00.000Z",
+    responsibleId: null,
     person: null,
   },
 ];
@@ -48,6 +53,8 @@ const templates: MessageTemplate[] = [
     name: "Grupo",
     theme: "grupo",
     body: "Oi, {username}. Posso te mandar o link do grupo?",
+    category: null,
+    whenToUse: null,
     active: true,
     updatedAt: "2026-05-07T00:00:00.000Z",
   },

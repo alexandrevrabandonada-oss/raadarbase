@@ -32,7 +32,11 @@ function stopServer(server) {
     });
     return;
   }
-  server.kill("SIGTERM");
+  try {
+    process.kill(-server.pid, "SIGTERM");
+  } catch {
+    server.kill("SIGTERM");
+  }
 }
 
 let url = process.env.HEALTHCHECK_URL;
@@ -43,6 +47,7 @@ if (!url) {
   url = `http://127.0.0.1:${port}/api/health`;
   const command = existsSync(".next/BUILD_ID") ? "start" : "dev";
   server = spawn("npm", ["run", command, "--", "--hostname", "127.0.0.1", "--port", port], {
+    detached: process.platform !== "win32",
     stdio: "pipe",
     shell: true,
     env: {

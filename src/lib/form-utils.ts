@@ -81,19 +81,19 @@ export async function validateFormData<T>(
     [K in keyof T]: (formData: FormData) => T[K] | Promise<T[K]>;
   }
 ): Promise<T> {
-  const result: any = {};
-  
-  for (const [key, validator] of Object.entries(schema) as [string, (fd: FormData) => unknown][]) {
-    result[key] = await Promise.resolve(validator(formData));
-  }
-  
-  return result as T;
+  const entries = await Promise.all(
+    (Object.keys(schema) as Array<keyof T>).map(async (key) => [
+      key,
+      await Promise.resolve(schema[key](formData)),
+    ]),
+  );
+  return Object.fromEntries(entries) as T;
 }
 
 /**
  * Create FormData from object
  */
-export function objectToFormData(obj: Record<string, any>): FormData {
+export function objectToFormData(obj: Record<string, unknown>): FormData {
   const formData = new FormData();
   
   for (const [key, value] of Object.entries(obj)) {

@@ -167,7 +167,21 @@ export type AuditAction =
   | "person.duplicate_resolved"
   | "person.username_updated"
   | "person.theme_updated_assisted"
-  | "person.batch_assignment_completed";
+  | "person.batch_assignment_completed"
+  | "influence.imported"
+  | "influence.exported"
+  | "influence.update_queued"
+  | "influence.update_processed"
+  | "influence.note_created"
+  | "radar_hub.imported"
+  | "radar_hub.exported"
+  | "radar_hub.enrichment_queued"
+  | "radar_hub.enrichment_processed"
+  | "radar_hub.instagram_synced"
+  | "radar_hub.merge_approved"
+  | "radar_hub.merge_rejected"
+  | "radar_hub.relationship_created"
+  | "radar_hub.note_created";
 
 export type ContactRecord = TableRow<"contacts">;
 export type BairroEscutaSubmissionRow = TableRow<"bairro_escuta_submissions">;

@@ -16,12 +16,14 @@ function person(overrides: Partial<PersonWithContact>): PersonWithContact {
     notes: "",
     doNotContactReason: null,
     syncedAt: null,
+    responsibleId: null,
+    responsibleName: null,
     contact: null,
     ...overrides,
   };
 }
 
-function contact(overrides: Partial<ContactRecord>): ContactRecord {
+function contact(overrides: Partial<ContactRecord> = {}): ContactRecord {
   return {
     id: "contact-1",
     person_id: "person-1",
@@ -48,6 +50,8 @@ const templates: MessageTemplate[] = [
     name: "Escuta",
     theme: "escuta",
     body: "Oi, {username}. Vi sua fala sobre {tema}.",
+    category: null,
+    whenToUse: null,
     active: true,
     updatedAt: "2026-05-01T00:00:00.000Z",
   },
@@ -56,12 +60,14 @@ const templates: MessageTemplate[] = [
     name: "Grupo",
     theme: "grupo",
     body: "Oi, {username}. Posso te mandar o link do grupo?",
+    category: null,
+    whenToUse: null,
     active: true,
     updatedAt: "2026-05-01T00:00:00.000Z",
   },
 ];
 
-function auditLog(overrides: Partial<AuditLogEntry>): AuditLogEntry {
+function auditLog(overrides: Partial<AuditLogEntry> = {}): AuditLogEntry {
   return {
     id: "audit-1",
     actorId: "operator-1",
@@ -108,6 +114,9 @@ describe("people priority", () => {
           notes: "",
           dueAt: null,
           completedAt: null,
+          createdAt: "2026-05-06T12:00:00.000Z",
+          updatedAt: "2026-05-06T12:00:00.000Z",
+          responsibleId: null,
           person: null,
         },
       ],

@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { ArrowLeft, Filter, Network } from "lucide-react";
+import AppShell from "@/components/app-shell";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { listRadarRelationships } from "@/lib/radar-hub/data";
+import { RADAR_CATEGORIES, RADAR_CATEGORY_LABELS, RADAR_RELATIONSHIP_PREDICATES, type RadarEntity } from "@/lib/radar-hub/types";
+import { requireInternalPageSession } from "@/lib/supabase/auth";
+
+export const dynamic = "force-dynamic";
+type SearchParams = Record<string, string | string[] | undefined>;
+function first(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] : value; }
+function nodePosition(index: number, total: number) { const angle = (Math.PI * 2 * index) / Math.max(total, 1) - Math.PI / 2; const radius = total < 4 ? 130 : 190; return { x: 300 + Math.cos(angle) * radius, y: 250 + Math.sin(angle) * radius }; }
+
+export default async function GraphPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requireInternalPageSession("/dashboard/inteligencia/grafo"); const params = await searchParams;
+  const depth = Math.min(3, Math.max(1, Number(first(params.depth)) || 1));
+  const result = await listRadarRelationships({ entityId: first(params.entityId), predicate: first(params.predicate), category: first(params.category), city: first(params.city), depth });
+  const entities = Object.values(result.entities as Record<string, RadarEntity>).slice(0, 24); const positions = new Map(entities.map((entity, index) => [entity.id, nodePosition(index, entities.length)]));
+  const visibleRelationships = result.items.filter((relation) => positions.has(relation.subject_entity_id) && positions.has(relation.object_entity_id)).slice(0, 60);
+  return <AppShell><PageHeader eyebrow="Rede territorial" title="Grafo de relações" description="Vínculos explícitos, rastreáveis e limitados a três níveis de profundidade." action={<Button variant="outline" nativeButton={false} render={<Link href="/dashboard/inteligencia" />}><ArrowLeft data-icon="inline-start" />Voltar</Button>} />
+    <div className="flex flex-col gap-6 pb-12"><Card><CardHeader><CardTitle className="flex items-center gap-2"><Filter />Filtros do grafo</CardTitle><CardDescription>Use um ID de entidade como raiz para explorar até três saltos.</CardDescription></CardHeader><CardContent><form method="get"><FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-5"><Field className="xl:col-span-2"><FieldLabel htmlFor="entityId">ID da entidade raiz</FieldLabel><Input id="entityId" name="entityId" defaultValue={first(params.entityId)} placeholder="UUID opcional" /></Field><Field><FieldLabel htmlFor="predicate">Relação</FieldLabel><select id="predicate" name="predicate" defaultValue={first(params.predicate) ?? ""} className="h-10 rounded-[4px] border-2 border-input bg-background px-3 text-sm"><option value="">Todas</option>{RADAR_RELATIONSHIP_PREDICATES.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field><Field><FieldLabel htmlFor="category">Categoria</FieldLabel><select id="category" name="category" defaultValue={first(params.category) ?? ""} className="h-10 rounded-[4px] border-2 border-input bg-background px-3 text-sm"><option value="">Todas</option>{RADAR_CATEGORIES.map((item) => <option key={item} value={item}>{RADAR_CATEGORY_LABELS[item]}</option>)}</select></Field><Field><FieldLabel htmlFor="depth">Profundidade</FieldLabel><select id="depth" name="depth" defaultValue={String(depth)} className="h-10 rounded-[4px] border-2 border-input bg-background px-3 text-sm"><option value="1">1 nível</option><option value="2">2 níveis</option><option value="3">3 níveis</option></select></Field><div className="xl:col-span-5"><Button type="submit"><Network data-icon="inline-start" />Atualizar grafo</Button></div></FieldGroup></form></CardContent></Card>
+      <Card><CardHeader><CardTitle>Mapa de vínculos</CardTitle><CardDescription>{entities.length} entidades e {visibleRelationships.length} relações visíveis. Arestas não significam causalidade.</CardDescription></CardHeader><CardContent><div className="overflow-x-auto rounded-[4px] border-2 border-cement bg-charcoal/5"><svg aria-label="Grafo territorial" className="min-w-[600px]" role="img" viewBox="0 0 600 500">{visibleRelationships.map((relation) => { const from = positions.get(relation.subject_entity_id)!; const to = positions.get(relation.object_entity_id)!; return <line key={relation.id} aria-label={`${relation.predicate}: ${Math.round(relation.confidence * 100)}%`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="stroke-cement" strokeWidth={Math.max(1, relation.confidence * 3)} />; })}{entities.map((entity) => { const point = positions.get(entity.id)!; return <g key={entity.id} aria-label={`${entity.display_name} · score ${entity.influence_score.toFixed(1)}`}><circle cx={point.x} cy={point.y} r={22 + entity.influence_score / 12} className="fill-charcoal stroke-burnt-yellow" strokeWidth="3" /><text x={point.x} y={point.y + 46} textAnchor="middle" className="fill-current text-[11px] font-bold">{entity.display_name.slice(0, 24)}</text></g>; })}</svg></div></CardContent></Card>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visibleRelationships.map((relation) => <Card key={relation.id}><CardHeader><CardTitle className="text-base">{result.entities[relation.subject_entity_id]?.display_name ?? relation.subject_entity_id}</CardTitle><CardDescription>{relation.predicate}</CardDescription></CardHeader><CardContent><p className="font-bold">{result.entities[relation.object_entity_id]?.display_name ?? relation.object_entity_id}</p><div className="mt-2 flex flex-wrap gap-2"><Badge variant="outline">Confiança {Math.round(relation.confidence * 100)}%</Badge><Badge variant="secondary">{relation.evidence_id ? `Evidência ${relation.evidence_id}` : "Fonte interna/seed sem evidência vinculada"}</Badge></div></CardContent></Card>)}</section>
+    </div>
+  </AppShell>;
+}

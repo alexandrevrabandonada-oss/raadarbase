@@ -1,0 +1,9 @@
+[
+  {
+    "name": "Associação E2E Demo",
+    "description": "Associação fictícia de moradores de Volta Redonda RJ",
+    "city": "Volta Redonda",
+    "state": "RJ",
+    "sourceReference": "e2e-fixture-56"
+  }
+]
