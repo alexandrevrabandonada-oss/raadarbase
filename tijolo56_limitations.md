@@ -1,6 +1,6 @@
 # Tijolo 56 — Limitações conhecidas
 
-- A migration foi preparada e validada por lint do schema remoto e `db push --dry-run`, mas não foi aplicada. O Docker local estava indisponível, portanto não houve reset/seed local do Supabase nesta máquina.
+- As migrations foram aplicadas e verificadas no Supabase remoto. O Docker local continuou indisponível, portanto não houve reset/seed local nesta máquina.
 - `ConfiguredHttpProvider` é apenas um contrato seguro. Nenhuma fonte externa real foi inventada; sem allowlist e credencial server-side ele permanece desabilitado.
 - Aprovar uma sugestão cria relação `same_as`, marca a entidade secundária como `merged` e preserva dados/histórico. Consolidação física destrutiva de linhas não faz parte deste tijolo.
 - O worker da fila é acionado pela API/processamento server-side; agendamento distribuído contínuo deve ser conectado à infraestrutura escolhida antes de produção.

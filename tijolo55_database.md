@@ -2,7 +2,7 @@
 
 ## Migration
 
-`supabase/migrations/20260709234757_tijolo55_influence_radar.sql`
+`supabase/migrations/20260710170129_tijolo55_influence_radar.sql`
 
 ## Tabelas
 
@@ -32,4 +32,3 @@ Todas as tabelas têm RLS. Usuários internos ativos recebem leitura; notas têm
 ## Seed
 
 `supabase/seed.sql` contém três perfis estritamente fictícios e idempotentes, marcados com `source = 'seed'`.
-

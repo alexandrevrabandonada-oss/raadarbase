@@ -25,4 +25,4 @@ Não há scraping, crawler genérico, automação de login, CAPTCHA, perfil priv
 
 ## Banco
 
-`npx supabase db lint --linked --level warning` retornou zero erros no schema remoto. O push foi validado em dry-run; nenhuma migration foi aplicada ao ambiente remoto durante esta tarefa.
+As migrations foram aplicadas ao projeto vinculado. A consulta posterior confirmou RLS habilitado e uma policy em cada uma das dez tabelas `radar_*`. Os advisors mantêm avisos anteriores do projeto, sem novo alerta específico para as tabelas do Hub.

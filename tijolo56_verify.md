@@ -10,7 +10,8 @@ Data da verificação: 9 de julho de 2026 (America/Sao_Paulo).
 | `npm run build` | Passou com Next.js 16.2.6 |
 | `npx playwright test e2e/inteligencia.spec.ts` | Passou: Chromium e Mobile Chrome |
 | `npx supabase db lint --linked --level warning` | Passou: 0 erros de schema remoto |
-| `npx supabase db push --linked --dry-run` | Passou; migrations 55/56 detectadas, nenhuma aplicada |
+| Aplicação das migrations Supabase | Passou: versões `20260710170129` e `20260710170148` |
+| Verificação RLS pós-migration | Passou: 10 tabelas `radar_*`, todas com RLS e policy |
 
 ## Smoke E2E
 

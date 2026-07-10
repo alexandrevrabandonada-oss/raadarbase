@@ -1,6 +1,6 @@
 # Tijolo 56 — Banco de dados
 
-Migration: `supabase/migrations/20260710003558_tijolo56_source_hub_enrichment.sql`.
+Migration: `supabase/migrations/20260710170148_tijolo56_source_hub_enrichment.sql`.
 
 ## Tabelas
 
@@ -27,10 +27,6 @@ Todas as dez tabelas têm RLS. `anon` não recebe grant. Usuários `authenticate
 
 ## Aplicação
 
-O dry-run confirmou que as migrations 55 e 56 estão prontas para push, sem aplicá-las automaticamente:
+As migrations 55 e 56 foram aplicadas ao projeto Supabase `blimjnitngthldhazvwh` em 10 de julho de 2026. A verificação posterior confirmou as tabelas, os cinco conectores iniciais, RLS habilitado e uma policy interna de leitura em cada tabela `radar_*`.
 
-```text
-npx supabase db push --linked --dry-run
-Would push 20260709234757_tijolo55_influence_radar.sql
-Would push 20260710003558_tijolo56_source_hub_enrichment.sql
-```
+O histórico local foi reconciliado com o timestamp remoto `20260710162953` da migration de unicidade de usernames, evitando duplicação de uma alteração já aplicada.

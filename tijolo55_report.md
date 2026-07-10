@@ -29,5 +29,4 @@ O módulo não autentica no Instagram, não contorna CAPTCHA ou mecanismos de se
 
 ## Observação de implantação
 
-A migration foi criada e versionada, mas não foi aplicada automaticamente a um banco remoto para evitar alterar um ambiente Supabase não identificado. Aplique-a no ambiente de destino pelo fluxo de migrations do projeto.
-
+A migration foi aplicada em 10 de julho de 2026 ao projeto Supabase vinculado e verificada com RLS ativo nas tabelas criadas.
