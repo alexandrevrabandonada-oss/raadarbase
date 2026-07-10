@@ -28,6 +28,7 @@ interface QueueCardProps {
   person: PriorityPerson;
   mission?: RadarMission | null;
   onCopyDM: () => void;
+  onOpenInstagram: () => void;
   onRegisterResponse: () => void;
   onReferral: () => void;
   onSkip: () => void;
@@ -84,6 +85,7 @@ export function QueueCard({
   person,
   mission = null,
   onCopyDM,
+  onOpenInstagram,
   onRegisterResponse,
   onReferral,
   onSkip,
@@ -259,7 +261,7 @@ export function QueueCard({
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
                     <div className="space-y-3">
                       <p className="text-xs font-bold leading-relaxed text-off-white">
-                        Texto copiado e direct aberto. Envie a mensagem no Instagram e marque abaixo.
+                        Texto copiado e Instagram aberto. Ao voltar para a fila, o envio será registrado automaticamente.
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <Button
@@ -268,7 +270,7 @@ export function QueueCard({
                           onClick={onConfirmSent}
                         >
                           <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                          Marcar como Enviado
+                          Registrar agora
                         </Button>
                         <Button
                           size="sm"
@@ -370,8 +372,8 @@ export function QueueCard({
                       <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
                         <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
                         <span className="min-w-0">
-                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Marcar Enviado</span>
-                          <span className="mt-1 block text-xs font-semibold leading-4">Confirmar e registrar o envio.</span>
+                          <span className="block text-xs font-black uppercase tracking-[0.12em]">Voltar para a fila</span>
+                          <span className="mt-1 block text-xs font-semibold leading-4">O registro acontece automaticamente.</span>
                         </span>
                       </div>
                     </div>
@@ -426,7 +428,7 @@ export function QueueCard({
                     <h3 className="mt-1 text-lg font-black tracking-tight text-charcoal">Uma pessoa, uma mensagem, um registro.</h3>
                   </div>
                   <p className="max-w-md text-xs font-semibold leading-5 text-[#645845]">
-                    Copie a fala, personalize no Instagram e confirme apenas depois do envio manual.
+                    Copie a fala e envie no Instagram. Ao voltar para a fila, o registro acontece automaticamente.
                   </p>
                 </div>
 
@@ -448,8 +450,8 @@ export function QueueCard({
                   <div className={quickStepTone(copyStatus === "confirmed", copyStatus === "confirmed")}>
                     <span className="flex size-6 shrink-0 items-center justify-center border-2 border-current text-[10px] font-black">3</span>
                     <span className="min-w-0">
-                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Confirmar envio</span>
-                      <span className="mt-1 block text-xs font-semibold leading-4">Marque como enviado no CRM.</span>
+                      <span className="block text-xs font-black uppercase tracking-[0.12em]">Voltar para a fila</span>
+                      <span className="mt-1 block text-xs font-semibold leading-4">O CRM registra e avança automaticamente.</span>
                     </span>
                   </div>
                 </div>
@@ -553,7 +555,7 @@ export function QueueCard({
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-burnt-yellow animate-bounce" />
                       <div className="space-y-3">
                         <p className="text-xs font-bold leading-relaxed text-off-white">
-                          Texto copiado e direct aberto. Envie a mensagem no Instagram e marque abaixo.
+                          Texto copiado e Instagram aberto. Ao voltar para a fila, o envio será registrado automaticamente.
                         </p>
                         <div className="flex flex-col gap-2 sm:flex-row">
                           <Button
@@ -562,7 +564,7 @@ export function QueueCard({
                             onClick={onConfirmSent}
                           >
                             <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                            Marcar como Enviado
+                            Registrar agora
                           </Button>
                           <Button
                             size="sm"
@@ -644,13 +646,13 @@ export function QueueCard({
               ) : (
                 <Copy className="mr-2 h-4 w-4" />
               )}
-              {copyStatus === "waiting" ? "Marcar como Enviado" : copyStatus === "confirmed" ? "Próxima pessoa" : "Copiar e Abrir Direct"}
+              {copyStatus === "waiting" ? "Aguardando retorno do Instagram" : copyStatus === "confirmed" ? "Próxima pessoa" : "Copiar e Abrir Direct"}
             </Button>
 
             <Button
               size="lg"
               className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-black hover:bg-concrete-dark hover:text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
-              onClick={() => window.open(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`, "_blank")}
+              onClick={onOpenInstagram}
               disabled={isBlocked || isAlreadySent}
             >
               <Instagram className="mr-2 h-4 w-4" /> {isAlreadySent ? "Envio registrado" : "Abrir Instagram"}

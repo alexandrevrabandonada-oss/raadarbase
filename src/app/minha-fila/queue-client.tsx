@@ -69,6 +69,15 @@ import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import { buildRecommendedMissionBlock, type MinhaJornadaWorkMode, type QueueMissionPlan } from "@/lib/missions/queue-mission-adapter";
 import { isPriorityPersonAlreadySent, onlyPendingFirstContact } from "@/lib/outreach-status";
+import {
+  INSTAGRAM_RETURN_STORAGE_KEY,
+  INSTAGRAM_RETURN_MIN_AWAY_MS,
+  createPendingInstagramSend,
+  markPendingInstagramSendAsAway,
+  parsePendingInstagramSend,
+  shouldConfirmPendingInstagramSend,
+  type PendingInstagramSend,
+} from "@/lib/instagram-return-flow";
 
 import type { MessageTemplate } from "@/lib/types";
 
@@ -237,6 +246,28 @@ function getDailyGoalStatus(streak: number) {
   }
 }
 
+function savePendingInstagramSend(pending: PendingInstagramSend | null) {
+  try {
+    if (pending) {
+      window.sessionStorage.setItem(INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
+    } else {
+      window.sessionStorage.removeItem(INSTAGRAM_RETURN_STORAGE_KEY);
+    }
+  } catch {
+    // O fluxo continua na memória quando o navegador bloqueia o sessionStorage.
+  }
+}
+
+function loadPendingInstagramSend() {
+  try {
+    return parsePendingInstagramSend(
+      window.sessionStorage.getItem(INSTAGRAM_RETURN_STORAGE_KEY),
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function QueueClient({ initialQueue, oldPendencies = [], operatorName, missionPlan = null, dailyStats, templates = [] }: QueueClientProps) {
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
@@ -329,6 +360,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showReferralDialog, setShowReferralDialog] = useState(false);
   const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
+  const pendingInstagramSendRef = useRef<PendingInstagramSend | null>(null);
+  const sendCompletionInFlightRef = useRef<string | null>(null);
+  const autoConfirmTimerRef = useRef<number | null>(null);
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
   const editedMessage = currentPerson
     ? (editedMessages[currentPerson.id] ?? currentPerson.suggestedMessage ?? "")
@@ -367,16 +401,16 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [focusMode, setFocusMode] = useState(false);
   const [expressMode, setExpressMode] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("radar_envio_expresso") === "true";
+      return localStorage.getItem("radar_retorno_instagram_automatico") !== "false";
     }
-    return false;
+    return true;
   });
 
   const handleToggleExpressMode = useCallback(() => {
     const nextVal = !expressMode;
     setExpressMode(nextVal);
     if (typeof window !== "undefined") {
-      localStorage.setItem("radar_envio_expresso", String(nextVal));
+      localStorage.setItem("radar_retorno_instagram_automatico", String(nextVal));
     }
   }, [expressMode]);
 
@@ -634,89 +668,219 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     handleNext();
   }, [currentPerson, handleNext, toast]);
 
+  const removePersonFromVisibleQueue = useCallback((personId: string) => {
+    setQueue((current) => current.filter((person) => person.id !== personId));
+    setCurrentIndex((index) =>
+      Math.min(index, Math.max(0, filteredQueue.length - 2)),
+    );
+    setCopyStatus("idle");
+  }, [filteredQueue.length]);
+
+  const completeSentContact = useCallback(async (
+    personId: string,
+    templateId: string | null,
+    automatic: boolean,
+  ) => {
+    if (sendCompletionInFlightRef.current === personId) return;
+    sendCompletionInFlightRef.current = personId;
+
+    try {
+      const origin = automatic ? "minha_fila_retorno_instagram" : "minha_fila";
+      const result = await executeOrQueueAction(
+        "confirmDMSent",
+        [personId, origin, templateId],
+        toast,
+      );
+
+      if (!result.ok) {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+        return;
+      }
+
+      const responseResult = await executeOrQueueAction(
+        "recordResponse",
+        [personId, "manter_aguardando"],
+        toast,
+      );
+
+      if (!responseResult.ok) {
+        toast({ title: "Erro", description: responseResult.error, variant: "destructive" });
+        return;
+      }
+
+      if (pendingInstagramSendRef.current?.personId === personId) {
+        pendingInstagramSendRef.current = null;
+        savePendingInstagramSend(null);
+      }
+
+      playSynthSuccess();
+      incrementStreak();
+      removePersonFromVisibleQueue(personId);
+
+      if (!result.offline) {
+        toast({
+          title: automatic ? "Envio registrado automaticamente" : "Envio manual confirmado",
+          description: automatic
+            ? "Você voltou do Instagram. A pessoa saiu da fila e agora aguarda resposta."
+            : "Contato marcado como aguardando retorno.",
+        });
+      }
+    } finally {
+      sendCompletionInFlightRef.current = null;
+    }
+  }, [incrementStreak, removePersonFromVisibleQueue, toast]);
+
+  const handleOpenInstagram = useCallback(() => {
+    if (!currentPerson) return false;
+
+    const pending = createPendingInstagramSend(
+      currentPerson.id,
+      selectedTemplateId || null,
+    );
+    pendingInstagramSendRef.current = pending;
+    savePendingInstagramSend(pending);
+
+    const igUsername = currentPerson.username.replace(/^@+/, "");
+    const instagramWindow = window.open(
+      `https://www.instagram.com/${igUsername}/`,
+      "_blank",
+    );
+
+    if (!instagramWindow) {
+      pendingInstagramSendRef.current = null;
+      savePendingInstagramSend(null);
+      toast({
+        title: "Instagram bloqueado pelo navegador",
+        description: "Libere a abertura de novas abas e tente novamente.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    setCopyStatus("waiting");
+    trackOperationalEvent("instagram_opened", currentPerson.id);
+    void executeOrQueueAction(
+      "recordDMPrepared",
+      [currentPerson.id, "minha_fila", selectedTemplateId || null],
+      toast,
+    ).then((result) => {
+      if (!result.ok) {
+        toast({ title: "Erro", description: result.error, variant: "destructive" });
+      }
+    });
+
+    toast({
+      title: "Instagram aberto",
+      description: expressMode
+        ? "Envie a mensagem e volte para esta fila. O registro será automático."
+        : "Envie a mensagem e volte para esta fila. Se necessário, use Registrar agora.",
+    });
+    return true;
+  }, [currentPerson, expressMode, selectedTemplateId, toast]);
+
   const handleCopyDM = useCallback(async () => {
     if (!currentPerson) return;
     const messageToCopy = editedMessage || currentPerson.suggestedMessage || "";
     if (messageToCopy) {
-      await navigator.clipboard.writeText(messageToCopy);
-      playSynthConfirm();
-      
-      const igUsername = currentPerson.username.replace(/^@+/, "");
-      const igUrl = `https://www.instagram.com/${igUsername}/`;
-      window.open(igUrl, "_blank");
+      const copyPromise = navigator.clipboard.writeText(messageToCopy);
+      const opened = handleOpenInstagram();
+      if (!opened) return;
 
-      if (expressMode) {
-        toast({ title: "Envio Expresso Ativo", description: "Mensagem copiada, direct aberto e contato avançado!" });
-        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
-        
-        startTransition(async () => {
-          const confirmResult = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
-          if (confirmResult.ok) {
-            const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
-            if (responseResult.ok) {
-              playSynthSuccess();
-              incrementStreak();
-              
-              const newQueue = queue.filter((p) => p.id !== currentPerson.id);
-              setQueue(newQueue);
-              const nextFilteredLength = filterQuentes 
-                ? newQueue.filter((p) => p.temperature === "quente").length 
-                : newQueue.length;
-              if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
-                setCurrentIndex(Math.max(0, nextFilteredLength - 1));
-              }
-              setCopyStatus("idle");
-            }
-          }
+      try {
+        await copyPromise;
+        playSynthConfirm();
+      } catch {
+        toast({
+          title: "Não foi possível copiar o texto",
+          description: "O Instagram foi aberto; copie a mensagem manualmente antes de enviar.",
+          variant: "destructive",
         });
-      } else {
-        toast({ title: "Mensagem copiada e direct aberto", description: "Envie a mensagem no Instagram e confirme." });
-        await executeOrQueueAction("recordDMPrepared", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
-        setCopyStatus("waiting");
       }
     }
   }, [
     currentPerson,
     editedMessage,
-    expressMode,
+    handleOpenInstagram,
     toast,
-    startTransition,
-    incrementStreak,
-    queue,
-    filterQuentes,
-    currentIndex,
-    selectedTemplateId,
   ]);
 
   const handleConfirmSent = useCallback(async () => {
     if (!currentPerson) return;
-    startTransition(async () => {
-      const result = await executeOrQueueAction("confirmDMSent", [currentPerson.id, "minha_fila", selectedTemplateId || null], toast);
-      if (result.ok) {
-        const responseResult = await executeOrQueueAction("recordResponse", [currentPerson.id, "manter_aguardando"], toast);
-        if (responseResult.ok) {
-          playSynthSuccess();
-          incrementStreak();
-          if (!result.offline) {
-            toast({ title: "Envio manual confirmado", description: "Contato marcado como aguardando retorno." });
+    await completeSentContact(currentPerson.id, selectedTemplateId || null, false);
+  }, [completeSentContact, currentPerson, selectedTemplateId]);
+
+  useEffect(() => {
+    const stored = loadPendingInstagramSend();
+    let restoreStatusTimer: number | null = null;
+    if (stored) {
+      pendingInstagramSendRef.current = stored;
+      restoreStatusTimer = window.setTimeout(() => setCopyStatus("waiting"), 0);
+    } else {
+      savePendingInstagramSend(null);
+    }
+
+    const markAsAway = () => {
+      const pending = pendingInstagramSendRef.current;
+      if (!pending) return;
+      const updated = markPendingInstagramSendAsAway(pending);
+      pendingInstagramSendRef.current = updated;
+      savePendingInstagramSend(updated);
+    };
+
+    const confirmOnReturn = () => {
+      if (!expressMode) return;
+      const pending = pendingInstagramSendRef.current;
+      if (!pending || pending.leftPortalAt === null) return;
+
+      if (!shouldConfirmPendingInstagramSend(pending)) {
+        const remainingDelay = Math.max(
+          0,
+          INSTAGRAM_RETURN_MIN_AWAY_MS - (Date.now() - pending.leftPortalAt),
+        );
+        if (remainingDelay > 0) {
+          if (autoConfirmTimerRef.current !== null) {
+            window.clearTimeout(autoConfirmTimerRef.current);
           }
-          const newQueue = queue.filter((p) => p.id !== currentPerson.id);
-          setQueue(newQueue);
-          const nextFilteredLength = filterQuentes 
-            ? newQueue.filter((p) => p.temperature === "quente").length 
-            : newQueue.length;
-          if (currentIndex >= nextFilteredLength && nextFilteredLength > 0) {
-            setCurrentIndex(Math.max(0, nextFilteredLength - 1));
-          }
-          setCopyStatus("idle");
-        } else {
-          toast({ title: "Erro", description: responseResult.error, variant: "destructive" });
+          autoConfirmTimerRef.current = window.setTimeout(() => {
+            autoConfirmTimerRef.current = null;
+            confirmOnReturn();
+          }, remainingDelay);
         }
-      } else {
-        toast({ title: "Erro", description: result.error, variant: "destructive" });
+        return;
       }
-    });
-  }, [currentPerson, toast, startTransition, incrementStreak, queue, filterQuentes, currentIndex, selectedTemplateId]);
+
+      void completeSentContact(pending.personId, pending.templateId, true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        markAsAway();
+      } else {
+        confirmOnReturn();
+      }
+    };
+
+    window.addEventListener("blur", markAsAway);
+    window.addEventListener("focus", confirmOnReturn);
+    window.addEventListener("pagehide", markAsAway);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const restoreTimer = window.setTimeout(confirmOnReturn, 0);
+    return () => {
+      window.clearTimeout(restoreTimer);
+      if (restoreStatusTimer !== null) {
+        window.clearTimeout(restoreStatusTimer);
+      }
+      if (autoConfirmTimerRef.current !== null) {
+        window.clearTimeout(autoConfirmTimerRef.current);
+        autoConfirmTimerRef.current = null;
+      }
+      window.removeEventListener("blur", markAsAway);
+      window.removeEventListener("focus", confirmOnReturn);
+      window.removeEventListener("pagehide", markAsAway);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [completeSentContact, expressMode]);
 
   const handlePostSendResponse = async (kind: PersonResponseKind) => {
     startTransition(async () => {
@@ -1158,7 +1322,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                     : "border-cement/30 bg-transparent text-cement hover:border-black hover:text-charcoal"
                 )}
               >
-                🚀 Expresso {expressMode ? "Ativo" : "Inativo"}
+                ↩ Retorno automático {expressMode ? "Ativo" : "Inativo"}
               </button>
             </div>
             <div className="flex items-center gap-2">
@@ -1223,7 +1387,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                       : "border-white/20 bg-transparent text-zinc-400 hover:border-white hover:text-white"
                   )}
                 >
-                  🚀 Expresso {expressMode ? "On" : "Off"}
+                  ↩ Retorno automático {expressMode ? "On" : "Off"}
                 </button>
                 <button
                   onClick={() => {
@@ -1331,6 +1495,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               compact={true}
               contactDisabled={currentBlocked}
               onCopyDM={handleCopyDM}
+              onOpenInstagram={handleOpenInstagram}
               onRegisterResponse={openResponseDialog}
               onReferral={openReferralDialog}
               onSkip={handleSkip}
@@ -1369,7 +1534,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             </div>
 
             <div className="text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest italic pt-4 hidden md:block">
-              Preparar, enviar manualmente e registrar antes de avançar.
+              Envie manualmente no Instagram; ao voltar, a fila registra e avança sozinha.
             </div>
 
             {/* Sticky Mobile Bottom Bar */}
@@ -1384,7 +1549,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                     "Pular Bloqueio"
                   ) : copyStatus === "waiting" ? (
                     <>
-                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Marcar como Enviado
+                      <Clock className="mr-1 h-3.5 w-3.5" /> Aguardando Retorno
                     </>
                   ) : copyStatus === "confirmed" ? (
                     <>
@@ -1398,7 +1563,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </Button>
                 <Button
                   className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-zinc-700 hover:bg-zinc-800 font-black uppercase tracking-wider text-xs px-3 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]"
-                  onClick={() => window.open(`https://www.instagram.com/${currentPerson.username.replace(/^@+/, "")}/`, "_blank")}
+                  onClick={handleOpenInstagram}
                   disabled={currentBlocked}
                 >
                   <Instagram className="h-4 w-4" />
@@ -1528,7 +1693,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
               label: currentBlocked
                 ? "Pular Bloqueio"
                 : copyStatus === "waiting"
-                  ? "Marcar como Enviado"
+                  ? "Aguardando retorno do Instagram"
                   : copyStatus === "confirmed"
                     ? "Próxima Pessoa"
                     : "Copiar e Abrir Direct",
@@ -1551,7 +1716,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
             secondaryActions={[
               {
                 label: "Abrir Instagram",
-                onClick: () => window.open(`https://www.instagram.com/${currentPerson.username.replace(/^@+/, "")}/`, "_blank"),
+                onClick: handleOpenInstagram,
                 icon: Instagram,
                 disabled: currentBlocked,
                 title: currentBlocked ? "Ação de contato indisponível enquanto o aviso estiver bloqueado." : undefined,
@@ -1697,6 +1862,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 compact={isCompact}
                 contactDisabled={currentBlocked}
                 onCopyDM={handleCopyDM}
+                onOpenInstagram={handleOpenInstagram}
                 onRegisterResponse={openResponseDialog}
                 onReferral={openReferralDialog}
                 onSkip={handleSkip}
@@ -2203,7 +2369,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold">E / S</span>
-                  <span className="text-cement font-medium">Confirmar Envio (Marcar como Enviado)</span>
+                  <span className="text-cement font-medium">Registrar agora (contingência)</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold">Esc / P</span>
@@ -2251,7 +2417,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold">X</span>
-                  <span className="text-cement font-medium">Alternar modo Envio Expresso</span>
+                  <span className="text-cement font-medium">Alternar retorno automático do Instagram</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-bold">?</span>

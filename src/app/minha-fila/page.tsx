@@ -150,7 +150,7 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
           compact
           eyebrow="Modo Operador"
           title="Minha Jornada" 
-          description="Uma pessoa por vez: preparar a mensagem, enviar manualmente e registrar o envio sem perder o próximo passo." 
+          description="Uma pessoa por vez: preparar, enviar manualmente no Instagram e voltar para avançar automaticamente."
         />
         
         <QueueClient 

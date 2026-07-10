@@ -284,6 +284,13 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
   try {
     const actor = await requireActor();
     await requireRole(["admin", "operador"]);
+    const automaticOnInstagramReturn = origin === "minha_fila_retorno_instagram";
+    const auditSummary = automaticOnInstagramReturn
+      ? "DM manual registrada automaticamente após retorno do Instagram."
+      : `DM confirmada como enviada manualmente (Origem: ${origin}).`;
+    const successMessage = automaticOnInstagramReturn
+      ? "DM registrada automaticamente após retorno do Instagram."
+      : "DM confirmada como enviada manualmente.";
 
     if (shouldUseMockData()) {
       updateMockPerson(personId, (person) => {
@@ -299,14 +306,14 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
         action: "contact.dm_sent",
         entityType: "ig_people",
         entityId: personId,
-        summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
-        metadata: { origin, auto_status: true, template_id: templateId ?? null },
+        summary: auditSummary,
+        metadata: { origin, auto_status: true, automatic_on_return: automaticOnInstagramReturn, template_id: templateId ?? null },
       });
       revalidatePath("/pessoas");
       revalidatePath(`/pessoas/${personId}`);
       revalidatePath("/abordagem");
       revalidatePath("/minha-fila");
-      return { ok: true, message: "DM confirmada como enviada manualmente." };
+      return { ok: true, message: successMessage };
     }
 
     const supabase = getSupabaseAdminClient();
@@ -367,8 +374,8 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
         action: "contact.dm_sent",
         entityType: "ig_people",
         entityId: personId,
-        summary: `DM confirmada como enviada manualmente (Origem: ${origin}).`,
-        metadata: { origin, auto_status: true, template_id: templateId ?? null },
+        summary: auditSummary,
+        metadata: { origin, auto_status: true, automatic_on_return: automaticOnInstagramReturn, template_id: templateId ?? null },
       });
     }
 
@@ -381,7 +388,7 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
       ok: true,
       message: isDuplicateConfirmation
         ? "Envio já estava registrado neste ciclo."
-        : "DM confirmada como enviada manualmente.",
+        : successMessage,
     };
   } catch (error) {
     return {
