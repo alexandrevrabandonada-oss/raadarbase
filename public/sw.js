@@ -1,10 +1,16 @@
-const CACHE_NAME = "radar-base-cache-v1";
+const CACHE_NAME = "radar-base-static-v2";
 const OFFLINE_URLS = [
-  "/minha-fila",
   "/manifest.json",
   "/favicon.ico",
   "/logo.png"
 ];
+
+function isCacheableStaticAsset(requestUrl) {
+  return (
+    requestUrl.pathname.startsWith("/_next/static/") ||
+    OFFLINE_URLS.includes(requestUrl.pathname)
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,35 +37,38 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Skip non-GET requests
   if (event.request.method !== "GET") {
     return;
   }
 
-  // Handle local navigation and assets
-  if (event.request.url.startsWith(self.location.origin)) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          // Stale-while-revalidate
-          fetch(event.request)
-            .then((networkResponse) => {
-              if (networkResponse && networkResponse.status === 200) {
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-              }
-            })
-            .catch(() => {});
-          return cachedResponse;
+  const requestUrl = new URL(event.request.url);
+
+  // Never cache authenticated pages, API responses or Next.js data payloads.
+  // Reusing those responses after a deployment can mix stale HTML with a new
+  // client bundle and can expose session-specific data from the cache.
+  if (
+    requestUrl.origin !== self.location.origin ||
+    !isCacheableStaticAsset(requestUrl)
+  ) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache))
+          );
         }
 
-        return fetch(event.request).catch((err) => {
-          // If offline and it's a page request, fallback to cached /minha-fila
-          if (event.request.headers.get("accept")?.includes("text/html")) {
-            return caches.match("/minha-fila");
-          }
-          throw err;
-        });
-      })
-    );
-  }
+        return networkResponse;
+      });
+    })
+  );
 });
