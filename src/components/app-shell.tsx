@@ -43,7 +43,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
           <Sidebar userEmail={user?.email ?? undefined} useMocks={USE_MOCKS} />
         </div>
         
-        <main className="flex-1 overflow-x-hidden px-4 py-4 sm:px-5 xl:px-6">
+        <main className="min-w-0 flex-1 overflow-x-hidden px-4 py-4 sm:px-5 xl:px-6">
           {children}
         </main>
       </div>
