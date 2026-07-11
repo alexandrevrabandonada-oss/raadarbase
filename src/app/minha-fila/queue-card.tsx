@@ -634,6 +634,7 @@ export function QueueCard({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Button
+              data-testid="queue-send-instagram"
               size="lg"
               className="h-12 rounded-[2px] bg-burnt-yellow text-charcoal border-2 border-black hover:bg-burnt-yellow/90 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider text-xs"
               onClick={copyStatus === "waiting" ? onConfirmSent : copyStatus === "confirmed" ? onNext : onCopyDM}
@@ -650,6 +651,7 @@ export function QueueCard({
             </Button>
 
             <Button
+              data-testid="queue-open-instagram"
               size="lg"
               className="h-12 rounded-[2px] bg-charcoal text-off-white border-2 border-black hover:bg-concrete-dark hover:text-white shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_rgba(11,11,11,1)] transition-all font-black uppercase tracking-wider"
               onClick={onOpenInstagram}

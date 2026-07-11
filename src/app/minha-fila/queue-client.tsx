@@ -361,7 +361,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
   const [showShortcutsDialog, setShowShortcutsDialog] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "waiting" | "confirmed">("idle");
   const pendingInstagramSendRef = useRef<PendingInstagramSend | null>(null);
-  const sendCompletionInFlightRef = useRef<string | null>(null);
+  const sendCompletionInFlightRef = useRef(new Set<string>());
   const autoConfirmTimerRef = useRef<number | null>(null);
   const [editedMessages, setEditedMessages] = useState<Record<string, string>>({});
   const editedMessage = currentPerson
@@ -676,13 +676,38 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     setCopyStatus("idle");
   }, [filteredQueue.length]);
 
+  const restorePersonToQueue = useCallback((person: PriorityPerson) => {
+    setQueue((current) =>
+      current.some((item) => item.id === person.id)
+        ? current
+        : [person, ...current],
+    );
+    setCurrentIndex(0);
+    setCopyStatus("waiting");
+  }, []);
+
   const completeSentContact = useCallback(async (
     personId: string,
     templateId: string | null,
     automatic: boolean,
   ) => {
-    if (sendCompletionInFlightRef.current === personId) return;
-    sendCompletionInFlightRef.current = personId;
+    if (sendCompletionInFlightRef.current.has(personId)) return;
+    sendCompletionInFlightRef.current.add(personId);
+
+    const personSnapshot = queue.find((person) => person.id === personId) ?? null;
+
+    if (pendingInstagramSendRef.current?.personId === personId) {
+      pendingInstagramSendRef.current = null;
+      savePendingInstagramSend(null);
+    }
+
+    // A interface avança imediatamente. A confirmação idempotente continua em
+    // segundo plano e a pessoa volta à fila somente se o servidor a rejeitar.
+    removePersonFromVisibleQueue(personId);
+    toast({
+      title: "Próxima pessoa pronta",
+      description: "Registrando o envio em segundo plano.",
+    });
 
     try {
       const origin = automatic ? "minha_fila_retorno_instagram" : "minha_fila";
@@ -693,29 +718,13 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
       );
 
       if (!result.ok) {
+        if (personSnapshot) restorePersonToQueue(personSnapshot);
         toast({ title: "Erro", description: result.error, variant: "destructive" });
         return;
       }
 
-      const responseResult = await executeOrQueueAction(
-        "recordResponse",
-        [personId, "manter_aguardando"],
-        toast,
-      );
-
-      if (!responseResult.ok) {
-        toast({ title: "Erro", description: responseResult.error, variant: "destructive" });
-        return;
-      }
-
-      if (pendingInstagramSendRef.current?.personId === personId) {
-        pendingInstagramSendRef.current = null;
-        savePendingInstagramSend(null);
-      }
-
       playSynthSuccess();
       incrementStreak();
-      removePersonFromVisibleQueue(personId);
 
       if (!result.offline) {
         toast({
@@ -726,9 +735,9 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         });
       }
     } finally {
-      sendCompletionInFlightRef.current = null;
+      sendCompletionInFlightRef.current.delete(personId);
     }
-  }, [incrementStreak, removePersonFromVisibleQueue, toast]);
+  }, [incrementStreak, queue, removePersonFromVisibleQueue, restorePersonToQueue, toast]);
 
   const handleOpenInstagram = useCallback(() => {
     if (!currentPerson) return false;
@@ -741,21 +750,10 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     savePendingInstagramSend(pending);
 
     const igUsername = currentPerson.username.replace(/^@+/, "");
-    const instagramWindow = window.open(
+    window.open(
       `https://www.instagram.com/${igUsername}/`,
       "_blank",
     );
-
-    if (!instagramWindow) {
-      pendingInstagramSendRef.current = null;
-      savePendingInstagramSend(null);
-      toast({
-        title: "Instagram bloqueado pelo navegador",
-        description: "Libere a abertura de novas abas e tente novamente.",
-        variant: "destructive",
-      });
-      return false;
-    }
 
     setCopyStatus("waiting");
     trackOperationalEvent("instagram_opened", currentPerson.id);

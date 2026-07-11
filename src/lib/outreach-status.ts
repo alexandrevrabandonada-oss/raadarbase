@@ -19,8 +19,7 @@ export function isPriorityPersonAlreadySent(person: OutreachStatusPerson | null 
   if (
     person.announcementStatus === "enviado" ||
     person.announcementStatus === "respondeu" ||
-    person.announcementStatus === "revisar_depois" ||
-    person.announcementStatus === "preparado"
+    person.announcementStatus === "revisar_depois"
   ) {
     return true;
   }
@@ -36,4 +35,3 @@ export function isPriorityPersonAlreadySent(person: OutreachStatusPerson | null 
 export function onlyPendingFirstContact<T extends OutreachStatusPerson>(people: T[]) {
   return people.filter((person) => !isPriorityPersonAlreadySent(person));
 }
-
