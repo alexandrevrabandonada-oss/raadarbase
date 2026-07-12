@@ -704,10 +704,6 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     // A interface avança imediatamente. A confirmação idempotente continua em
     // segundo plano e a pessoa volta à fila somente se o servidor a rejeitar.
     removePersonFromVisibleQueue(personId);
-    toast({
-      title: "Próxima pessoa pronta",
-      description: "Registrando o envio em segundo plano.",
-    });
 
     try {
       const origin = automatic ? "minha_fila_retorno_instagram" : "minha_fila";
@@ -723,17 +719,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
         return;
       }
 
-      playSynthSuccess();
       incrementStreak();
-
-      if (!result.offline) {
-        toast({
-          title: automatic ? "Envio registrado automaticamente" : "Envio manual confirmado",
-          description: automatic
-            ? "Você voltou do Instagram. A pessoa saiu da fila e agora aguarda resposta."
-            : "Contato marcado como aguardando retorno.",
-        });
-      }
     } finally {
       sendCompletionInFlightRef.current.delete(personId);
     }
