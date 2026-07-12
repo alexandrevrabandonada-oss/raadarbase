@@ -40,7 +40,6 @@ import { AnnouncementStatusBadge } from "./announcement-status-badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCompletion } from "@/hooks/use-completion";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { 
   assumePersonResponsible, 
   recordPersonResponse, 
@@ -77,6 +76,15 @@ import {
 } from "@/lib/missions/priority-person-mission-adapter";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
+import {
+  createPendingInstagramSend,
+  markPendingInstagramSendAsAway,
+  parsePendingInstagramSend,
+  shouldConfirmPendingInstagramSend,
+  type PendingInstagramSend,
+} from "@/lib/instagram-return-flow";
+
+const QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_quick_sheet_instagram_send:v1";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -144,7 +152,7 @@ interface PersonQuickSheetProps {
   person: PriorityPerson | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onActionComplete?: (personId?: string, options?: { openNext?: boolean }) => void;
+  onActionComplete?: (personId?: string, options?: { openNext?: boolean; refresh?: boolean }) => void;
   onNextPerson?: () => void;
   isTraining?: boolean;
   onTrainingAction?: (action: string, payload?: unknown) => void;
@@ -248,7 +256,6 @@ export function PersonQuickSheet({
   templates = []
 }: PersonQuickSheetProps) {
   const [isMobile, setIsMobile] = React.useState(false);
-  const router = useRouter();
 
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
@@ -274,9 +281,11 @@ export function PersonQuickSheet({
   const [createConfirmationTask, setCreateConfirmationTask] = React.useState<boolean>(true);
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "sending" | "confirmed">("idle");
+  const [copyStatus, setCopyStatus] = React.useState<"idle" | "sending" | "waiting" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = React.useState("");
   const [selectedTemplateId, setSelectedTemplateId] = React.useState("");
+  const pendingInstagramSendRef = React.useRef<PendingInstagramSend | null>(null);
+  const confirmingInstagramSendRef = React.useRef(false);
 
   const loadHistory = React.useCallback(async (personId: string) => {
     if (isTraining) {
@@ -336,6 +345,69 @@ export function PersonQuickSheet({
     const timeoutId = window.setTimeout(loadEvents, 0);
     return () => window.clearTimeout(timeoutId);
   }, [activeModal, events.length, loadEvents]);
+
+  const completePendingInstagramSend = React.useCallback((pending: PendingInstagramSend) => {
+    if (!person || pending.personId !== person.id || confirmingInstagramSendRef.current) return;
+
+    confirmingInstagramSendRef.current = true;
+    pendingInstagramSendRef.current = null;
+    window.sessionStorage.removeItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY);
+    setCopyStatus("confirmed");
+    setIsResolved(true);
+    onActionComplete?.(pending.personId, { openNext: true, refresh: false });
+
+    void Promise.all([
+      executeOrQueueAction("recordDMPrepared", [pending.personId, "quick_sheet_return", pending.templateId], toast),
+      executeOrQueueAction("confirmDMSent", [pending.personId, "ficha_rapida", pending.templateId], toast),
+    ]).then(([, result]) => {
+      if (!result.ok) {
+        toast({ title: "Envio pendente", description: result.error, variant: "destructive" });
+      }
+    }).finally(() => {
+      confirmingInstagramSendRef.current = false;
+    });
+  }, [onActionComplete, person, toast]);
+
+  React.useEffect(() => {
+    if (!open || !person || isTraining) return;
+
+    const restorePending = () => {
+      const pending = parsePendingInstagramSend(
+        window.sessionStorage.getItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY),
+      );
+      if (pending?.personId === person.id) pendingInstagramSendRef.current = pending;
+      return pending;
+    };
+
+    const markAway = () => {
+      const pending = pendingInstagramSendRef.current ?? restorePending();
+      if (!pending || pending.personId !== person.id) return;
+      const updated = markPendingInstagramSendAsAway(pending);
+      pendingInstagramSendRef.current = updated;
+      window.sessionStorage.setItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(updated));
+    };
+
+    const confirmOnReturn = () => {
+      const pending = pendingInstagramSendRef.current ?? restorePending();
+      if (!pending || pending.personId !== person.id || !shouldConfirmPendingInstagramSend(pending)) return;
+      completePendingInstagramSend(pending);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") markAway();
+      else confirmOnReturn();
+    };
+
+    restorePending();
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", markAway);
+    window.addEventListener("focus", confirmOnReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", markAway);
+      window.removeEventListener("focus", confirmOnReturn);
+    };
+  }, [completePendingInstagramSend, isTraining, open, person]);
 
   const handleTemplateChange = (templateId: string) => {
     if (!person) return;
@@ -462,15 +534,21 @@ export function PersonQuickSheet({
     setCopyStatus("sending");
     
     try {
-      // 1. Copiar
-      await navigator.clipboard.writeText(text);
-      
-      // 2. Abrir Direct do Instagram
+      // Mantém a abertura vinculada ao gesto do usuário: no celular, aguardar a área
+      // de transferência antes de abrir pode fazer o navegador bloquear a nova aba.
+      const copyPromise = navigator.clipboard.writeText(text);
+      if (!isTraining) {
+        const pending = createPendingInstagramSend(person.id, selectedTemplateId || null);
+        pendingInstagramSendRef.current = pending;
+        window.sessionStorage.setItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
+      }
       const igUsername = person.username.replace(/^@+/, "");
       const igUrl = `https://www.instagram.com/${igUsername}/`;
       window.open(igUrl, "_blank");
 
-      toast({ title: "Mensagem copiada", description: "Direct aberto. O envio foi registrado e o contato foi para esperando resposta." });
+      await copyPromise;
+
+      toast({ title: "Mensagem copiada", description: "Direct aberto. Ao voltar, o próximo perfil será preparado automaticamente." });
       if (isTraining) {
         onTrainingAction?.("dm_copied", { location });
         onTrainingAction?.("dm_sent");
@@ -479,22 +557,10 @@ export function PersonQuickSheet({
       }
 
       trackOperationalEvent("dm_copied", person.id, { location });
-
-      startTransition(async () => {
-        const [preparedRes, result] = await Promise.all([
-          executeOrQueueAction("recordDMPrepared", [person.id, location, selectedTemplateId || null], toast),
-          executeOrQueueAction("confirmDMSent", [person.id, "ficha_rapida", selectedTemplateId || null], toast)
-        ]);
-        if (result.ok) {
-          setCopyStatus("confirmed");
-          onActionComplete?.(person.id, { openNext: true });
-          router.refresh();
-        } else {
-          setCopyStatus("idle");
-          toast({ title: "Erro", description: result.error, variant: "destructive" });
-        }
-      });
+      setCopyStatus("waiting");
     } catch {
+      pendingInstagramSendRef.current = null;
+      if (!isTraining) window.sessionStorage.removeItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY);
       setCopyStatus("idle");
       toast({ title: "Erro", description: "Não foi possível copiar a mensagem.", variant: "destructive" });
     }
@@ -741,7 +807,7 @@ export function PersonQuickSheet({
                             disabled={isPending || copyStatus !== "idle" || isAlreadySent}
                           >
                             {copyStatus === "sending" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
-                            {copyStatus === "sending" ? "Registrando envio..." : copyStatus === "confirmed" || isAlreadySent ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
+                            {copyStatus === "sending" ? "Copiando mensagem..." : copyStatus === "waiting" ? "Aguardando retorno do Instagram..." : copyStatus === "confirmed" || isAlreadySent ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
                           </Button>
                         ) : null}
                         {missionView.secondaryActionLabels.length > 0 ? (

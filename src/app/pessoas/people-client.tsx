@@ -325,14 +325,14 @@ export function PeopleClient({
     toast({ title: "Rodada concluída", description: "Não há outra pendência neste filtro agora." });
   }
 
-  function handleActionComplete(personId?: string, options?: { openNext?: boolean }) {
+  function handleActionComplete(personId?: string, options?: { openNext?: boolean; refresh?: boolean }) {
     if (!personId) {
       router.refresh();
       return;
     }
     if (options?.openNext) openNextAfterCompletion(personId);
     else removePersonFromCurrentList(personId);
-    router.refresh();
+    if (options?.refresh !== false) router.refresh();
   }
 
   function handleAssumeNextUnassigned() {
