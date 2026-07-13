@@ -110,10 +110,17 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
     };
 
     document.addEventListener("visibilitychange", onVisibility);
+    // Android pode manter a página visível ao alternar para o Instagram em
+    // outra aba/app. blur/focus completam o mesmo controlador, sem criar um
+    // segundo fluxo de confirmação.
+    window.addEventListener("blur", markAway);
+    window.addEventListener("focus", handleReturn);
     window.addEventListener("pagehide", markAway);
     window.addEventListener("pageshow", handleReturn);
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", markAway);
+      window.removeEventListener("focus", handleReturn);
       window.removeEventListener("pagehide", markAway);
       window.removeEventListener("pageshow", handleReturn);
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
