@@ -368,7 +368,7 @@ export function PersonQuickSheet({
   }, [onActionComplete, onNextPerson, onOpenChange, person, toast]);
 
   React.useEffect(() => {
-    if (!open || !person || isTraining) return;
+    if (!open || !person || isTraining || isMobile) return;
 
     const restorePending = () => {
       const pending = parsePendingInstagramSend(
@@ -406,7 +406,7 @@ export function PersonQuickSheet({
       window.removeEventListener("pagehide", markAway);
       window.removeEventListener("focus", confirmOnReturn);
     };
-  }, [completePendingInstagramSend, isTraining, open, person]);
+  }, [completePendingInstagramSend, isMobile, isTraining, open, person]);
 
   const handleTemplateChange = (templateId: string) => {
     if (!person) return;
@@ -428,6 +428,21 @@ export function PersonQuickSheet({
   };
 
   if (!person) return null;
+
+  // No celular, a Ficha Rápida é somente leitura. O único fluxo de envio é
+  // Minha Fila, evitando dois controladores concorrentes de retorno do Instagram.
+  if (isMobile && !isTraining) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="radar-paper rounded-t-3xl border-[#d7c6ab] bg-[rgba(255,250,242,0.98)] p-6">
+          <SheetTitle className="text-2xl font-black">Continuar na Minha Fila</SheetTitle>
+          <SheetDescription className="mt-2 text-sm font-medium">O envio pelo Instagram acontece em uma única tela para manter o retorno rápido e confiável.</SheetDescription>
+          <Button className="mt-6 h-12 w-full bg-charcoal font-black uppercase tracking-wider text-white" nativeButton={false} render={<Link href="/minha-fila" />}>Abrir Minha Fila</Button>
+          <Button className="mt-3 w-full" variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   const missionView = buildQuickSheetMissionView(person);
   const isBlocked = missionView.contactBlocked;
