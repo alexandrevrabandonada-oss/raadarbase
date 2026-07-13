@@ -353,8 +353,15 @@ export function PersonQuickSheet({
     pendingInstagramSendRef.current = null;
     window.sessionStorage.removeItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY);
     setCopyStatus("confirmed");
-    setIsResolved(true);
-    onActionComplete?.(pending.personId, { openNext: true, refresh: false });
+    // A próxima ficha precisa aparecer antes da persistência de rede. Exibir uma
+    // tela intermediária aqui interrompia o ritmo no retorno do Instagram.
+    if (onActionComplete) {
+      onActionComplete(pending.personId, { openNext: true, refresh: false });
+    } else if (onNextPerson) {
+      onNextPerson();
+    } else {
+      onOpenChange(false);
+    }
 
     void Promise.all([
       executeOrQueueAction("recordDMPrepared", [pending.personId, "quick_sheet_return", pending.templateId], toast),
@@ -366,7 +373,7 @@ export function PersonQuickSheet({
     }).finally(() => {
       confirmingInstagramSendRef.current = false;
     });
-  }, [onActionComplete, person, toast]);
+  }, [onActionComplete, onNextPerson, onOpenChange, person, toast]);
 
   React.useEffect(() => {
     if (!open || !person || isTraining) return;
