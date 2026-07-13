@@ -117,6 +117,9 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
     window.addEventListener("focus", handleReturn);
     window.addEventListener("pagehide", markAway);
     window.addEventListener("pageshow", handleReturn);
+    // Alguns navegadores móveis recarregam o portal ao voltar do Instagram em
+    // vez de emitir pageshow. Retoma a confirmação persistida imediatamente.
+    handleReturn();
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("blur", markAway);
