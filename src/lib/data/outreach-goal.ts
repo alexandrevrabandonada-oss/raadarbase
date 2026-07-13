@@ -52,6 +52,7 @@ async function countPeopleByStatus(statuses: PersonStatus[]) {
 async function listDmSentAuditLogs() {
   const supabase = getSupabaseAdminClient();
   const rows: Array<{
+    entity_id: string | null;
     actor_id: string | null;
     actor_email: string | null;
     created_at: string;
@@ -60,9 +61,9 @@ async function listDmSentAuditLogs() {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("audit_logs")
-      .select("actor_id, actor_email, created_at")
+      .select("entity_id, actor_id, actor_email, created_at")
       .eq("action", "contact.dm_sent")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     rows.push(...(data ?? []));
@@ -125,9 +126,12 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
       });
     }
 
-    // Contabilizar totalSent/sentToday/lastSentAt via audit_logs (paginado sem limite)
-    // audit_logs com action="contact.dm_sent" é a fonte correta para atribuição por operador
+    // Cada pessoa conta uma única vez no mural. O primeiro registro é a melhor
+    // evidência de quem fez o envio; retries não podem inflar o placar.
+    const countedPeople = new Set<string>();
     for (const log of logs) {
+      if (!log.entity_id || countedPeople.has(log.entity_id)) continue;
+      countedPeople.add(log.entity_id);
       const key = log.actor_id ?? log.actor_email ?? "sem-operador";
       const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
       const current =
