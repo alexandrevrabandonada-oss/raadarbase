@@ -111,7 +111,7 @@ export function PersonActions({
 
     toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
     startTransition(async () => {
-      const [preparedRes, result] = await Promise.all([
+      const [, result] = await Promise.all([
         executeOrQueueAction("recordDMPrepared", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast),
         executeOrQueueAction("confirmDMSent", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast)
       ]);

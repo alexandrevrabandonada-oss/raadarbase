@@ -33,6 +33,10 @@ const PROTECTED_ROUTE_PREFIXES = [
 ] as const;
 
 const protectedPaths = PROTECTED_ROUTE_PREFIXES.map((p) => `/${p}`);
+const PUBLIC_VOLUNTEER_PATHS = [
+  "/voluntarios/quero-ajudar",
+  "/voluntarios/quero-ajudar/sucesso",
+] as const;
 
 export async function middleware(request: NextRequest) {
   const e2eBypassOptedOut =
@@ -67,7 +71,10 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data } = await supabase.auth.getUser();
-  const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
+  const isPublicVolunteerPath = PUBLIC_VOLUNTEER_PATHS.includes(
+    request.nextUrl.pathname as (typeof PUBLIC_VOLUNTEER_PATHS)[number],
+  );
+  const isProtected = !isPublicVolunteerPath && protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
   let internalStatus: string | null = null;
   let accessReason: InternalAccessReason | null = null;

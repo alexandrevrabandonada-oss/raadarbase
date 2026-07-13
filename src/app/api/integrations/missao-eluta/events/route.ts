@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "node:crypto";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/database.types";
 import type { PersonReferralStatus } from "@/lib/types";
 
 // MISSAO_ELUTA_WEBHOOK_SECRET should be defined in .env.local
@@ -14,6 +16,47 @@ const EVENT_STATUS_MAP: Record<string, PersonReferralStatus> = {
   mission_eluta_neighborhood_lead_candidate: "pode_puxar_missao",
 };
 
+const MAX_WEBHOOK_PAYLOAD_BYTES = 256 * 1024;
+
+type MissionElutaPayload = {
+  external_person_ref?: string;
+  instagram_handle?: string;
+  event_type?: string;
+  occurred_at?: string;
+  mission_slug?: string;
+  issue?: string;
+  metadata?: Record<string, unknown>;
+  event_id?: string;
+};
+
+function hasMatchingWebhookSecret(authorization: string | null): boolean {
+  if (!WEBHOOK_SECRET || !authorization) return false;
+
+  const expected = Buffer.from(`Bearer ${WEBHOOK_SECRET}`);
+  const received = Buffer.from(authorization);
+  return expected.length === received.length && timingSafeEqual(expected, received);
+}
+
+function isValidOptionalText(value: unknown, maxLength = 512): value is string | undefined {
+  return value === undefined || (typeof value === "string" && value.length <= maxLength);
+}
+
+function isValidPayload(payload: unknown): payload is MissionElutaPayload {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  const value = payload as MissionElutaPayload;
+
+  return (
+    isValidOptionalText(value.external_person_ref) &&
+    isValidOptionalText(value.instagram_handle, 128) &&
+    isValidOptionalText(value.event_type, 128) &&
+    isValidOptionalText(value.occurred_at, 64) &&
+    isValidOptionalText(value.mission_slug, 256) &&
+    isValidOptionalText(value.issue, 1_000) &&
+    isValidOptionalText(value.event_id, 256) &&
+    (value.metadata === undefined || (typeof value.metadata === "object" && value.metadata !== null && !Array.isArray(value.metadata)))
+  );
+}
+
 export async function POST(req: NextRequest) {
   // 1. Auth Validation
   const authHeader = req.headers.get("Authorization");
@@ -22,12 +65,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 
-  if (authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
+  if (!hasMatchingWebhookSecret(authHeader)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const payload = await req.json();
+    const contentLength = Number(req.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > MAX_WEBHOOK_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+
+    const rawPayload = await req.text();
+    if (Buffer.byteLength(rawPayload, "utf8") > MAX_WEBHOOK_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawPayload);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+
+    if (!isValidPayload(payload)) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const payloadJson = payload as Json;
+
     const {
       external_person_ref,
       instagram_handle,
@@ -39,7 +104,7 @@ export async function POST(req: NextRequest) {
       event_id, // Recommended idempotency key
     } = payload;
 
-    if (!event_type || (!external_person_ref && !instagram_handle)) {
+    if (!event_type || !EVENT_STATUS_MAP[event_type] || (!external_person_ref && !instagram_handle)) {
       return NextResponse.json({ error: "Invalid payload: missing event_type or identifiers" }, { status: 400 });
     }
 
@@ -121,7 +186,7 @@ export async function POST(req: NextRequest) {
       await supabase.from("audit_logs").insert({
         action: "missao_eluta.event_received_person_not_found",
         entity_type: "webhook",
-        metadata: { payload },
+        metadata: { payload: payloadJson },
       });
       return NextResponse.json({ ok: false, message: "Person or referral not found", person_found: false }, { status: 404 });
     }
@@ -192,7 +257,7 @@ export async function POST(req: NextRequest) {
         provider: "missao_eluta",
         external_event_id: event_id,
         event_type,
-        payload,
+        payload: payloadJson,
       });
     }
 

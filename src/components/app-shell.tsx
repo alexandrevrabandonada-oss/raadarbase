@@ -4,13 +4,9 @@ import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
 import { PwaInstallCta } from "@/components/pwa-install-cta";
-import { getAdventureProgress } from "@/lib/data/adventure-progress";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
-  const [user, adventureProgress] = await Promise.all([
-    getInternalSession(),
-    getAdventureProgress(),
-  ]);
+  const user = await getInternalSession();
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

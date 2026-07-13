@@ -15,6 +15,27 @@ const APP_SECRET = process.env.META_APP_SECRET ?? "";
 const MAX_PAYLOAD_BYTES = parseInt(process.env.META_WEBHOOK_MAX_PAYLOAD_BYTES ?? "262144", 10);
 const ALLOWED_OBJECTS = (process.env.META_WEBHOOK_ALLOWED_OBJECTS ?? "instagram").split(",").map(s => s.trim());
 const WEBHOOK_ENABLED = process.env.META_WEBHOOK_ENABLED === "true";
+const WEBHOOK_RATE_LIMIT_MAX = Math.max(1, parseInt(process.env.META_WEBHOOK_RATE_LIMIT_MAX ?? "120", 10) || 120);
+const WEBHOOK_RATE_LIMIT_WINDOW_MS = Math.max(1_000, parseInt(process.env.META_WEBHOOK_RATE_LIMIT_WINDOW_MS ?? "60000", 10) || 60_000);
+const webhookRateLimit = new Map<string, number[]>();
+
+export function getWebhookRequestIdentity(headers: Headers): string {
+  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || headers.get("x-real-ip") || "unknown";
+}
+
+export function checkWebhookRateLimit(identity: string, now = Date.now()): boolean {
+  const windowStart = now - WEBHOOK_RATE_LIMIT_WINDOW_MS;
+  const recentRequests = (webhookRateLimit.get(identity) ?? []).filter((timestamp) => timestamp > windowStart);
+  if (recentRequests.length >= WEBHOOK_RATE_LIMIT_MAX) return false;
+  recentRequests.push(now);
+  webhookRateLimit.set(identity, recentRequests);
+  return true;
+}
+
+export function resetWebhookRateLimitsForTests(): void {
+  webhookRateLimit.clear();
+}
 
 /**
  * Verifica se o webhook está configurado e habilitado

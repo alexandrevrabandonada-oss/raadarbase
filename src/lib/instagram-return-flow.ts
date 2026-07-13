@@ -1,6 +1,8 @@
 export const INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_instagram_send:v1";
 
-export const INSTAGRAM_RETURN_MIN_AWAY_MS = 1_000;
+// A troca real de aplicativo já é confirmada por visibilitychange/pagehide.
+// Uma janela curta evita travar a próxima pessoa ao voltar ao portal.
+export const INSTAGRAM_RETURN_MIN_AWAY_MS = 250;
 export const INSTAGRAM_RETURN_MAX_AGE_MS = 30 * 60 * 1000;
 
 export interface PendingInstagramSend {

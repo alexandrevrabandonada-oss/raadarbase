@@ -444,4 +444,18 @@ describe("webhook-security", () => {
       expect(isWebhookConfigured()).toBe(true);
     });
   });
+
+  describe("rate limit", () => {
+    it("limita tentativas por origem e libera após a janela", () => {
+      const { checkWebhookRateLimit, resetWebhookRateLimitsForTests } = webhookSecurity;
+      resetWebhookRateLimitsForTests();
+
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        expect(checkWebhookRateLimit("203.0.113.10", 1_000 + attempt)).toBe(true);
+      }
+
+      expect(checkWebhookRateLimit("203.0.113.10", 2_000)).toBe(false);
+      expect(checkWebhookRateLimit("203.0.113.10", 61_001)).toBe(true);
+    });
+  });
 });

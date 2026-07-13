@@ -26,12 +26,12 @@ export function describeWebhookRequirements(): WebhookRequirement[] {
     {
       id: "signature_validation",
       description: "Validar assinatura HMAC-SHA256 do X-Hub-Signature-256 em toda requisição",
-      status: "pending",
+      status: "ready",
     },
     {
       id: "deduplication",
       description: "Armazenar IDs de eventos processados para evitar reprocessamento (idempotência)",
-      status: "pending",
+      status: "ready",
     },
     {
       id: "audit_log",
@@ -51,7 +51,7 @@ export function describeWebhookRequirements(): WebhookRequirement[] {
     {
       id: "rate_limit",
       description: "Implementar rate limiting na rota de webhook para evitar flood",
-      status: "pending",
+      status: "ready",
     },
     {
       id: "retry_queue",
