@@ -132,7 +132,11 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
 
   const openInstagram = useCallback(async () => {
     if (!person || !message.trim() || status !== "idle") return;
-    const pending = createPendingInstagramSend(person.id, person.suggestedTemplateId ?? null);
+    // O gesto de abrir o Instagram é a fronteira do fluxo. Registrar a saída
+    // antes de chamar o navegador cobre aparelhos que não emitem blur/pagehide.
+    const pending = markPendingInstagramSendAsAway(
+      createPendingInstagramSend(person.id, person.suggestedTemplateId ?? null),
+    );
     confirmingRef.current = false;
     pendingRef.current = pending;
     savePending(pending);
