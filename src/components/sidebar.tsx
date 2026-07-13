@@ -4,32 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  Activity,
-  AlertCircle,
-  BookOpenCheck,
-  Cable,
-  ChevronDown,
-  ClipboardList,
-  Flame,
-  Gauge,
-  Hash,
-  KanbanSquare,
-  Landmark,
-  LayoutDashboard,
-  Lightbulb,
-  Map,
-  MessageSquareText,
-  Play,
-  Radar,
-  Route,
-  Settings,
-  ShieldCheck,
-  TrendingUp,
-  Users,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Cable, ChevronDown, MessageSquareText, Route, TrendingUp, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/logout-button";
 import { ConnectionIndicator } from "@/components/connection-indicator";

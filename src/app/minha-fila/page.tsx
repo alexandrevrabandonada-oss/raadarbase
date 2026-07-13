@@ -3,9 +3,6 @@ import { PageHeader } from "@/components/page-header";
 import { RuntimeAlert } from "@/components/runtime-alert";
 import { listPriorityPeople } from "@/lib/data/people-priority";
 import { listOutreachTasks } from "@/lib/data/outreach";
-import { listInteractions } from "@/lib/data/interactions";
-import { listPersonReferralsForPerson } from "@/lib/data/referrals";
-import { listAuditLogsForEntity } from "@/lib/data/audit";
 import { buildQueueMissionPlan, orderQueueByMissionPlan } from "@/lib/missions/queue-mission-adapter";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { QueueClient } from "./queue-client";
@@ -16,6 +13,7 @@ import { getOutreachGoalStats } from "@/lib/data/outreach-goal";
 import { getActiveOperators } from "../abordagem/team-actions";
 import { PeopleClient } from "../pessoas/people-client";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
+import type { AuditLogEntry, InteractionWithPost, PersonReferral } from "@/lib/types";
 
 import { listMessageTemplates } from "@/lib/data/messages";
 
@@ -25,6 +23,11 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+// A trilha detalhada exige histórico, encaminhamentos e auditoria por pessoa.
+// Limitamos esse enriquecimento ao bloco que pode ser alcançado na rodada atual;
+// o restante preserva a ordenação de prioridade já calculada na consulta principal.
+const MISSION_PLAN_ANALYSIS_LIMIT = 100;
 
 interface PageProps {
   searchParams: Promise<{ rodada?: string }>;
@@ -127,15 +130,96 @@ export default async function MinhaFilaPage({ searchParams }: PageProps) {
         taskMap.set(task.personId, existing);
       }
 
-      const missionSources = await Promise.all(
-        activeQueue.map(async (person) => ({
-          person,
-          interactions: await listInteractions(person.id),
-          tasks: taskMap.get(person.id) || [],
-          referrals: await listPersonReferralsForPerson(person.id),
-          auditLogs: await listAuditLogsForEntity("ig_people", person.id, 12),
-        })),
-      );
+      const missionPeople = activeQueue.slice(0, MISSION_PLAN_ANALYSIS_LIMIT);
+      const missionPersonIds = missionPeople.map((person) => person.id);
+      const supabase = getSupabaseAdminClient();
+      const [interactionsResult, referralsResult, auditLogsResult] = await Promise.all([
+        supabase
+          .from("ig_interactions")
+          .select("id, person_id, post_id, type, occurred_at, text_content, theme")
+          .in("person_id", missionPersonIds)
+          .order("occurred_at", { ascending: false }),
+        supabase
+          .from("ig_person_referrals")
+          .select("*")
+          .in("person_id", missionPersonIds)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("audit_logs")
+          .select("*")
+          .eq("entity_type", "ig_people")
+          .in("entity_id", missionPersonIds)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      if (interactionsResult.error) throw interactionsResult.error;
+      if (referralsResult.error) throw referralsResult.error;
+      if (auditLogsResult.error) throw auditLogsResult.error;
+
+      const interactionsByPerson = new Map<string, InteractionWithPost[]>();
+      for (const row of interactionsResult.data ?? []) {
+        const entries = interactionsByPerson.get(row.person_id) ?? [];
+        entries.push({
+          id: row.id,
+          personId: row.person_id,
+          postId: row.post_id,
+          type: row.type,
+          occurredAt: row.occurred_at,
+          text: row.text_content ?? "",
+          theme: row.theme,
+          post: null,
+        });
+        interactionsByPerson.set(row.person_id, entries);
+      }
+
+      const referralsByPerson = new Map<string, PersonReferral[]>();
+      for (const row of referralsResult.data ?? []) {
+        const entries = referralsByPerson.get(row.person_id) ?? [];
+        entries.push({
+          id: row.id,
+          personId: row.person_id,
+          targetType: row.target_type,
+          targetId: row.target_id,
+          status: row.status,
+          notes: row.notes,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          responsibleId: row.responsible_id,
+          externalId: row.external_id,
+          lastEventAt: row.last_event_at,
+          lastEventType: row.last_event_type,
+          lastEventSource: row.last_event_source === "manual" || row.last_event_source === "webhook" ? row.last_event_source : null,
+          metadata: row.metadata,
+        });
+        referralsByPerson.set(row.person_id, entries);
+      }
+
+      const auditLogsByPerson = new Map<string, AuditLogEntry[]>();
+      for (const row of auditLogsResult.data ?? []) {
+        if (!row.entity_id) continue;
+        const entries = auditLogsByPerson.get(row.entity_id) ?? [];
+        if (entries.length >= 12) continue;
+        entries.push({
+          id: row.id,
+          actorId: row.actor_id,
+          actorEmail: row.actor_email,
+          action: row.action,
+          entityType: row.entity_type,
+          entityId: row.entity_id,
+          summary: row.summary,
+          metadata: row.metadata,
+          createdAt: row.created_at,
+        });
+        auditLogsByPerson.set(row.entity_id, entries);
+      }
+
+      const missionSources = missionPeople.map((person) => ({
+        person,
+        interactions: interactionsByPerson.get(person.id) ?? [],
+        tasks: taskMap.get(person.id) || [],
+        referrals: referralsByPerson.get(person.id) ?? [],
+        auditLogs: auditLogsByPerson.get(person.id) ?? [],
+      }));
 
       missionPlan = buildQueueMissionPlan(missionSources);
       orderedActiveQueue = orderQueueByMissionPlan(activeQueue, missionPlan);

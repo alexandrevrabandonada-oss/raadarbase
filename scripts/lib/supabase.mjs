@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getSupabaseConfig, validateEnv } from './env.mjs';
+import { getSupabaseConfig } from './env.mjs';
 
 /**
  * Create a Supabase client for scripts

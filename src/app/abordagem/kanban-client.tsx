@@ -770,7 +770,13 @@ export function KanbanClient({
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
         onNextPerson={handleNextPerson}
-        onActionComplete={() => window.location.reload()}
+        onActionComplete={(_, options) => {
+          if (options?.refresh === false) {
+            handleNextPerson();
+            return;
+          }
+          window.location.reload();
+        }}
       />
     </div>
   );

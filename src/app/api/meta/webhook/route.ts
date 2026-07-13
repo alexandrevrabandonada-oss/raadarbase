@@ -25,6 +25,8 @@ import {
   sanitizeErrorMessage,
   isWebhookEnabled,
   isWebhookConfigured,
+  checkWebhookRateLimit,
+  getWebhookRequestIdentity,
 } from "@/lib/meta/webhook-security";
 import { createWebhookEvent } from "@/lib/meta/webhook-processing";
 
@@ -123,6 +125,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(
       { error: "Webhook not configured" },
       { status: 503 }
+    );
+  }
+
+  if (!checkWebhookRateLimit(getWebhookRequestIdentity(request.headers))) {
+    return NextResponse.json(
+      { error: "Too many webhook requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
     );
   }
   
