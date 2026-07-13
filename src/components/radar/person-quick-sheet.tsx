@@ -317,7 +317,6 @@ export function PersonQuickSheet({
   React.useEffect(() => {
     if (!open || !person) return;
 
-    trackOperationalEvent("quick_sheet_opened", person.id, { username: person.username });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsResolved(false);
     setCopyStatus("idle");
@@ -329,15 +328,8 @@ export function PersonQuickSheet({
     setEditedMessage(person.suggestedMessage || "");
     setSelectedTemplateId(person.suggestedTemplateId || "");
 
-    const timeoutId = window.setTimeout(() => {
-      loadHistory(person.id);
-    }, 650);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      setIsLoadingHistory(false);
-    };
-  }, [open, person, loadHistory]);
+    setIsLoadingHistory(false);
+  }, [open, person]);
 
   React.useEffect(() => {
     if (activeModal !== "referral" || events.length > 0) return;
@@ -913,12 +905,17 @@ export function PersonQuickSheet({
                       ))}
                     </div>
                   ) : (
-                    <GamefulEmptyState
-                      variant="memory"
-                      compact
-                      title="Memória recente vazia"
-                      description="Ainda não há registro recente desta missão no painel rápido."
-                    />
+                    <div className="rounded-xl border border-[#dccdaf] bg-white/60 p-4">
+                      <p className="text-xs font-semibold text-zinc-600">Histórico fica sob demanda para não atrasar a próxima missão.</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-3 border-[#d4c4a8] bg-white text-[10px] font-black uppercase tracking-wider text-[#13212b]"
+                        onClick={() => loadHistory(person.id)}
+                      >
+                        Ver memória recente
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -950,12 +947,7 @@ export function PersonQuickSheet({
             <div className="fixed bottom-0 right-0 left-0 z-50 flex items-center gap-3 border-t border-[#d7c6ab] bg-[rgba(255,250,242,0.9)] p-6 backdrop-blur-md lg:left-auto lg:w-[32rem]">
               <Button 
                 className="h-12 flex-1 bg-[#13212b] font-black uppercase text-xs tracking-wider text-white shadow-lg shadow-[rgba(15,23,42,0.14)] hover:bg-[#0d1820]"
-                onClick={() => {
-                  trackOperationalEvent("instagram_opened", person.id);
-                  const igUsername = person.username.replace(/^@+/, "");
-                  const igUrl = `https://www.instagram.com/${igUsername}/`;
-                  window.open(igUrl, '_blank');
-                }}
+                onClick={() => handleCopyDM(editedMessage || person.suggestedMessage || "", "footer_instagram")}
                 disabled={isBlocked || isAlreadySent}
               >
                 <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : isAlreadySent ? "Envio registrado" : "Instagram"}
