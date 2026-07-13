@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Instagram, LogOut, SkipForward } from "lucide-react";
+import { Instagram, LogOut, SkipForward, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { executeOrQueueAction } from "@/lib/offline-queue";
 import {
@@ -14,12 +14,14 @@ import {
   type PendingInstagramSend,
 } from "@/lib/instagram-return-flow";
 import type { MessageTemplate, PriorityPerson } from "@/lib/types";
+import type { OutreachGoalStats } from "@/lib/data/outreach-goal";
 
 const quietToast = () => undefined;
 
 type RapidQueueClientProps = {
   initialQueue: PriorityPerson[];
   templates: MessageTemplate[];
+  outreachGoal: OutreachGoalStats;
 };
 
 function savePending(pending: PendingInstagramSend | null) {
@@ -31,7 +33,7 @@ function loadPending() {
   return parsePendingInstagramSend(window.sessionStorage.getItem(INSTAGRAM_RETURN_STORAGE_KEY));
 }
 
-export function RapidQueueClient({ initialQueue, templates }: RapidQueueClientProps) {
+export function RapidQueueClient({ initialQueue, templates, outreachGoal }: RapidQueueClientProps) {
   const [queue, setQueue] = useState(initialQueue);
   const [index, setIndex] = useState(0);
   const [messageByPerson, setMessageByPerson] = useState<Record<string, string>>({});
@@ -141,12 +143,19 @@ export function RapidQueueClient({ initialQueue, templates }: RapidQueueClientPr
     setIndex((current) => Math.min(current + 1, queue.length - 1));
   }, [person, queue.length]);
 
-  if (!person) {
-    return <section className="rounded-[4px] border-2 border-cement bg-card p-6 text-center"><p className="font-black">Fila concluída.</p><Button className="mt-4" variant="outline" onClick={() => window.location.assign("/dashboard")}>Sair da fila</Button></section>;
-  }
+  const progress = outreachGoal.totalEligible > 0 ? Math.round((outreachGoal.totalSent / outreachGoal.totalEligible) * 100) : 0;
+  const mural = outreachGoal.operatorScores.slice(0, 8);
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-[4px] border-2 border-black bg-card shadow-[4px_4px_0_0_#111]">
+    <div className="mx-auto w-full max-w-xl space-y-4">
+      <section className="grid grid-cols-2 gap-3">
+        <div className="rounded-[4px] border-2 border-black bg-card p-3"><p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Enviadas</p><p className="mt-1 text-2xl font-black">{outreachGoal.totalSent.toLocaleString("pt-BR")}</p></div>
+        <div className="rounded-[4px] border-2 border-black bg-card p-3"><p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Faltam</p><p className="mt-1 text-2xl font-black">{outreachGoal.totalRemaining.toLocaleString("pt-BR")}</p></div>
+      </section>
+      <div className="h-3 overflow-hidden rounded-[2px] border-2 border-black bg-card"><div className="h-full bg-burnt-yellow" style={{ width: `${progress}%` }} /></div>
+      {!person ? (
+        <section className="rounded-[4px] border-2 border-cement bg-card p-6 text-center"><p className="font-black">Esta parcela da fila terminou.</p><p className="mt-2 text-sm text-muted-foreground">Ainda faltam {outreachGoal.totalRemaining.toLocaleString("pt-BR")} pessoas na base. Recarregue para buscar a próxima parcela.</p><Button className="mt-4" variant="outline" onClick={() => window.location.reload()}>Carregar próxima parcela</Button></section>
+      ) : <section className="rounded-[4px] border-2 border-black bg-card shadow-[4px_4px_0_0_#111]">
       <div className="border-b-2 border-black bg-charcoal p-5 text-off-white">
         <p className="text-[10px] font-black uppercase tracking-[0.24em] text-burnt-yellow">Próxima pessoa</p>
         <h2 className="mt-2 text-3xl font-black leading-tight">{person.displayName || person.username}</h2>
@@ -168,6 +177,11 @@ export function RapidQueueClient({ initialQueue, templates }: RapidQueueClientPr
           <Button variant="ghost" onClick={() => window.location.assign("/dashboard")}><LogOut data-icon="inline-start" />Sair</Button>
         </div>
       </div>
-    </section>
+      </section>}
+      <section className="rounded-[4px] border-2 border-black bg-charcoal p-4 text-white">
+        <div className="mb-3 flex items-center gap-2"><Trophy className="size-4 text-burnt-yellow" /><div><p className="text-[10px] font-black uppercase tracking-wider text-burnt-yellow">Mural de envios</p><h2 className="font-black">Mensagens por voluntário</h2></div></div>
+        <div className="space-y-2">{mural.length === 0 ? <p className="text-sm text-white/70">Nenhum envio registrado ainda.</p> : mural.map((operator, index) => <div key={operator.operatorId ?? operator.operatorEmail ?? index} className="rounded-[2px] border border-white/20 p-2"><div className="flex justify-between gap-3"><p className="truncate font-bold">{index + 1}. {operator.operatorName}</p><p className="font-black text-burnt-yellow">{operator.totalSent}</p></div><p className="text-[10px] uppercase text-white/60">Hoje: {operator.sentToday}</p></div>)}</div>
+      </section>
+    </div>
   );
 }
