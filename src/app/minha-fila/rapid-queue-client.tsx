@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Instagram, LogOut, SkipForward, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { executeOrQueueAction } from "@/lib/offline-queue";
+import { executeOrQueueAction, getOfflineTasks } from "@/lib/offline-queue";
 import {
   INSTAGRAM_RETURN_MIN_AWAY_MS,
   INSTAGRAM_RETURN_STORAGE_KEY,
@@ -77,6 +77,23 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
       setIndex(0);
     });
   }, [advance, persistConfirmation, queue]);
+
+  useEffect(() => {
+    let active = true;
+    void getOfflineTasks().then((tasks) => {
+      if (!active) return;
+      const pendingConfirmationIds = new Set(
+        tasks
+          .filter((task) => task.action === "confirmDMSent")
+          .map((task) => task.args[0]),
+      );
+      if (pendingConfirmationIds.size === 0) return;
+      setQueue((current) => current.filter((item) => !pendingConfirmationIds.has(item.id)));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const restored = loadPending();

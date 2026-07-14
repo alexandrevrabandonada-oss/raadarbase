@@ -10,6 +10,7 @@ import {
 import type { ActionResult } from "@/app/actions/utils";
 import type { NeighborhoodListenPayload } from "@/app/escuta/bairro/actions";
 import type { PersonReferralType, PersonResponseKind } from "@/lib/types";
+import { shouldKeepOfflineTaskForRetry } from "@/lib/offline-retry-policy";
 
 export type OfflineTaskType =
   | "recordDMPrepared"
@@ -40,22 +41,6 @@ type OfflineToast = (input: {
   description: string;
   variant?: "default" | "destructive";
 }) => void;
-
-function shouldKeepTaskForRetry(error?: string | null) {
-  if (!error) return true;
-  const normalized = error.toLowerCase();
-  return [
-    "indispon",
-    "timeout",
-    "network",
-    "fetch",
-    "temporar",
-    "lock",
-    "supabase",
-    "falha",
-    "erro desconhecido",
-  ].some((token) => normalized.includes(token));
-}
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -111,6 +96,12 @@ export async function getOfflineTasks(): Promise<OfflineTask[]> {
 export async function addOfflineTask<T extends OfflineTaskType>(action: T, args: OfflineTaskArgsMap[T]): Promise<void> {
   if (typeof window === "undefined" || !window.indexedDB) return;
   try {
+    const existingTasks = await getOfflineTasks();
+    const serializedArgs = JSON.stringify(args);
+    if (existingTasks.some((task) => task.action === action && JSON.stringify(task.args) === serializedArgs)) {
+      return;
+    }
+
     const db = await openDB();
     const newTask = {
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -207,7 +198,7 @@ export async function syncOfflineTasks(
       } else {
         console.error(`Offline action ${task.action} failed with server error:`, result?.error);
         errorCount++;
-        if (!shouldKeepTaskForRetry(result?.error)) {
+        if (!shouldKeepOfflineTaskForRetry(result?.error)) {
           await removeOfflineTask(task.id);
         }
       }
@@ -246,6 +237,14 @@ export async function executeOrQueueAction<T extends OfflineTaskType>(
     } as OfflineTask);
     if (result && result.ok) {
       return { ok: true, offline: false };
+    }
+    if (shouldKeepOfflineTaskForRetry(result?.error)) {
+      await addOfflineTask(action, args);
+      toast({
+        title: "Confirmação protegida localmente",
+        description: "O servidor oscilou. A ação será sincronizada automaticamente.",
+      });
+      return { ok: true, offline: true };
     }
     return { ok: false, offline: false, error: result?.error || "Erro desconhecido" };
   } catch {
