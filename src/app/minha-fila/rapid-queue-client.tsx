@@ -160,7 +160,11 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
     setStatus("away");
 
     const copy = navigator.clipboard.writeText(message);
-    window.open(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`, "_blank");
+    // No Android, uma aba em branco intermediária pode sobreviver ao app-link
+    // do Instagram e voltar como "This page couldn't load". Navegar na mesma
+    // aba mantém o portal no histórico e permite que Voltar restaure/recarregue
+    // esta rota sem depender daquela aba descartável.
+    window.location.assign(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`);
     void executeOrQueueAction("recordDMPrepared", [person.id, "minha_fila", pending.templateId], quietToast);
     try {
       await copy;
