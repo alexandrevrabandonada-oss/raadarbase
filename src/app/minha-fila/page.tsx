@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+const RAPID_QUEUE_BATCH_SIZE = 80;
 
 export default async function MinhaFilaPage() {
   await requireInternalPageSession("/minha-fila");
@@ -23,11 +24,15 @@ export default async function MinhaFilaPage() {
   let outreachGoal: OutreachGoalStats | null = null;
   let loadError: unknown = null;
   try {
-    const [people, templateRows, goalStats] = await Promise.all([
-      listPriorityPeople({ statuses: ["novo", "responder"], limit: 1000 }),
+    const [peopleResult, templatesResult, goalResult] = await Promise.allSettled([
+      listPriorityPeople({ statuses: ["novo", "responder"], limit: RAPID_QUEUE_BATCH_SIZE, lightweight: true }),
       listMessageTemplates(),
       getOutreachGoalStats(),
     ]);
+    if (peopleResult.status === "rejected") throw peopleResult.reason;
+    if (templatesResult.status === "rejected") throw templatesResult.reason;
+
+    const people = peopleResult.value;
     queue = people.filter((person) =>
       person.status !== "nao_abordar" &&
       !person.doNotContactReason &&
@@ -35,13 +40,22 @@ export default async function MinhaFilaPage() {
       !isPriorityPersonAlreadySent(person),
     );
 
-    templates = templateRows ?? [];
-    outreachGoal = goalStats;
+    templates = templatesResult.value ?? [];
+    if (goalResult.status === "fulfilled") {
+      outreachGoal = goalResult.value;
+    } else {
+      console.error("[minha-fila] métricas indisponíveis; fila preservada", {
+        error: goalResult.reason instanceof Error ? goalResult.reason.message : "unknown",
+      });
+    }
   } catch (error) {
     loadError = error;
+    console.error("[minha-fila] falha crítica ao carregar fila", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
   }
 
-  if (loadError || !queue || !templates || !outreachGoal) {
+  if (loadError || !queue || !templates) {
     return <AppShell><PageHeader compact title="Minha Fila" description="Envio individual manual." /><RuntimeAlert title="Não foi possível carregar a fila" description={loadError instanceof Error ? loadError.message : "Tente novamente."} /></AppShell>;
   }
 
