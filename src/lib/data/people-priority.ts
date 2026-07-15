@@ -507,7 +507,7 @@ function chunkPersonIds(personIds: string[]) {
   return chunks;
 }
 
-export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number; responsibleId?: string }): Promise<PriorityPerson[]> {
+export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number; responsibleId?: string; lightweight?: boolean }): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
@@ -552,26 +552,32 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
   try {
     const supabase = getSupabaseAdminClient();
     const cutoff = new Date(now.getTime() - RECENT_DAYS * DAY_MS).toISOString();
+    const tasksPromise = options?.lightweight
+      ? null
+      : supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false });
+    const interactionsPromise = options?.lightweight
+      ? null
+      : supabase
+          .from("ig_interactions")
+          .select("person_id, type, occurred_at, text_content, theme")
+          .gte("occurred_at", cutoff)
+          .order("occurred_at", { ascending: false });
     const [people, tasksResult, templatesResult, interactionsResult] = await Promise.all([
       options?.responsibleId
         ? listPeopleByResponsible(options.responsibleId, options.limit)
         : options?.statuses
           ? listPeopleByStatuses(options.statuses, options.limit)
           : listPeople(undefined, options?.limit),
-      supabase.from("outreach_tasks").select("*, internal_users(full_name)").is("completed_at", null).order("created_at", { ascending: false }),
+      tasksPromise,
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
-      supabase
-        .from("ig_interactions")
-        .select("person_id, type, occurred_at, text_content, theme")
-        .gte("occurred_at", cutoff)
-        .order("occurred_at", { ascending: false }),
+      interactionsPromise,
     ]);
 
-    if (tasksResult.error) throw tasksResult.error;
+    if (tasksResult?.error) throw tasksResult.error;
     if (templatesResult.error) throw templatesResult.error;
-    if (interactionsResult.error) throw interactionsResult.error;
+    if (interactionsResult?.error) throw interactionsResult.error;
 
-    const tasks: OutreachTaskWithPerson[] = (tasksResult.data ?? []).map((task) => ({
+    const tasks: OutreachTaskWithPerson[] = (tasksResult?.data ?? []).map((task) => ({
       id: task.id,
       personId: task.person_id,
       column: task.column_key as OutreachTaskWithPerson["column"],
@@ -599,7 +605,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
       isCampaignDefault: template.is_campaign_default ?? false,
     }));
 
-    const interactions: InteractionSummaryWithPerson[] = (interactionsResult.data ?? []).map((interaction) => ({
+    const interactions: InteractionSummaryWithPerson[] = (interactionsResult?.data ?? []).map((interaction) => ({
       type: interaction.type,
       occurredAt: interaction.occurred_at,
       text: interaction.text_content ?? "",
