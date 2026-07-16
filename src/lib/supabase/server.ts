@@ -20,9 +20,14 @@ export const getSupabaseServerClient = cache(async () => {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        } catch {
+          // Server Components não podem alterar cookies. O middleware atualiza
+          // a sessão na requisição e na resposta antes da renderização.
+        }
       },
     },
   });
