@@ -57,18 +57,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const response = NextResponse.next({ request });
+  let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anonKey, {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => response.cookies.set(name, value));
-        },
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet, headers) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+        Object.entries(headers).forEach(([name, value]) => {
+          response.headers.set(name, value);
+        });
       },
     },
-  );
+  });
 
   const { data } = await supabase.auth.getUser();
   const isPublicVolunteerPath = PUBLIC_VOLUNTEER_PATHS.includes(
