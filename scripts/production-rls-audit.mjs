@@ -10,6 +10,7 @@ const outputPath = join(reportsDir, "production-rls-audit.json");
 const sensitiveTables = [
   "ig_people",
   "ig_interactions",
+  "outreach_delivery_ledger",
   "meta_webhook_events",
   "meta_webhook_event_links",
   "public_devolution_publications",

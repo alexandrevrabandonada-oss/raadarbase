@@ -45,5 +45,19 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-writeFileSync("src/lib/supabase/database.types.ts", result.stdout, "utf8");
+const convenienceAliases = `
+
+// Convenience aliases used throughout the application. The generated section
+// above is replaced by this script; keep these aliases appended consistently.
+export type TableRow<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Row"];
+
+export type TableInsert<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Insert"];
+
+export type TableUpdate<T extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][T]["Update"];
+`;
+
+writeFileSync("src/lib/supabase/database.types.ts", `${result.stdout.trimEnd()}${convenienceAliases}`, "utf8");
 console.log("Supabase types written to src/lib/supabase/database.types.ts");

@@ -80,16 +80,31 @@ export async function listPeople(cutoff?: string, limit?: number): Promise<Perso
   }
 }
 
-export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: number): Promise<PersonWithContact[]> {
+export async function listPeopleByStatuses(
+  statuses: PersonStatus[],
+  limit?: number,
+  options?: { excludeDelivered?: boolean },
+): Promise<PersonWithContact[]> {
   if (shouldUseMockData()) return mockPeople.filter((person) => statuses.includes(person.status));
   try {
     const supabase = getSupabaseAdminClient();
     const peopleData: TableRow<"ig_people">[] = [];
     const maxRows = limit ?? Number.POSITIVE_INFINITY;
 
+    if (options?.excludeDelivered) {
+      const { data, error } = await supabase.rpc("list_pending_outreach_people", {
+        p_statuses: statuses,
+        p_limit: Number.isFinite(maxRows) ? maxRows : 500,
+      });
+      if (error) throw error;
+      const contactsData = await listContactsForPeople((data ?? []).map((person) => person.id));
+      const contactsByPerson = new Map(contactsData.map((contact) => [contact.person_id, contact]));
+      return (data ?? []).map((person) => mapPerson(person as unknown as PersonRowWithOwner, contactsByPerson.get(person.id) ?? null));
+    }
+
     for (let from = 0; peopleData.length < maxRows; from += SUPABASE_PAGE_SIZE) {
       const to = Math.min(from + SUPABASE_PAGE_SIZE - 1, from + (maxRows - peopleData.length) - 1);
-      const { data, error } = await supabase
+      const peopleQuery = supabase
         .from("ig_people")
         .select("*, internal_users(full_name)")
         .in("status", statuses)
@@ -97,6 +112,7 @@ export async function listPeopleByStatuses(statuses: PersonStatus[], limit?: num
         .order("last_interaction_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .range(from, to);
+      const { data, error } = await peopleQuery;
       if (error) throw error;
       peopleData.push(...(data ?? []));
       if (!data || data.length < SUPABASE_PAGE_SIZE) break;

@@ -19,6 +19,7 @@ const sensitiveTables = [
   "ig_posts",
   "ig_interactions",
   "audit_logs",
+  "outreach_delivery_ledger",
   "meta_sync_runs",
   "contacts",
 ];
