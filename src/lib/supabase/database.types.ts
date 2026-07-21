@@ -647,6 +647,13 @@ export type Database = {
             referencedRelation: "ig_people"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
+          },
         ]
       }
       field_agenda_event_results: {
@@ -884,6 +891,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ig_interactions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "ig_interactions_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
@@ -1012,6 +1026,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ig_person_referrals_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "ig_person_referrals_responsible_id_fkey"
             columns: ["responsible_id"]
             isOneToOne: false
@@ -1071,6 +1092,435 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      influence_score_config: {
+        Row: {
+          config: Json
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      instagram_imports: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          duplicate_rows: number
+          error_summary: string | null
+          filename: string | null
+          format: string
+          id: string
+          inserted_rows: number
+          rejected_rows: number
+          status: string
+          total_rows: number
+          updated_rows: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          duplicate_rows?: number
+          error_summary?: string | null
+          filename?: string | null
+          format: string
+          id?: string
+          inserted_rows?: number
+          rejected_rows?: number
+          status?: string
+          total_rows?: number
+          updated_rows?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          duplicate_rows?: number
+          error_summary?: string | null
+          filename?: string | null
+          format?: string
+          id?: string
+          inserted_rows?: number
+          rejected_rows?: number
+          status?: string
+          total_rows?: number
+          updated_rows?: number
+        }
+        Relationships: []
+      }
+      instagram_processing_logs: {
+        Row: {
+          created_at: string
+          event: string
+          id: number
+          job_id: string | null
+          level: string
+          message: string
+          metadata: Json
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: never
+          job_id?: string | null
+          level: string
+          message: string
+          metadata?: Json
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: never
+          job_id?: string | null
+          level?: string
+          message?: string
+          metadata?: Json
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_processing_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_update_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_processing_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_profile_classifications: {
+        Row: {
+          categoria: string
+          confidence: number
+          created_at: string
+          created_by: string | null
+          id: number
+          profile_id: string
+          rationale: string | null
+          source: string
+        }
+        Insert: {
+          categoria: string
+          confidence: number
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          profile_id: string
+          rationale?: string | null
+          source: string
+        }
+        Update: {
+          categoria?: string
+          confidence?: number
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          profile_id?: string
+          rationale?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_profile_classifications_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_profile_history: {
+        Row: {
+          changed_fields: string[]
+          created_at: string
+          created_by: string | null
+          id: number
+          profile_id: string
+          reason: string
+          snapshot: Json
+        }
+        Insert: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          profile_id: string
+          reason?: string
+          snapshot: Json
+        }
+        Update: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          profile_id?: string
+          reason?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_profile_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_profile_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          created_by_email: string | null
+          id: number
+          profile_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          created_by_email?: string | null
+          id?: never
+          profile_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          created_by_email?: string | null
+          id?: never
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_profile_notes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instagram_profiles: {
+        Row: {
+          bio: string | null
+          categoria: string
+          cidade: string | null
+          classification_confidence: number
+          classification_source: string
+          conta_verificada: boolean
+          created_at: string
+          criador: boolean
+          data_ultima_atualizacao: string
+          empresa: boolean
+          estado: string | null
+          foto: string | null
+          id: string
+          influence_score: number
+          location_confidence: number
+          location_evidence: Json
+          nome: string | null
+          posts: number
+          privada: boolean
+          raw_profile: Json
+          score_components: Json
+          seguidores: number
+          seguindo: number
+          site: string | null
+          source: string
+          source_reference: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          bio?: string | null
+          categoria?: string
+          cidade?: string | null
+          classification_confidence?: number
+          classification_source?: string
+          conta_verificada?: boolean
+          created_at?: string
+          criador?: boolean
+          data_ultima_atualizacao?: string
+          empresa?: boolean
+          estado?: string | null
+          foto?: string | null
+          id?: string
+          influence_score?: number
+          location_confidence?: number
+          location_evidence?: Json
+          nome?: string | null
+          posts?: number
+          privada?: boolean
+          raw_profile?: Json
+          score_components?: Json
+          seguidores?: number
+          seguindo?: number
+          site?: string | null
+          source?: string
+          source_reference?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          bio?: string | null
+          categoria?: string
+          cidade?: string | null
+          classification_confidence?: number
+          classification_source?: string
+          conta_verificada?: boolean
+          created_at?: string
+          criador?: boolean
+          data_ultima_atualizacao?: string
+          empresa?: boolean
+          estado?: string | null
+          foto?: string | null
+          id?: string
+          influence_score?: number
+          location_confidence?: number
+          location_evidence?: Json
+          nome?: string | null
+          posts?: number
+          privada?: boolean
+          raw_profile?: Json
+          score_components?: Json
+          seguidores?: number
+          seguindo?: number
+          site?: string | null
+          source?: string
+          source_reference?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      instagram_update_jobs: {
+        Row: {
+          completed_at: string | null
+          completed_items: number
+          concurrency: number
+          created_at: string
+          created_by: string
+          failed_items: number
+          id: string
+          requested_limit: number
+          stale_before: string
+          started_at: string | null
+          status: string
+          total_items: number
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_items?: number
+          concurrency?: number
+          created_at?: string
+          created_by: string
+          failed_items?: number
+          id?: string
+          requested_limit: number
+          stale_before: string
+          started_at?: string | null
+          status?: string
+          total_items?: number
+        }
+        Update: {
+          completed_at?: string | null
+          completed_items?: number
+          concurrency?: number
+          created_at?: string
+          created_by?: string
+          failed_items?: number
+          id?: string
+          requested_limit?: number
+          stale_before?: string
+          started_at?: string | null
+          status?: string
+          total_items?: number
+        }
+        Relationships: []
+      }
+      instagram_update_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: number
+          job_id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: never
+          job_id: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: never
+          job_id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_update_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_update_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_update_queue_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "instagram_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       interaction_topic_tags: {
         Row: {
@@ -1635,6 +2085,61 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_delivery_ledger: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          metadata: Json
+          person_id: string
+          recorded_at: string
+          sent_at: string
+          source: string
+          source_audit_id: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          metadata?: Json
+          person_id: string
+          recorded_at?: string
+          sent_at: string
+          source: string
+          source_audit_id?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          metadata?: Json
+          person_id?: string
+          recorded_at?: string
+          sent_at?: string
+          source?: string
+          source_audit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_delivery_ledger_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "ig_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_delivery_ledger_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "outreach_delivery_ledger_source_audit_id_fkey"
+            columns: ["source_audit_id"]
+            isOneToOne: false
+            referencedRelation: "audit_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outreach_locks: {
         Row: {
           created_at: string
@@ -1664,6 +2169,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "ig_people"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_locks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
           },
         ]
       }
@@ -1711,6 +2223,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ig_people"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_tasks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_delivery_audit"
+            referencedColumns: ["person_id"]
           },
           {
             foreignKeyName: "outreach_tasks_responsible_id_fkey"
@@ -1914,6 +2433,549 @@ export type Database = {
             columns: ["cycle_id"]
             isOneToOne: false
             referencedRelation: "public_receipt_distribution_cycles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_enrichment_jobs: {
+        Row: {
+          created_at: string
+          created_entities: number
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_type: string
+          merged_entities: number
+          mode: string
+          processed_items: number
+          rejected_items: number
+          requested_by: string
+          source_type: string | null
+          started_at: string | null
+          status: string
+          total_items: number
+          updated_entities: number
+        }
+        Insert: {
+          created_at?: string
+          created_entities?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_type: string
+          merged_entities?: number
+          mode?: string
+          processed_items?: number
+          rejected_items?: number
+          requested_by: string
+          source_type?: string | null
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_entities?: number
+        }
+        Update: {
+          created_at?: string
+          created_entities?: number
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_type?: string
+          merged_entities?: number
+          mode?: string
+          processed_items?: number
+          rejected_items?: number
+          requested_by?: string
+          source_type?: string | null
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_entities?: number
+        }
+        Relationships: []
+      }
+      radar_enrichment_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          entity_id: string | null
+          id: number
+          job_id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_run_at: string
+          payload: Json
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: never
+          job_id: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_run_at?: string
+          payload?: Json
+          source_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: never
+          job_id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_run_at?: string
+          payload?: Json
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_enrichment_queue_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_enrichment_queue_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "radar_enrichment_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_entities: {
+        Row: {
+          confidence_score: number
+          created_at: string
+          description: string | null
+          display_name: string
+          entity_type: string
+          id: string
+          influence_score: number
+          influence_score_breakdown: Json
+          last_enriched_at: string | null
+          location_confidence: number
+          main_category: string
+          normalized_name: string
+          primary_city: string | null
+          primary_region: string | null
+          primary_state: string | null
+          secondary_categories: string[]
+          status: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number
+          created_at?: string
+          description?: string | null
+          display_name: string
+          entity_type?: string
+          id?: string
+          influence_score?: number
+          influence_score_breakdown?: Json
+          last_enriched_at?: string | null
+          location_confidence?: number
+          main_category?: string
+          normalized_name: string
+          primary_city?: string | null
+          primary_region?: string | null
+          primary_state?: string | null
+          secondary_categories?: string[]
+          status?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          entity_type?: string
+          id?: string
+          influence_score?: number
+          influence_score_breakdown?: Json
+          last_enriched_at?: string | null
+          location_confidence?: number
+          main_category?: string
+          normalized_name?: string
+          primary_city?: string | null
+          primary_region?: string | null
+          primary_state?: string | null
+          secondary_categories?: string[]
+          status?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      radar_entity_history: {
+        Row: {
+          changed_fields: string[]
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          id: number
+          reason: string
+          snapshot: Json
+        }
+        Insert: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          id?: never
+          reason: string
+          snapshot: Json
+        }
+        Update: {
+          changed_fields?: string[]
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          id?: never
+          reason?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_entity_history_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_entity_identifiers: {
+        Row: {
+          confidence: number
+          created_at: string
+          entity_id: string
+          id: string
+          identifier_type: string
+          identifier_value: string
+          is_primary: boolean
+          normalized_identifier: string
+          normalized_username: string | null
+          source_type: string
+          updated_at: string
+          url: string | null
+          username: string | null
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          entity_id: string
+          id?: string
+          identifier_type: string
+          identifier_value: string
+          is_primary?: boolean
+          normalized_identifier: string
+          normalized_username?: string | null
+          source_type: string
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          entity_id?: string
+          id?: string
+          identifier_type?: string
+          identifier_value?: string
+          is_primary?: boolean
+          normalized_identifier?: string
+          normalized_username?: string | null
+          source_type?: string
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_entity_identifiers_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_entity_notes: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string
+          created_by_email: string | null
+          entity_id: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by: string
+          created_by_email?: string | null
+          entity_id: string
+          id?: never
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string
+          created_by_email?: string | null
+          entity_id?: string
+          id?: never
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_entity_notes_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_entity_relationships: {
+        Row: {
+          confidence: number
+          created_at: string
+          evidence_id: string | null
+          id: string
+          object_entity_id: string
+          predicate: string
+          relationship_label: string | null
+          subject_entity_id: string
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          evidence_id?: string | null
+          id?: string
+          object_entity_id: string
+          predicate: string
+          relationship_label?: string | null
+          subject_entity_id: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evidence_id?: string | null
+          id?: string
+          object_entity_id?: string
+          predicate?: string
+          relationship_label?: string | null
+          subject_entity_id?: string
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_entity_relationships_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "radar_source_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_entity_relationships_object_entity_id_fkey"
+            columns: ["object_entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_entity_relationships_subject_entity_id_fkey"
+            columns: ["subject_entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_merge_suggestions: {
+        Row: {
+          confidence: number
+          created_at: string
+          entity_a_id: string
+          entity_b_id: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_reason: string
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          entity_a_id: string
+          entity_b_id: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_reason: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          entity_a_id?: string
+          entity_b_id?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_merge_suggestions_entity_a_id_fkey"
+            columns: ["entity_a_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radar_merge_suggestions_entity_b_id_fkey"
+            columns: ["entity_b_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radar_source_connectors: {
+        Row: {
+          base_url: string | null
+          created_at: string
+          display_name: string
+          enabled: boolean
+          id: string
+          last_health_checked_at: string | null
+          last_health_status: string | null
+          last_synced_at: string | null
+          mode: string
+          rate_limit_per_minute: number
+          requires_api_key: boolean
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string | null
+          created_at?: string
+          display_name: string
+          enabled?: boolean
+          id?: string
+          last_health_checked_at?: string | null
+          last_health_status?: string | null
+          last_synced_at?: string | null
+          mode: string
+          rate_limit_per_minute?: number
+          requires_api_key?: boolean
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string | null
+          created_at?: string
+          display_name?: string
+          enabled?: boolean
+          id?: string
+          last_health_checked_at?: string | null
+          last_health_status?: string | null
+          last_synced_at?: string | null
+          mode?: string
+          rate_limit_per_minute?: number
+          requires_api_key?: boolean
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      radar_source_evidence: {
+        Row: {
+          captured_at: string
+          confidence: number
+          content_hash: string
+          created_at: string
+          entity_id: string
+          evidence_kind: string
+          field_name: string
+          field_value: Json
+          id: string
+          raw_excerpt: string | null
+          source_name: string
+          source_reference: string | null
+          source_type: string
+          source_url: string | null
+        }
+        Insert: {
+          captured_at?: string
+          confidence: number
+          content_hash: string
+          created_at?: string
+          entity_id: string
+          evidence_kind: string
+          field_name: string
+          field_value: Json
+          id?: string
+          raw_excerpt?: string | null
+          source_name: string
+          source_reference?: string | null
+          source_type: string
+          source_url?: string | null
+        }
+        Update: {
+          captured_at?: string
+          confidence?: number
+          content_hash?: string
+          created_at?: string
+          entity_id?: string
+          evidence_kind?: string
+          field_name?: string
+          field_value?: Json
+          id?: string
+          raw_excerpt?: string | null
+          source_name?: string
+          source_reference?: string | null
+          source_type?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radar_source_evidence_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "radar_entities"
             referencedColumns: ["id"]
           },
         ]
@@ -2498,10 +3560,103 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      outreach_delivery_audit: {
+        Row: {
+          audit_state: string | null
+          person_id: string | null
+          sent_at: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["person_status"] | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      is_current_internal_admin: { Args: never; Returns: boolean }
+      confirm_outreach_delivery: {
+        Args: {
+          p_actor_email: string
+          p_actor_id: string
+          p_origin: string
+          p_person_id: string
+          p_sent_at?: string
+          p_template_id?: string
+        }
+        Returns: {
+          recorded: boolean
+          sent_at: string
+        }[]
+      }
+      get_instagram_influence_kpis: {
+        Args: never
+        Returns: {
+          average_followers: number
+          total_followers: number
+          total_profiles: number
+        }[]
+      }
+      get_radar_entity_facets: { Args: never; Returns: Json }
+      get_radar_entity_kpis: {
+        Args: never
+        Returns: {
+          average_confidence: number
+          average_score: number
+          needs_review: number
+          pending_enrichment: number
+          total_entities: number
+        }[]
+      }
+      list_pending_outreach_people: {
+        Args: {
+          p_limit?: number
+          p_statuses?: Database["public"]["Enums"]["person_status"][]
+        }
+        Returns: {
+          created_at: string
+          display_name: string | null
+          do_not_contact_reason: string | null
+          id: string
+          instagram_user_id: string | null
+          last_interaction_at: string | null
+          notes: string
+          raw: Json | null
+          responsible_id: string | null
+          status: Database["public"]["Enums"]["person_status"]
+          synced_at: string | null
+          themes: string[]
+          total_interactions: number
+          updated_at: string
+          username: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ig_people"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      search_radar_entities: {
+        Args: {
+          p_category?: string
+          p_city?: string
+          p_direction?: string
+          p_entity_type?: string
+          p_has_relationship?: boolean
+          p_limit?: number
+          p_max_score?: number
+          p_min_score?: number
+          p_offset?: number
+          p_q?: string
+          p_region?: string
+          p_sort?: string
+          p_source_type?: string
+          p_state?: string
+        }
+        Returns: {
+          entity: Json
+          total_count: number
+        }[]
+      }
     }
     Enums: {
       consent_status: "pending" | "confirmed" | "revoked"
@@ -2732,12 +3887,8 @@ export const Constants = {
   },
 } as const
 
-// ---------------------------------------------------------------------------
-// Convenience aliases used throughout the codebase.
-// TablesInsert / TablesUpdate / Tables are the canonical Supabase-generated
-// helpers; TableInsert / TableUpdate / TableRow are shorthand aliases that
-// keep import lines concise without changing any behaviour.
-// ---------------------------------------------------------------------------
+// Convenience aliases used throughout the application. The generated section
+// above is replaced by this script; keep these aliases appended consistently.
 export type TableRow<T extends keyof DefaultSchema["Tables"]> =
   DefaultSchema["Tables"][T]["Row"];
 

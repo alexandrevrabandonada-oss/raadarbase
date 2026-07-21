@@ -25,7 +25,14 @@ export default async function MinhaFilaPage() {
   let loadError: unknown = null;
   try {
     const [peopleResult, templatesResult, goalResult] = await Promise.allSettled([
-      listPriorityPeople({ statuses: ["novo", "responder"], limit: RAPID_QUEUE_BATCH_SIZE, lightweight: true }),
+      listPriorityPeople({
+        statuses: ["novo", "responder"],
+        limit: RAPID_QUEUE_BATCH_SIZE,
+        lightweight: true,
+        // Anti-join no ledger: a fila já nasce sem qualquer DM confirmada,
+        // inclusive se um status legado for alterado por engano.
+        excludeDelivered: true,
+      }),
       listMessageTemplates(),
       getOutreachGoalStats(),
     ]);

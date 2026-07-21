@@ -5,6 +5,7 @@ import { shouldUseMockData } from "@/lib/config";
 import { kanbanLabels, outreachTasks as mockTasks } from "@/lib/mock-data";
 import { requireRole } from "@/lib/authz/roles";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
+import { confirmOutreachDelivery } from "@/lib/data/outreach-delivery";
 import { upsertPersonReferral } from "@/lib/data/referrals";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import {
@@ -31,30 +32,6 @@ import {
   updateMockPerson,
   upsertMockTask,
 } from "./utils";
-
-async function upsertLastContactedAt(personId: string, contactedAt: string) {
-  const supabase = getSupabaseAdminClient();
-  const payload: TableInsert<"contacts"> = {
-    person_id: personId,
-    contact_channel: "Instagram",
-    source: "instagram_manual",
-    consent_given: false,
-    consent_purpose: "Contato comunitário via Instagram",
-    consent_status: "pending",
-    last_contacted_at: contactedAt,
-  };
-
-  const { error: insertError } = await supabase
-    .from("contacts")
-    .upsert(payload, { onConflict: "person_id", ignoreDuplicates: true });
-  if (insertError) throw new Error(insertError.message);
-
-  const { error: updateError } = await supabase
-    .from("contacts")
-    .update({ last_contacted_at: contactedAt })
-    .eq("person_id", personId);
-  if (updateError) throw new Error(updateError.message);
-}
 
 function getResponseTaskConfig(responseType: PersonResponseKind) {
   switch (responseType) {
@@ -229,39 +206,7 @@ export async function updateContactStatus(personId: string, status: PersonStatus
 
 export async function registerManualDm(personId: string): Promise<ActionResult> {
   validateId(personId, "Pessoa");
-  return performAction({
-    action: "contact.dm_registered",
-    entityType: "ig_people",
-    entityId: personId,
-    summary: "DM manual registrada.",
-    mutate: async () => {
-      await requireRole(["admin", "operador"]);
-      if (shouldUseMockData()) {
-        updateMockPerson(personId, (person) => {
-          person.status = "abordado";
-        });
-        return;
-      }
-      const supabase = getSupabaseAdminClient();
-      const nowIso = new Date().toISOString();
-      const { error } = await supabase
-        .from("ig_people")
-        .update({ status: "abordado", updated_at: nowIso })
-        .eq("id", personId);
-      if (error) throw new Error(error.message);
-      const interactionPayload: TableInsert<"ig_interactions"> = {
-        person_id: personId,
-        type: "dm_manual",
-        occurred_at: nowIso,
-        text_content: "DM manual registrada no painel interno.",
-        raw_payload: { origin: "radar_de_base" },
-      };
-      const { error: interactionError } = await supabase.from("ig_interactions").insert(interactionPayload);
-      if (interactionError) throw new Error(interactionError.message);
-      await upsertLastContactedAt(personId, nowIso);
-    },
-    revalidate: ["/pessoas", `/pessoas/${personId}`],
-  });
+  return confirmDMSentAction(personId, "perfil_manual");
 }
 
 export async function recordDMPreparedAction(personId: string, origin: string, templateId?: string | null): Promise<ActionResult> {
@@ -287,7 +232,7 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
     const automaticOnInstagramReturn = origin === "minha_fila_retorno_instagram";
     const auditSummary = automaticOnInstagramReturn
       ? "DM manual registrada automaticamente após retorno do Instagram."
-      : `DM confirmada como enviada manualmente (Origem: ${origin}).`;
+      : "DM confirmada como enviada manualmente.";
     const successMessage = automaticOnInstagramReturn
       ? "DM registrada automaticamente após retorno do Instagram."
       : "DM confirmada como enviada manualmente.";
@@ -316,68 +261,13 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
       return { ok: true, message: successMessage };
     }
 
-    const supabase = getSupabaseAdminClient();
-    const nowIso = new Date().toISOString();
-    const duplicateWindowIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-
-    const [{ data: currentPerson, error: currentPersonError }, { data: existingTask, error: existingTaskError }, { data: recentSentLog, error: recentSentLogError }] = await Promise.all([
-      supabase.from("ig_people").select("status").eq("id", personId).maybeSingle(),
-      supabase
-        .from("outreach_tasks")
-        .select("id, column_key")
-        .eq("person_id", personId)
-        .is("completed_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("audit_logs")
-        .select("id, created_at")
-        .eq("entity_type", "ig_people")
-        .eq("entity_id", personId)
-        .eq("action", "contact.dm_sent")
-        .gte("created_at", duplicateWindowIso)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-    if (currentPersonError) throw new Error(currentPersonError.message);
-    if (existingTaskError) throw new Error(existingTaskError.message);
-    if (recentSentLogError) throw new Error(recentSentLogError.message);
-
-    const alreadyWaiting =
-      currentPerson?.status === "abordado" &&
-      existingTask?.column_key === "esperando_resposta";
-
-    const isDuplicateConfirmation = Boolean(recentSentLog) && alreadyWaiting;
-
-    if (!alreadyWaiting) {
-      const { error: personError } = await supabase
-        .from("ig_people")
-        .update({ status: "abordado", updated_at: nowIso })
-        .eq("id", personId);
-      if (personError) throw new Error(personError.message);
-
-      await upsertOutreachTaskForPerson(personId, {
-        column: "esperando_resposta",
-        title: "Aguardar retorno da pessoa (Auto-Status)",
-        notes: `Confirmação de envio manual realizada via ${origin}. Sistema moveu automaticamente para Aguardando Retorno.`,
-      });
-    }
-
-    await upsertLastContactedAt(personId, nowIso);
-
-    if (!isDuplicateConfirmation) {
-      await writeAuditLog({
-        ...actor,
-        action: "contact.dm_sent",
-        entityType: "ig_people",
-        entityId: personId,
-        summary: auditSummary,
-        metadata: { origin, auto_status: true, automatic_on_return: automaticOnInstagramReturn, template_id: templateId ?? null },
-      });
-    }
+    const confirmation = await confirmOutreachDelivery({
+      personId,
+      actorId: actor.actorId,
+      actorEmail: actor.actorEmail,
+      origin,
+      templateId,
+    });
 
     revalidatePath("/pessoas");
     revalidatePath(`/pessoas/${personId}`);
@@ -386,8 +276,8 @@ export async function confirmDMSentAction(personId: string, origin: string, temp
 
     return {
       ok: true,
-      message: isDuplicateConfirmation
-        ? "Envio já estava registrado neste ciclo."
+      message: !confirmation.recorded
+        ? "Envio já estava registrado na auditoria."
         : successMessage,
     };
   } catch (error) {

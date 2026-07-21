@@ -507,7 +507,13 @@ function chunkPersonIds(personIds: string[]) {
   return chunks;
 }
 
-export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; limit?: number; responsibleId?: string; lightweight?: boolean }): Promise<PriorityPerson[]> {
+export async function listPriorityPeople(options?: {
+  statuses?: PersonStatus[];
+  limit?: number;
+  responsibleId?: string;
+  lightweight?: boolean;
+  excludeDelivered?: boolean;
+}): Promise<PriorityPerson[]> {
   const now = new Date();
 
   if (shouldUseMockData()) {
@@ -566,7 +572,7 @@ export async function listPriorityPeople(options?: { statuses?: PersonStatus[]; 
       options?.responsibleId
         ? listPeopleByResponsible(options.responsibleId, options.limit)
         : options?.statuses
-          ? listPeopleByStatuses(options.statuses, options.limit)
+          ? listPeopleByStatuses(options.statuses, options.limit, { excludeDelivered: options.excludeDelivered })
           : listPeople(undefined, options?.limit),
       tasksPromise,
       supabase.from("message_templates").select("*").eq("active", true).order("updated_at", { ascending: false }),
