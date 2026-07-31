@@ -78,6 +78,7 @@ import {
   shouldConfirmPendingInstagramSend,
   type PendingInstagramSend,
 } from "@/lib/instagram-return-flow";
+import { launchInstagramProfile } from "@/lib/instagram-launch";
 
 import type { MessageTemplate } from "@/lib/types";
 
@@ -735,11 +736,7 @@ export function QueueClient({ initialQueue, oldPendencies = [], operatorName, mi
     pendingInstagramSendRef.current = pending;
     savePendingInstagramSend(pending);
 
-    const igUsername = currentPerson.username.replace(/^@+/, "");
-    window.open(
-      `https://www.instagram.com/${igUsername}/`,
-      "_blank",
-    );
+    launchInstagramProfile(currentPerson.username);
 
     setCopyStatus("waiting");
     trackOperationalEvent("instagram_opened", currentPerson.id);

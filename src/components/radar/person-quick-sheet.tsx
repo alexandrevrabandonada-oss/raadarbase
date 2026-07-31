@@ -83,6 +83,7 @@ import {
   shouldConfirmPendingInstagramSend,
   type PendingInstagramSend,
 } from "@/lib/instagram-return-flow";
+import { launchInstagramProfile } from "@/lib/instagram-launch";
 
 const QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_quick_sheet_instagram_send:v1";
 
@@ -556,9 +557,7 @@ export function PersonQuickSheet({
         pendingInstagramSendRef.current = pending;
         window.sessionStorage.setItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
       }
-      const igUsername = person.username.replace(/^@+/, "");
-      const igUrl = `https://www.instagram.com/${igUsername}/`;
-      window.open(igUrl, "_blank");
+      launchInstagramProfile(person.username);
 
       await copyPromise;
 

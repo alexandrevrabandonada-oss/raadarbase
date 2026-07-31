@@ -50,6 +50,7 @@ import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralSt
 import { cn } from "@/lib/utils";
 import { executeOrQueueAction } from "@/lib/offline-queue";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
+import { launchInstagramProfile } from "@/lib/instagram-launch";
 
 // Radar Design System
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
@@ -102,12 +103,10 @@ export function PersonActions({
   async function copyMessage() {
     const messageToCopy = editedMessage || profile.priority.suggestedMessage || "";
     if (!messageToCopy || !canApproach || isAlreadySent) return;
-    await navigator.clipboard.writeText(messageToCopy);
+    const copyPromise = navigator.clipboard.writeText(messageToCopy);
+    launchInstagramProfile(person.username);
+    await copyPromise;
     setCopied("mensagem");
-
-    const igUsername = person.username.replace(/^@+/, "");
-    const igUrl = `https://www.instagram.com/${igUsername}/`;
-    window.open(igUrl, "_blank");
 
     toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
     startTransition(async () => {

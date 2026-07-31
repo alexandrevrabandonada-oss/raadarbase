@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Instagram, LogOut, SkipForward, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { executeOrQueueAction, getOfflineTasks } from "@/lib/offline-queue";
+import { launchInstagramProfile } from "@/lib/instagram-launch";
 import {
   INSTAGRAM_RETURN_MIN_AWAY_MS,
   INSTAGRAM_RETURN_STORAGE_KEY,
@@ -160,11 +161,10 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
     setStatus("away");
 
     const copy = navigator.clipboard.writeText(message);
-    // No Android, uma aba em branco intermediária pode sobreviver ao app-link
-    // do Instagram e voltar como "This page couldn't load". Navegar na mesma
-    // aba mantém o portal no histórico e permite que Voltar restaure/recarregue
-    // esta rota sem depender daquela aba descartável.
-    window.location.assign(`https://www.instagram.com/${person.username.replace(/^@+/, "")}/`);
+    // No Android, um Intent entrega o perfil diretamente ao app do Instagram
+    // sem substituir esta página. Assim, Voltar retoma o Radar que permaneceu
+    // vivo, em vez de tentar restaurar uma navegação web externa descartada.
+    launchInstagramProfile(person.username);
     void executeOrQueueAction("recordDMPrepared", [person.id, "minha_fila", pending.templateId], quietToast);
     try {
       await copy;
