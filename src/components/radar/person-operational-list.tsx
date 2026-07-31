@@ -28,6 +28,7 @@ import {
   shouldConfirmPendingInstagramSend,
   type PendingInstagramSend,
 } from "@/lib/instagram-return-flow";
+import { launchInstagramProfile } from "@/lib/instagram-launch";
 
 const OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_operational_list_instagram_send:v1";
 
@@ -121,9 +122,7 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
       const pending = createPendingInstagramSend(person.id, person.suggestedTemplateId ?? null);
       pendingInstagramSendRef.current = pending;
       window.sessionStorage.setItem(OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
-      const igUsername = person.username.replace(/^@+/, "");
-      const igUrl = `https://www.instagram.com/${igUsername}/`;
-      window.open(igUrl, "_blank");
+      launchInstagramProfile(person.username);
 
       await copyPromise;
       setCopyStatus("waiting");
