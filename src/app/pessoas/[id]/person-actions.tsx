@@ -48,9 +48,8 @@ import { PERSON_RESPONSE_OPTIONS, type PersonOperationalProfile } from "@/lib/da
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import type { PersonStatus, PersonReferral, PersonReferralType, PersonReferralStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { executeOrQueueAction } from "@/lib/offline-queue";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
-import { launchInstagramProfile } from "@/lib/instagram-launch";
+import { useInstagramSendReturn } from "@/hooks/use-instagram-send-return";
 
 // Radar Design System
 import { RadarPageHeader } from "@/components/radar/radar-page-header";
@@ -88,8 +87,20 @@ export function PersonActions({
   const [selectedTarget, setSelectedTarget] = useState<PersonReferralType | "">("");
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [referralNotes, setReferralNotes] = useState("");
-  const [copyStatus, setCopyStatus] = useState<"idle" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = useState(profile.priority.suggestedMessage || "");
+
+  const instagramSend = useInstagramSendReturn({
+    toast,
+    onConfirmed: (pending) => {
+      if (pending.personId !== person.id) return;
+      setStatus("abordado");
+      setCopied("mensagem");
+      toast({ title: "Envio registrado", description: "A pessoa agora aguarda retorno." });
+    },
+    onError: (_pending, error) => {
+      toast({ title: "Não foi possível registrar o envio", description: error, variant: "destructive" });
+    },
+  });
 
   const canApproach = status !== "nao_abordar" && !person.doNotContactReason;
   const isAlreadySent = isPriorityPersonAlreadySent({ ...profile.priority, status });
@@ -99,28 +110,36 @@ export function PersonActions({
     status === "nao_abordar" || person.doNotContactReason
       ? `Não abordar: ${person.doNotContactReason ?? "pessoa pediu para não receber contato."}`
       : profile.priority.nextAction;
+  const isThisPending = instagramSend.pendingPersonId === person.id;
+  const isAnotherPending = Boolean(instagramSend.pendingPersonId && !isThisPending);
 
   async function copyMessage() {
     const messageToCopy = editedMessage || profile.priority.suggestedMessage || "";
-    if (!messageToCopy || !canApproach || isAlreadySent) return;
-    const copyPromise = navigator.clipboard.writeText(messageToCopy);
-    launchInstagramProfile(person.username);
-    await copyPromise;
-    setCopied("mensagem");
-
-    toast({ title: "Mensagem copiada", description: "Direct aberto. O contato foi movido para esperando resposta." });
-    startTransition(async () => {
-      const [, result] = await Promise.all([
-        executeOrQueueAction("recordDMPrepared", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast),
-        executeOrQueueAction("confirmDMSent", [person.id, "perfil_pessoa", profile.priority.suggestedTemplateId], toast)
-      ]);
-      if (result.ok) {
-        setCopyStatus("confirmed");
-        setStatus("abordado");
-      } else {
-        toast({ title: "Erro", description: result.error ?? "Não foi possível registrar o envio.", variant: "destructive" });
-      }
+    if (!messageToCopy || !canApproach || isAlreadySent || isAnotherPending) return;
+    const result = await instagramSend.openInstagram({
+      surface: "perfil_pessoa",
+      personId: person.id,
+      templateId: profile.priority.suggestedTemplateId,
+      username: person.username,
+      message: messageToCopy,
     });
+    if (result.ok) {
+      setCopied("mensagem");
+      toast({
+        title: result.copied ? "Mensagem copiada" : "Instagram aberto",
+        description: result.copied
+          ? "Ao voltar, o envio será registrado automaticamente."
+          : "Copie a mensagem manualmente antes de enviar.",
+      });
+    }
+  }
+
+  async function confirmOrCopyMessage() {
+    if (isThisPending) {
+      await (instagramSend.phase === "error" ? instagramSend.retryConfirmation() : instagramSend.confirmNow());
+      return;
+    }
+    await copyMessage();
   }
 
   function applyResult(result: ActionResult, successText?: string, nextStatus?: PersonStatus) {
@@ -208,13 +227,13 @@ export function PersonActions({
               variant="outline" 
               className={cn(
                 "font-black border-2 border-black bg-white rounded-[2px] text-charcoal hover:bg-charcoal/5 shadow-[2px_2px_0px_0px_rgba(11,11,11,1)] transition-colors",
-                copyStatus === "confirmed" ? "bg-moss/20 border-black text-moss" : ""
+                isThisPending ? "bg-burnt-yellow/20 border-black" : ""
               )}
-              onClick={copyMessage}
-              disabled={!canApproach || isAlreadySent}
+              onClick={confirmOrCopyMessage}
+              disabled={!canApproach || isAlreadySent || isAnotherPending || instagramSend.phase === "confirming"}
             >
               <Copy className="mr-2 h-4 w-4" /> 
-              {copyStatus === "confirmed" || isAlreadySent ? "Enviado!" : "Copiar e Abrir Direct"}
+              {isAlreadySent ? "Enviado!" : isThisPending ? instagramSend.phase === "error" ? "Tentar registro novamente" : "Registrar envio e continuar" : "Copiar e Abrir Direct"}
             </Button>
           )}
         </div>
@@ -323,8 +342,8 @@ export function PersonActions({
                    <p className="text-[10px] font-bold text-burnt-yellow uppercase tracking-widest flex items-center gap-1">
                      <AlertTriangle className="h-3 w-3 text-burnt-yellow" /> {canApproach ? "Revise antes de enviar" : "Contato bloqueado"}
                    </p>
-                   <Button onClick={copyMessage} disabled={!editedMessage || !canApproach || isAlreadySent} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
-                     <Copy className="mr-2 h-4 w-4" /> {copied || isAlreadySent ? "Enviado" : "Copiar e Abrir Direct"}
+                   <Button onClick={confirmOrCopyMessage} disabled={!editedMessage || !canApproach || isAlreadySent || isAnotherPending || instagramSend.phase === "confirming"} className="border-2 border-black bg-burnt-yellow text-charcoal font-black hover:bg-burnt-yellow/90 h-9 px-6 rounded-[2px] shadow-[2px_2px_0px_0px_rgba(11,11,11,1)]">
+                     <Copy className="mr-2 h-4 w-4" /> {isAlreadySent ? "Enviado" : isThisPending ? instagramSend.phase === "error" ? "Tentar registro novamente" : "Registrar envio e continuar" : copied ? "Copiada — abrir novamente" : "Copiar e Abrir Direct"}
                    </Button>
                 </div>
                 {!canApproach && (

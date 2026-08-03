@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import type { PriorityPerson } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { executeOrQueueAction } from "@/lib/offline-queue";
+import type { InstagramSendReturnController } from "@/hooks/use-instagram-send-return";
 import { JourneyProgress } from "@/components/radar/journey-progress";
 import { AnnouncementStatusBadge } from "@/components/radar/announcement-status-badge";
 import {
@@ -21,31 +21,20 @@ import {
   getPriorityPersonMissionTypeLabel,
 } from "@/lib/missions/priority-person-mission-adapter";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
-import {
-  createPendingInstagramSend,
-  markPendingInstagramSendAsAway,
-  parsePendingInstagramSend,
-  shouldConfirmPendingInstagramSend,
-  type PendingInstagramSend,
-} from "@/lib/instagram-return-flow";
-import { launchInstagramProfile } from "@/lib/instagram-launch";
-
-const OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_operational_list_instagram_send:v1";
 
 interface PersonOperationalRowProps {
   person: PriorityPerson;
   index: number;
+  variant: "desktop" | "mobile";
   onOpenDetails?: (person: PriorityPerson) => void;
   onAssume?: (personId: string) => void;
   isAssuming?: boolean;
   onActionComplete?: (personId?: string, options?: { openNext?: boolean; refresh?: boolean }) => void;
+  instagramSend: InstagramSendReturnController;
 }
 
-export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, isAssuming, onActionComplete }: PersonOperationalRowProps) {
+export function PersonOperationalRow({ person, index, variant, onOpenDetails, onAssume, isAssuming, instagramSend }: PersonOperationalRowProps) {
   const { toast } = useToast();
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "waiting" | "confirmed">("idle");
-  const pendingInstagramSendRef = React.useRef<PendingInstagramSend | null>(null);
-  const confirmationInFlightRef = React.useRef(false);
   const isBlocked = getPriorityPersonHoldState(person) === "blocked";
   const missionTypeLabel = getPriorityPersonMissionTypeLabel(person);
   const missionPhaseLabel = getPriorityPersonMissionPhaseLabel(person);
@@ -54,96 +43,42 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
   const holdText = getPriorityPersonHoldText(person);
   const journey = getPriorityPersonJourney(person);
   const isAlreadySent = isPriorityPersonAlreadySent(person);
-
-  const handleSentSuccess = React.useCallback((personId: string, templateId: string | null) => {
-    if (confirmationInFlightRef.current) return;
-    confirmationInFlightRef.current = true;
-    setCopyStatus("confirmed");
-    pendingInstagramSendRef.current = null;
-    window.sessionStorage.removeItem(OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY);
-    onActionComplete?.(personId, { openNext: true, refresh: false });
-
-    void executeOrQueueAction(
-      "confirmDMSent",
-      [personId, "lista_operacional_retorno_instagram", templateId],
-      toast,
-    ).then((result) => {
-      if (!result.ok) {
-        toast({ title: "Envio pendente", description: result.error, variant: "destructive" });
-      }
-    }).finally(() => {
-      confirmationInFlightRef.current = false;
-    });
-  }, [onActionComplete, toast]);
-
-  React.useEffect(() => {
-    const restorePending = () => {
-      const pending = parsePendingInstagramSend(
-        window.sessionStorage.getItem(OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY),
-      );
-      if (pending?.personId === person.id) pendingInstagramSendRef.current = pending;
-      return pending;
-    };
-
-    const markAway = () => {
-      const pending = pendingInstagramSendRef.current ?? restorePending();
-      if (!pending || pending.personId !== person.id) return;
-      const updated = markPendingInstagramSendAsAway(pending);
-      pendingInstagramSendRef.current = updated;
-      window.sessionStorage.setItem(OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(updated));
-    };
-
-    const confirmOnReturn = () => {
-      const pending = pendingInstagramSendRef.current ?? restorePending();
-      if (!pending || pending.personId !== person.id || !shouldConfirmPendingInstagramSend(pending)) return;
-      handleSentSuccess(pending.personId, pending.templateId);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") markAway();
-      else confirmOnReturn();
-    };
-
-    restorePending();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", markAway);
-    window.addEventListener("focus", confirmOnReturn);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", markAway);
-      window.removeEventListener("focus", confirmOnReturn);
-    };
-  }, [handleSentSuccess, person.id]);
+  const isThisPending = instagramSend.pendingPersonId === person.id;
+  const isAnotherPending = Boolean(instagramSend.pendingPersonId && !isThisPending);
+  const copyStatus = isThisPending ? instagramSend.phase : "idle";
 
   const handleCopyDM = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (person.suggestedMessage) {
-      const copyPromise = navigator.clipboard.writeText(person.suggestedMessage);
-      const pending = createPendingInstagramSend(person.id, person.suggestedTemplateId ?? null);
-      pendingInstagramSendRef.current = pending;
-      window.sessionStorage.setItem(OPERATIONAL_LIST_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
-      launchInstagramProfile(person.username);
-
-      await copyPromise;
-      setCopyStatus("waiting");
-      void executeOrQueueAction(
-        "recordDMPrepared",
-        [person.id, "lista_operacional", person.suggestedTemplateId ?? null],
-        toast,
-      );
+    if (!person.suggestedMessage) return;
+    const result = await instagramSend.openInstagram({
+      surface: "lista_operacional",
+      personId: person.id,
+      templateId: person.suggestedTemplateId ?? null,
+      username: person.username,
+      message: person.suggestedMessage,
+    });
+    if (result.ok && !result.copied) {
+      toast({ title: "Instagram aberto", description: result.error ?? "Copie a mensagem manualmente antes de enviar." });
     }
   };
 
   const handleMarkSent = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleSentSuccess(person.id, person.suggestedTemplateId ?? null);
+    if (isThisPending) {
+      await (instagramSend.phase === "error" ? instagramSend.retryConfirmation() : instagramSend.confirmNow());
+      return;
+    }
+    await instagramSend.confirmNow({
+      surface: "lista_operacional",
+      personId: person.id,
+      templateId: person.suggestedTemplateId ?? null,
+    });
   };
 
-  return (
-    <>
+  if (variant === "desktop") return (
     <tr
       className={cn(
-        "group hidden h-16 cursor-pointer border-b border-black/10 transition-colors hover:bg-charcoal/5 md:table-row",
+        "group h-16 cursor-pointer border-b border-black/10 transition-colors hover:bg-charcoal/5",
         isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
       )}
       onClick={() => onOpenDetails?.(person)}
@@ -238,12 +173,12 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             variant="ghost"
             className={cn(
               "h-8 w-8",
-              copyStatus === "confirmed"
-                ? "bg-emerald-50 text-emerald-600"
+              isThisPending
+                ? "bg-amber-50 text-amber-700"
                 : "text-zinc-400 hover:bg-[#11202a]/5 hover:text-[#11202a]",
             )}
             onClick={handleCopyDM}
-            disabled={!person.suggestedMessage || isBlocked || isAlreadySent}
+            disabled={!person.suggestedMessage || isBlocked || isAlreadySent || isThisPending || isAnotherPending}
             title={isAlreadySent ? "Envio já registrado" : "Copiar e Abrir Direct"}
           >
             <Copy className="h-4 w-4" />
@@ -253,9 +188,9 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
             variant="outline"
             className="h-8 border-2 border-black bg-white px-3 text-[10px] font-black uppercase tracking-wider text-charcoal hover:bg-charcoal/5 rounded-[2px]"
             onClick={handleMarkSent}
-            disabled={isBlocked || copyStatus === "waiting" || isAlreadySent}
+            disabled={isBlocked || isAlreadySent || isAnotherPending || copyStatus === "confirming"}
           >
-            Marcar enviado
+            {copyStatus === "error" ? "Tentar registro novamente" : isThisPending ? "Registrar envio e continuar" : "Marcar enviado"}
           </Button>
           {!person.responsibleId && !isBlocked && (
             <Button
@@ -285,9 +220,12 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         </div>
       </td>
     </tr>
+  );
+
+  return (
     <div
       className={cn(
-        "border-b border-black/10 p-3 md:hidden",
+        "border-b border-black/10 p-3",
         isBlocked && "bg-zinc-50 opacity-75 grayscale-[30%]",
       )}
       onClick={() => onOpenDetails?.(person)}
@@ -333,27 +271,27 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         <div className="flex items-center gap-2">
           {person.riskFlags?.recentOutreach ? <Clock className="h-4 w-4 text-amber-500" /> : null}
           {isBlocked ? <ShieldAlert className="h-4 w-4 text-rose-500" /> : null}
-          {copyStatus === "confirmed" ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : null}
+          {isThisPending ? <Clock className="h-4 w-4 text-amber-600" /> : null}
         </div>
 
         <div className="space-y-2">
           <Button
             className="h-11 w-full border-2 border-black bg-burnt-yellow text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-burnt-yellow/90"
             onClick={handleCopyDM}
-            disabled={!person.suggestedMessage || isBlocked || copyStatus !== "idle" || isAlreadySent}
+            disabled={!person.suggestedMessage || isBlocked || isThisPending || isAnotherPending || isAlreadySent}
           >
             <Copy className="mr-2 h-4 w-4" />
-            {copyStatus === "waiting" ? "Aguardando retorno" : "Copiar e abrir"}
+            {isThisPending ? "Aguardando retorno" : "Copiar e abrir"}
           </Button>
 
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-11 border-2 border-black bg-white text-xs font-black uppercase tracking-[0.18em] text-charcoal rounded-[2px] hover:bg-charcoal/5"
               onClick={handleMarkSent}
-              disabled={isBlocked || copyStatus === "waiting" || isAlreadySent}
+              disabled={isBlocked || isAlreadySent || isAnotherPending || copyStatus === "confirming"}
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              {copyStatus === "confirmed" ? "Enviado" : "Marcar enviado"}
+              {copyStatus === "error" ? "Tentar registro novamente" : isThisPending ? "Registrar envio e continuar" : "Marcar enviado"}
             </Button>
             <Button
               variant="outline"
@@ -410,7 +348,6 @@ export function PersonOperationalRow({ person, index, onOpenDetails, onAssume, i
         </div>
       </div>
     </div>
-    </>
   );
 }
 
@@ -421,9 +358,10 @@ interface PersonOperationalListProps {
   isAssuming?: boolean;
   className?: string;
   onActionComplete?: (personId?: string, options?: { openNext?: boolean; refresh?: boolean }) => void;
+  instagramSend: InstagramSendReturnController;
 }
 
-export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className, onActionComplete }: PersonOperationalListProps) {
+export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssuming, className, onActionComplete, instagramSend }: PersonOperationalListProps) {
   return (
     <div className={cn("bloco-concreto relative overflow-hidden rounded-[2px] border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(11,11,11,1)]", className)}>
       <div className="md:hidden">
@@ -432,10 +370,12 @@ export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssum
             key={person.id}
             person={person}
             index={index}
+            variant="mobile"
             onOpenDetails={onOpenDetails}
             onAssume={onAssume}
             isAssuming={isAssuming}
             onActionComplete={onActionComplete}
+            instagramSend={instagramSend}
           />
         ))}
       </div>
@@ -461,10 +401,12 @@ export function PersonOperationalList({ people, onOpenDetails, onAssume, isAssum
               key={person.id}
               person={person}
               index={index}
+              variant="desktop"
               onOpenDetails={onOpenDetails}
               onAssume={onAssume}
               isAssuming={isAssuming}
               onActionComplete={onActionComplete}
+              instagramSend={instagramSend}
             />
           ))}
         </tbody>

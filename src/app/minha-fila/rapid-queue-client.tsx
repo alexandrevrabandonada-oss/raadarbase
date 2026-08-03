@@ -1,25 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Instagram, LogOut, SkipForward, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { executeOrQueueAction, getOfflineTasks } from "@/lib/offline-queue";
-import { launchInstagramProfile } from "@/lib/instagram-launch";
+import { getOfflineTasks } from "@/lib/offline-queue";
 import {
-  INSTAGRAM_RETURN_MIN_AWAY_MS,
-  INSTAGRAM_RETURN_POLL_MS,
-  INSTAGRAM_RETURN_STORAGE_KEY,
-  createPendingInstagramSend,
-  getInstagramPortalLifecycleSignal,
-  markPendingInstagramSendAsAway,
-  parsePendingInstagramSend,
-  shouldConfirmPendingInstagramSend,
-  type PendingInstagramSend,
-} from "@/lib/instagram-return-flow";
+  getInstagramConfirmationCustodyIds,
+  useInstagramSendReturn,
+} from "@/hooks/use-instagram-send-return";
 import type { MessageTemplate, PriorityPerson } from "@/lib/types";
 import type { OutreachGoalStats } from "@/lib/data/outreach-goal";
-
-const quietToast = () => undefined;
 
 type RapidQueueClientProps = {
   initialQueue: PriorityPerson[];
@@ -27,44 +17,10 @@ type RapidQueueClientProps = {
   outreachGoal: OutreachGoalStats | null;
 };
 
-function savePending(pending: PendingInstagramSend | null) {
-  const value = pending ? JSON.stringify(pending) : null;
-  for (const storageName of ["sessionStorage", "localStorage"] as const) {
-    try {
-      const storage = window[storageName];
-      if (value) storage.setItem(INSTAGRAM_RETURN_STORAGE_KEY, value);
-      else storage.removeItem(INSTAGRAM_RETURN_STORAGE_KEY);
-    } catch {
-      // A referência em memória mantém o fluxo quando o navegador bloqueia storage.
-    }
-  }
-}
-
-function loadPending() {
-  const candidates = (["sessionStorage", "localStorage"] as const).flatMap((storageName) => {
-    try {
-      const storage = window[storageName];
-      const pending = parsePendingInstagramSend(storage.getItem(INSTAGRAM_RETURN_STORAGE_KEY));
-      return pending ? [pending] : [];
-    } catch {
-      return [];
-    }
-  });
-  return candidates.sort((a, b) => b.openedAt - a.openedAt)[0] ?? null;
-}
-
 export function RapidQueueClient({ initialQueue, templates, outreachGoal }: RapidQueueClientProps) {
   const [queue, setQueue] = useState(initialQueue);
   const [index, setIndex] = useState(0);
   const [messageByPerson, setMessageByPerson] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState<"idle" | "away">(() =>
-    typeof window !== "undefined" && loadPending() ? "away" : "idle",
-  );
-  const pendingRef = useRef<PendingInstagramSend | null>(null);
-  const confirmingRef = useRef(false);
-  const retryTimerRef = useRef<number | null>(null);
-  const portalInactiveRef = useRef(false);
-  const watchdogTickRef = useRef(0);
 
   const person = queue[index] ?? null;
   const message = person ? messageByPerson[person.id] ?? person.suggestedMessage ?? "" : "";
@@ -72,55 +28,20 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
   const advance = useCallback((personId: string) => {
     setQueue((current) => current.filter((item) => item.id !== personId));
     setIndex((current) => Math.max(0, Math.min(current, queue.length - 2)));
-    setStatus("idle");
   }, [queue.length]);
 
-  const persistConfirmation = useCallback(async (pending: PendingInstagramSend) => {
-    // A interface nunca espera a rede: a outbox mantém a confirmação até o servidor aceitar.
-    return executeOrQueueAction(
-      "confirmDMSent",
-      [pending.personId, "minha_fila_retorno_instagram", pending.templateId],
-      quietToast,
-    );
-  }, []);
-
-  const confirmReturn = useCallback(() => {
-    const pending = pendingRef.current ?? loadPending();
-    if (!pending || confirmingRef.current || !shouldConfirmPendingInstagramSend(pending)) return;
-
-    confirmingRef.current = true;
-    // O pendente só é apagado depois que o servidor ou a outbox confirma a
-    // custódia do registro. Se o Android encerrar a aba no meio da chamada, o
-    // próximo carregamento repete a operação idempotente em vez de perdê-la.
-    void persistConfirmation(pending).then((result) => {
-      confirmingRef.current = false;
-      if (!result.ok) {
-        setStatus("away");
-        return;
-      }
-      pendingRef.current = null;
-      savePending(null);
-      advance(pending.personId);
-    });
-  }, [advance, persistConfirmation]);
-
-  const confirmReturnWhenReady = useCallback(() => {
-    const pending = pendingRef.current ?? loadPending();
-    if (!pending) return;
-    const remaining = Math.max(
-      0,
-      INSTAGRAM_RETURN_MIN_AWAY_MS - (Date.now() - (pending.leftPortalAt ?? Date.now())),
-    );
-    if (remaining > 0) {
-      if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = window.setTimeout(confirmReturn, remaining);
-      return;
-    }
-    confirmReturn();
-  }, [confirmReturn]);
+  const instagramSend = useInstagramSendReturn({
+    onConfirmed: (confirmedPending) => advance(confirmedPending.personId),
+  });
 
   useEffect(() => {
     let active = true;
+    const custodyIds = getInstagramConfirmationCustodyIds();
+    if (custodyIds.size > 0) {
+      // Recibos são estado externo persistido e só podem ser restaurados após hidratar.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setQueue((current) => current.filter((item) => !custodyIds.has(item.id)));
+    }
     void getOfflineTasks().then((tasks) => {
       if (!active) return;
       const pendingConfirmationIds = new Set(
@@ -136,101 +57,16 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
     };
   }, []);
 
-  useEffect(() => {
-    const restored = loadPending();
-    if (restored) {
-      pendingRef.current = restored;
-    }
-
-    const markAway = () => {
-      const pending = pendingRef.current ?? loadPending();
-      if (!pending) return;
-      portalInactiveRef.current = true;
-      const updated = markPendingInstagramSendAsAway(pending);
-      pendingRef.current = updated;
-      savePending(updated);
-    };
-
-    const handleReturn = () => {
-      portalInactiveRef.current = false;
-      confirmReturnWhenReady();
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") markAway();
-      else handleReturn();
-    };
-
-    document.addEventListener("visibilitychange", onVisibility);
-    // Android pode manter a página visível ao alternar para o Instagram em
-    // outra aba/app. blur/focus completam o mesmo controlador, sem criar um
-    // segundo fluxo de confirmação.
-    window.addEventListener("blur", markAway);
-    window.addEventListener("focus", handleReturn);
-    window.addEventListener("pagehide", markAway);
-    window.addEventListener("pageshow", handleReturn);
-    document.addEventListener("freeze", markAway);
-    document.addEventListener("resume", handleReturn);
-    const watchdog = window.setInterval(() => {
-      const now = Date.now();
-      const elapsedSinceLastCheck = now - watchdogTickRef.current;
-      watchdogTickRef.current = now;
-      if (!(pendingRef.current ?? loadPending())) {
-        portalInactiveRef.current = false;
-        return;
-      }
-
-      const signal = getInstagramPortalLifecycleSignal({
-        visibilityState: document.visibilityState,
-        hasFocus: document.hasFocus(),
-        observedInactive: portalInactiveRef.current,
-        elapsedSinceLastCheck,
-      });
-      if (signal === "away") markAway();
-      if (signal === "returned") handleReturn();
-    }, INSTAGRAM_RETURN_POLL_MS);
-    // Alguns navegadores móveis recarregam o portal ao voltar do Instagram em
-    // vez de emitir pageshow. Retoma a confirmação persistida imediatamente.
-    handleReturn();
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("blur", markAway);
-      window.removeEventListener("focus", handleReturn);
-      window.removeEventListener("pagehide", markAway);
-      window.removeEventListener("pageshow", handleReturn);
-      document.removeEventListener("freeze", markAway);
-      document.removeEventListener("resume", handleReturn);
-      window.clearInterval(watchdog);
-      if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current);
-    };
-  }, [confirmReturnWhenReady]);
-
   const openInstagram = useCallback(async () => {
-    if (!person || !message.trim() || status !== "idle") return;
-    // O gesto de abrir o Instagram é a fronteira do fluxo. Registrar a saída
-    // antes de chamar o navegador cobre aparelhos que não emitem blur/pagehide.
-    const pending = markPendingInstagramSendAsAway(
-      createPendingInstagramSend(person.id, person.suggestedTemplateId ?? null),
-    );
-    confirmingRef.current = false;
-    portalInactiveRef.current = false;
-    watchdogTickRef.current = Date.now();
-    pendingRef.current = pending;
-    savePending(pending);
-    setStatus("away");
-
-    const copy = navigator.clipboard.writeText(message);
-    // No Android, um Intent entrega o perfil diretamente ao app do Instagram
-    // sem substituir esta página. Assim, Voltar retoma o Radar que permaneceu
-    // vivo, em vez de tentar restaurar uma navegação web externa descartada.
-    launchInstagramProfile(person.username);
-    void executeOrQueueAction("recordDMPrepared", [person.id, "minha_fila", pending.templateId], quietToast);
-    try {
-      await copy;
-    } catch {
-      // O Instagram continua aberto; a pessoa pode copiar manualmente sem perder o ciclo.
-    }
-  }, [message, person, status]);
+    if (!person || !message.trim() || instagramSend.phase !== "idle") return;
+    await instagramSend.openInstagram({
+      surface: "minha_fila",
+      personId: person.id,
+      templateId: person.suggestedTemplateId ?? null,
+      username: person.username,
+      message,
+    });
+  }, [instagramSend, message, person]);
 
   const skip = useCallback(() => {
     if (!person) return;
@@ -263,10 +99,10 @@ export function RapidQueueClient({ initialQueue, templates, outreachGoal }: Rapi
           setMessageByPerson((current) => ({ ...current, [person.id]: template.body.replaceAll("{username}", person.username.replace(/^@+/, "")) }));
         }}><option value="">Mensagem preparada</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select> : null}
         <textarea id="rapid-message" value={message} onChange={(event) => setMessageByPerson((current) => ({ ...current, [person.id]: event.target.value }))} className="min-h-44 w-full rounded-[4px] border-2 border-black bg-white p-4 text-sm leading-relaxed" />
-        <Button data-testid="queue-send-instagram" size="lg" className="h-14 w-full bg-charcoal text-base font-black" onClick={openInstagram} disabled={!message.trim() || status !== "idle"}>
-          <Instagram data-icon="inline-start" />{status === "away" ? "Aguardando retorno" : "Instagram"}
+        <Button data-testid="queue-send-instagram" size="lg" className="h-14 w-full bg-charcoal text-base font-black" onClick={openInstagram} disabled={!message.trim() || instagramSend.phase !== "idle"}>
+          <Instagram data-icon="inline-start" />{instagramSend.phase === "idle" ? "Instagram" : "Aguardando retorno"}
         </Button>
-        {status === "away" ? <Button data-testid="queue-confirm-instagram-return" variant="outline" className="w-full" onClick={confirmReturnWhenReady}>Registrar envio e continuar</Button> : null}
+        {instagramSend.pending ? <Button data-testid="queue-confirm-instagram-return" variant="outline" className="w-full" onClick={() => void (instagramSend.phase === "error" ? instagramSend.retryConfirmation() : instagramSend.confirmNow())}>{instagramSend.phase === "error" ? "Tentar registro novamente" : "Registrar envio e continuar"}</Button> : null}
         <div className="grid grid-cols-2 gap-3">
           <Button variant="outline" onClick={skip}><SkipForward data-icon="inline-start" />Pular</Button>
           <Button variant="ghost" onClick={() => window.location.assign("/dashboard")}><LogOut data-icon="inline-start" />Sair</Button>

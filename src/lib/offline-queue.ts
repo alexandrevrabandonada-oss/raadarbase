@@ -124,6 +124,7 @@ export async function addOfflineTask<T extends OfflineTaskType>(action: T, args:
     });
   } catch (err) {
     console.error("Failed to add task to IndexedDB", err);
+    throw err;
   }
 }
 
@@ -220,12 +221,16 @@ export async function executeOrQueueAction<T extends OfflineTaskType>(
   toast: OfflineToast
 ): Promise<{ ok: boolean; offline: boolean; error?: string }> {
   if (typeof window !== "undefined" && !navigator.onLine) {
-    await addOfflineTask(action, args);
-    toast({
-      title: "Registrado Offline 💾",
-      description: "Ação salva localmente. Será sincronizada quando o sinal voltar.",
-    });
-    return { ok: true, offline: true };
+    try {
+      await addOfflineTask(action, args);
+      toast({
+        title: "Registrado Offline 💾",
+        description: "Ação salva localmente. Será sincronizada quando o sinal voltar.",
+      });
+      return { ok: true, offline: true };
+    } catch {
+      return { ok: false, offline: true, error: "Não foi possível proteger a ação no armazenamento offline." };
+    }
   }
 
   try {
@@ -239,21 +244,29 @@ export async function executeOrQueueAction<T extends OfflineTaskType>(
       return { ok: true, offline: false };
     }
     if (shouldKeepOfflineTaskForRetry(result?.error)) {
-      await addOfflineTask(action, args);
-      toast({
-        title: "Confirmação protegida localmente",
-        description: "O servidor oscilou. A ação será sincronizada automaticamente.",
-      });
-      return { ok: true, offline: true };
+      try {
+        await addOfflineTask(action, args);
+        toast({
+          title: "Confirmação protegida localmente",
+          description: "O servidor oscilou. A ação será sincronizada automaticamente.",
+        });
+        return { ok: true, offline: true };
+      } catch {
+        return { ok: false, offline: true, error: "O servidor oscilou e a outbox local não aceitou a ação." };
+      }
     }
     return { ok: false, offline: false, error: result?.error || "Erro desconhecido" };
   } catch {
     // If the network request failed mid-execution (looks like offline)
-    await addOfflineTask(action, args);
-    toast({
-      title: "Falha de rede - Salvo Offline 💾",
-      description: "Houve uma instabilidade. A ação foi salva localmente para sincronização.",
-    });
-    return { ok: true, offline: true };
+    try {
+      await addOfflineTask(action, args);
+      toast({
+        title: "Falha de rede - Salvo Offline 💾",
+        description: "Houve uma instabilidade. A ação foi salva localmente para sincronização.",
+      });
+      return { ok: true, offline: true };
+    } catch {
+      return { ok: false, offline: true, error: "A rede falhou e a outbox local não aceitou a ação." };
+    }
   }
 }
