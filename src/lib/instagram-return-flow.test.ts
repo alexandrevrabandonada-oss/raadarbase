@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   INSTAGRAM_RETURN_MAX_AGE_MS,
   INSTAGRAM_RETURN_MIN_AWAY_MS,
+  INSTAGRAM_RETURN_RESUME_GAP_MS,
   createPendingInstagramSend,
+  getInstagramPortalLifecycleSignal,
   markPendingInstagramSendAsAway,
   parsePendingInstagramSend,
   shouldConfirmPendingInstagramSend,
@@ -44,5 +46,35 @@ describe("instagram return flow", () => {
       parsePendingInstagramSend(serialized, openedAt + INSTAGRAM_RETURN_MAX_AGE_MS + 1),
     ).toBeNull();
     expect(parsePendingInstagramSend('{"personId":42}', openedAt)).toBeNull();
+  });
+
+  it("detects a return even when Android skips focus and pageshow", () => {
+    expect(getInstagramPortalLifecycleSignal({
+      visibilityState: "hidden",
+      hasFocus: false,
+      observedInactive: false,
+      elapsedSinceLastCheck: 500,
+    })).toBe("away");
+
+    expect(getInstagramPortalLifecycleSignal({
+      visibilityState: "visible",
+      hasFocus: true,
+      observedInactive: true,
+      elapsedSinceLastCheck: 500,
+    })).toBe("returned");
+
+    expect(getInstagramPortalLifecycleSignal({
+      visibilityState: "visible",
+      hasFocus: true,
+      observedInactive: false,
+      elapsedSinceLastCheck: INSTAGRAM_RETURN_RESUME_GAP_MS,
+    })).toBe("returned");
+
+    expect(getInstagramPortalLifecycleSignal({
+      visibilityState: "visible",
+      hasFocus: true,
+      observedInactive: false,
+      elapsedSinceLastCheck: 500,
+    })).toBe("waiting");
   });
 });

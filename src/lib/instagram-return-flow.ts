@@ -4,6 +4,30 @@ export const INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_instagram_send:v1";
 // Uma janela curta evita travar a próxima pessoa ao voltar ao portal.
 export const INSTAGRAM_RETURN_MIN_AWAY_MS = 250;
 export const INSTAGRAM_RETURN_MAX_AGE_MS = 30 * 60 * 1000;
+export const INSTAGRAM_RETURN_POLL_MS = 500;
+export const INSTAGRAM_RETURN_RESUME_GAP_MS = 2_000;
+
+type InstagramPortalLifecycleInput = {
+  visibilityState: DocumentVisibilityState;
+  hasFocus: boolean;
+  observedInactive: boolean;
+  elapsedSinceLastCheck: number;
+};
+
+export type InstagramPortalLifecycleSignal = "away" | "returned" | "waiting";
+
+export function getInstagramPortalLifecycleSignal({
+  visibilityState,
+  hasFocus,
+  observedInactive,
+  elapsedSinceLastCheck,
+}: InstagramPortalLifecycleInput): InstagramPortalLifecycleSignal {
+  if (visibilityState === "hidden" || !hasFocus) return "away";
+  if (observedInactive || elapsedSinceLastCheck >= INSTAGRAM_RETURN_RESUME_GAP_MS) {
+    return "returned";
+  }
+  return "waiting";
+}
 
 export interface PendingInstagramSend {
   personId: string;
