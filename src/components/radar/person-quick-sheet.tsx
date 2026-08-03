@@ -60,7 +60,10 @@ import {
 } from "@/components/ui/select";
 import type { FieldAgendaEvent } from "@/lib/data/field-agenda";
 import { containsForbiddenMemoryTerm } from "@/lib/strategic-memory/safety";
-import { executeOrQueueAction } from "@/lib/offline-queue";
+import {
+  useInstagramSendReturn,
+  type InstagramSendReturnController,
+} from "@/hooks/use-instagram-send-return";
 import { JourneyBar } from "@/components/radar/journey-bar";
 import { EthicalGuardrailBanner } from "@/components/radar/ethical-guardrail-banner";
 import { GamefulEmptyState } from "@/components/radar/gameful-empty-state";
@@ -76,16 +79,7 @@ import {
 } from "@/lib/missions/priority-person-mission-adapter";
 import type { RadarMission } from "@/lib/missions/mission-types";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
-import {
-  createPendingInstagramSend,
-  markPendingInstagramSendAsAway,
-  parsePendingInstagramSend,
-  shouldConfirmPendingInstagramSend,
-  type PendingInstagramSend,
-} from "@/lib/instagram-return-flow";
 import { launchInstagramProfile } from "@/lib/instagram-launch";
-
-const QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY = "radar_pending_quick_sheet_instagram_send:v1";
 
 const REFERRAL_DETAILS: Record<PersonReferralType, { 
   hint: string; 
@@ -158,6 +152,7 @@ interface PersonQuickSheetProps {
   isTraining?: boolean;
   onTrainingAction?: (action: string, payload?: unknown) => void;
   templates?: MessageTemplate[];
+  instagramSend?: InstagramSendReturnController;
 }
 
 type QuickSheetMissionView = {
@@ -254,7 +249,8 @@ export function PersonQuickSheet({
   onNextPerson,
   isTraining,
   onTrainingAction,
-  templates = []
+  templates = [],
+  instagramSend: providedInstagramSend,
 }: PersonQuickSheetProps) {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -267,6 +263,23 @@ export function PersonQuickSheet({
 
   const { toast } = useToast();
   const { showCompletion } = useCompletion();
+  const localInstagramSend = useInstagramSendReturn({
+    enabled: !providedInstagramSend && !isTraining,
+    toast,
+    onConfirmed: (pending) => {
+      if (onActionComplete) {
+        onActionComplete(pending.personId, { openNext: true, refresh: true });
+      } else if (onNextPerson) {
+        onNextPerson();
+      } else {
+        onOpenChange(false);
+      }
+    },
+    onError: (_pending, error) => {
+      toast({ title: "Não foi possível registrar o envio", description: error, variant: "destructive" });
+    },
+  });
+  const instagramSend = providedInstagramSend ?? localInstagramSend;
   const [interactions, setInteractions] = React.useState<InteractionWithPost[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
@@ -282,11 +295,16 @@ export function PersonQuickSheet({
   const [createConfirmationTask, setCreateConfirmationTask] = React.useState<boolean>(true);
   const [selectedReferral, setSelectedReferral] = React.useState<PersonReferralType | null>(null);
 
-  const [copyStatus, setCopyStatus] = React.useState<"idle" | "sending" | "waiting" | "confirmed">("idle");
+  const [trainingCopyStatus, setTrainingCopyStatus] = React.useState<"idle" | "sending" | "confirmed">("idle");
   const [editedMessage, setEditedMessage] = React.useState("");
   const [selectedTemplateId, setSelectedTemplateId] = React.useState("");
-  const pendingInstagramSendRef = React.useRef<PendingInstagramSend | null>(null);
-  const confirmingInstagramSendRef = React.useRef(false);
+  const isThisPending = Boolean(person && instagramSend.pendingPersonId === person.id);
+  const isAnotherPending = Boolean(instagramSend.pendingPersonId && !isThisPending);
+  const copyStatus = isTraining
+    ? trainingCopyStatus
+    : isThisPending
+      ? instagramSend.phase === "confirming" ? "sending" : "waiting"
+      : "idle";
 
   const loadHistory = React.useCallback(async (personId: string) => {
     if (isTraining) {
@@ -320,7 +338,7 @@ export function PersonQuickSheet({
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsResolved(false);
-    setCopyStatus("idle");
+    setTrainingCopyStatus("idle");
     setActiveModal(null);
     setInteractions([]);
     setSelectedReferral(null);
@@ -338,76 +356,6 @@ export function PersonQuickSheet({
     const timeoutId = window.setTimeout(loadEvents, 0);
     return () => window.clearTimeout(timeoutId);
   }, [activeModal, events.length, loadEvents]);
-
-  const completePendingInstagramSend = React.useCallback((pending: PendingInstagramSend) => {
-    if (!person || pending.personId !== person.id || confirmingInstagramSendRef.current) return;
-
-    confirmingInstagramSendRef.current = true;
-    pendingInstagramSendRef.current = null;
-    window.sessionStorage.removeItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY);
-    setCopyStatus("confirmed");
-    // A próxima ficha precisa aparecer antes da persistência de rede. Exibir uma
-    // tela intermediária aqui interrompia o ritmo no retorno do Instagram.
-    if (onActionComplete) {
-      onActionComplete(pending.personId, { openNext: true, refresh: false });
-    } else if (onNextPerson) {
-      onNextPerson();
-    } else {
-      onOpenChange(false);
-    }
-
-    void Promise.all([
-      executeOrQueueAction("recordDMPrepared", [pending.personId, "quick_sheet_return", pending.templateId], toast),
-      executeOrQueueAction("confirmDMSent", [pending.personId, "ficha_rapida", pending.templateId], toast),
-    ]).then(([, result]) => {
-      if (!result.ok) {
-        toast({ title: "Envio pendente", description: result.error, variant: "destructive" });
-      }
-    }).finally(() => {
-      confirmingInstagramSendRef.current = false;
-    });
-  }, [onActionComplete, onNextPerson, onOpenChange, person, toast]);
-
-  React.useEffect(() => {
-    if (!open || !person || isTraining || isMobile) return;
-
-    const restorePending = () => {
-      const pending = parsePendingInstagramSend(
-        window.sessionStorage.getItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY),
-      );
-      if (pending?.personId === person.id) pendingInstagramSendRef.current = pending;
-      return pending;
-    };
-
-    const markAway = () => {
-      const pending = pendingInstagramSendRef.current ?? restorePending();
-      if (!pending || pending.personId !== person.id) return;
-      const updated = markPendingInstagramSendAsAway(pending);
-      pendingInstagramSendRef.current = updated;
-      window.sessionStorage.setItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(updated));
-    };
-
-    const confirmOnReturn = () => {
-      const pending = pendingInstagramSendRef.current ?? restorePending();
-      if (!pending || pending.personId !== person.id || !shouldConfirmPendingInstagramSend(pending)) return;
-      completePendingInstagramSend(pending);
-    };
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "hidden") markAway();
-      else confirmOnReturn();
-    };
-
-    restorePending();
-    document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("pagehide", markAway);
-    window.addEventListener("focus", confirmOnReturn);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("pagehide", markAway);
-      window.removeEventListener("focus", confirmOnReturn);
-    };
-  }, [completePendingInstagramSend, isMobile, isTraining, open, person]);
 
   const handleTemplateChange = (templateId: string) => {
     if (!person) return;
@@ -429,21 +377,6 @@ export function PersonQuickSheet({
   };
 
   if (!person) return null;
-
-  // No celular, a Ficha Rápida é somente leitura. O único fluxo de envio é
-  // Minha Fila, evitando dois controladores concorrentes de retorno do Instagram.
-  if (isMobile && !isTraining) {
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="radar-paper rounded-t-3xl border-[#d7c6ab] bg-[rgba(255,250,242,0.98)] p-6">
-          <SheetTitle className="text-2xl font-black">Continuar na Minha Fila</SheetTitle>
-          <SheetDescription className="mt-2 text-sm font-medium">O envio pelo Instagram acontece em uma única tela para manter o retorno rápido e confiável.</SheetDescription>
-          <Button className="mt-6 h-12 w-full bg-charcoal font-black uppercase tracking-wider text-white" nativeButton={false} render={<Link href="/minha-fila" />}>Abrir Minha Fila</Button>
-          <Button className="mt-3 w-full" variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
-        </SheetContent>
-      </Sheet>
-    );
-  }
 
   const missionView = buildQuickSheetMissionView(person);
   const isBlocked = missionView.contactBlocked;
@@ -545,37 +478,38 @@ export function PersonQuickSheet({
   };
 
   const handleCopyDM = async (text: string, location: string) => {
-    if (isBlocked || isAlreadySent || copyStatus !== "idle") return;
-    setCopyStatus("sending");
-    
-    try {
-      // Mantém a abertura vinculada ao gesto do usuário: no celular, aguardar a área
-      // de transferência antes de abrir pode fazer o navegador bloquear a nova aba.
-      const copyPromise = navigator.clipboard.writeText(text);
-      if (!isTraining) {
-        const pending = createPendingInstagramSend(person.id, selectedTemplateId || null);
-        pendingInstagramSendRef.current = pending;
-        window.sessionStorage.setItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY, JSON.stringify(pending));
-      }
-      launchInstagramProfile(person.username);
-
-      await copyPromise;
-
-      toast({ title: "Mensagem copiada", description: "Direct aberto. Ao voltar, o próximo perfil será preparado automaticamente." });
-      if (isTraining) {
+    if (isBlocked || isAlreadySent || copyStatus !== "idle" || isAnotherPending) return;
+    if (isTraining) {
+      setTrainingCopyStatus("sending");
+      try {
+        const copyPromise = navigator.clipboard.writeText(text);
+        launchInstagramProfile(person.username);
+        await copyPromise;
         onTrainingAction?.("dm_copied", { location });
         onTrainingAction?.("dm_sent");
-        setCopyStatus("confirmed");
-        return;
+        setTrainingCopyStatus("confirmed");
+      } catch {
+        setTrainingCopyStatus("idle");
+        toast({ title: "Erro", description: "Não foi possível copiar a mensagem.", variant: "destructive" });
       }
+      return;
+    }
 
+    const result = await instagramSend.openInstagram({
+      surface: "ficha_rapida",
+      personId: person.id,
+      templateId: selectedTemplateId || null,
+      username: person.username,
+      message: text,
+    });
+    if (result.ok) {
       trackOperationalEvent("dm_copied", person.id, { location });
-      setCopyStatus("waiting");
-    } catch {
-      pendingInstagramSendRef.current = null;
-      if (!isTraining) window.sessionStorage.removeItem(QUICK_SHEET_INSTAGRAM_RETURN_STORAGE_KEY);
-      setCopyStatus("idle");
-      toast({ title: "Erro", description: "Não foi possível copiar a mensagem.", variant: "destructive" });
+      toast({
+        title: result.copied ? "Mensagem copiada" : "Instagram aberto",
+        description: result.copied
+          ? "Ao voltar, o envio será registrado automaticamente."
+          : "A cópia automática falhou. Copie a mensagem manualmente antes de enviar.",
+      });
     }
   };
 
@@ -823,6 +757,16 @@ export function PersonQuickSheet({
                             {copyStatus === "sending" ? "Copiando mensagem..." : copyStatus === "waiting" ? "Aguardando retorno do Instagram..." : copyStatus === "confirmed" || isAlreadySent ? "Envio registrado" : "Copiar mensagem e abrir Instagram"}
                           </Button>
                         ) : null}
+                        {isThisPending ? (
+                          <Button
+                            variant="outline"
+                            className="h-11 w-full border-2 border-[#13212b] bg-white text-xs font-black uppercase tracking-[0.12em] text-[#13212b]"
+                            disabled={instagramSend.phase === "confirming"}
+                            onClick={() => void (instagramSend.phase === "error" ? instagramSend.retryConfirmation() : instagramSend.confirmNow())}
+                          >
+                            {instagramSend.phase === "error" ? "Tentar registro novamente" : "Registrar envio e continuar"}
+                          </Button>
+                        ) : null}
                         {missionView.secondaryActionLabels.length > 0 ? (
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-[#8a7962]">Ações secundárias</p>
@@ -961,10 +905,16 @@ export function PersonQuickSheet({
             <div className="fixed bottom-0 right-0 left-0 z-50 flex items-center gap-3 border-t border-[#d7c6ab] bg-[rgba(255,250,242,0.9)] p-6 backdrop-blur-md lg:left-auto lg:w-[32rem]">
               <Button 
                 className="h-12 flex-1 bg-[#13212b] font-black uppercase text-xs tracking-wider text-white shadow-lg shadow-[rgba(15,23,42,0.14)] hover:bg-[#0d1820]"
-                onClick={() => handleCopyDM(editedMessage || person.suggestedMessage || "", "footer_instagram")}
-                disabled={isBlocked || isAlreadySent}
+                onClick={() => {
+                  if (isThisPending) {
+                    void (instagramSend.phase === "error" ? instagramSend.retryConfirmation() : instagramSend.confirmNow());
+                    return;
+                  }
+                  void handleCopyDM(editedMessage || person.suggestedMessage || "", "footer_instagram");
+                }}
+                disabled={isBlocked || isAlreadySent || isAnotherPending || instagramSend.phase === "confirming"}
               >
-                <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : isAlreadySent ? "Envio registrado" : "Instagram"}
+                <Instagram className="h-4 w-4 mr-2" /> {isBlocked ? "Contato bloqueado" : isAlreadySent ? "Envio registrado" : isThisPending ? instagramSend.phase === "error" ? "Tentar registro novamente" : "Registrar envio e continuar" : "Instagram"}
               </Button>
               
               <div className="flex gap-2">

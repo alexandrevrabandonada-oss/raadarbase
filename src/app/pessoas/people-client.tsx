@@ -51,6 +51,12 @@ import { useCompactMode } from "@/hooks/use-compact-mode";
 import { CompactModeToggle } from "@/components/radar/compact-mode-toggle";
 import { Progress } from "@/components/ui/progress";
 import { isPriorityPersonAlreadySent } from "@/lib/outreach-status";
+import { getOfflineTasks } from "@/lib/offline-queue";
+import {
+  INSTAGRAM_CONFIRMATION_CUSTODY_EVENT,
+  getInstagramConfirmationCustodyIds,
+  useInstagramSendReturn,
+} from "@/hooks/use-instagram-send-return";
 
 type Operator = { id: string; email: string; full_name: string | null; role: string };
 const LIST_RENDER_BATCH = 250;
@@ -111,12 +117,55 @@ export function PeopleClient({
   }, [query, priorityFilter, activeTab, viewMode]);
 
   const [dismissedPersonIds, setDismissedPersonIds] = useState<string[]>([]);
+  const [confirmationCustodyIds, setConfirmationCustodyIds] = useState<string[]>([]);
   const [visibleListState, setVisibleListState] = useState({ key: "", count: LIST_RENDER_BATCH });
 
   const [selectedPerson, setSelectedPerson] = useState<PriorityPerson | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isNotebookViewport, setIsNotebookViewport] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  const instagramSend = useInstagramSendReturn({
+    toast,
+    onConfirmed: (pending) => {
+      handleActionComplete(pending.personId, { openNext: true, refresh: true });
+    },
+    onError: (_pending, error) => {
+      toast({ title: "Não foi possível registrar o envio", description: error, variant: "destructive" });
+    },
+  });
+
+  useEffect(() => {
+    let active = true;
+    const restoredCustodyIds = [...getInstagramConfirmationCustodyIds()];
+    if (restoredCustodyIds.length > 0) {
+      // Recibos são estado externo persistido e só podem ser restaurados após hidratar.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfirmationCustodyIds(restoredCustodyIds);
+    }
+    const restoreQueuedConfirmations = async () => {
+      const tasks = await getOfflineTasks();
+      if (!active) return;
+      const personIds = new Set(tasks
+        .filter((task) => task.action === "confirmDMSent")
+        .map((task) => String(task.args[0])));
+      for (const personId of getInstagramConfirmationCustodyIds()) personIds.add(personId);
+      setConfirmationCustodyIds([...personIds]);
+    };
+    const handleOfflineCustody = (event: Event) => {
+      const personId = (event as CustomEvent<{ personId?: string }>).detail?.personId;
+      if (!personId) return;
+      setConfirmationCustodyIds((current) => current.includes(personId) ? current : [...current, personId]);
+    };
+    void restoreQueuedConfirmations();
+    window.addEventListener(INSTAGRAM_CONFIRMATION_CUSTODY_EVENT, handleOfflineCustody);
+    window.addEventListener("online", restoreQueuedConfirmations);
+    return () => {
+      active = false;
+      window.removeEventListener(INSTAGRAM_CONFIRMATION_CUSTODY_EVENT, handleOfflineCustody);
+      window.removeEventListener("online", restoreQueuedConfirmations);
+    };
+  }, []);
 
   const handleOpenDetails = (person: PriorityPerson) => {
     setSelectedPerson(person);
@@ -134,6 +183,7 @@ export function PeopleClient({
       .filter((person) => {
         if (!person.priorityEligible) return false;
         if (isPriorityPersonAlreadySent(person)) return false;
+        if (confirmationCustodyIds.includes(person.id)) return false;
 
         if (normalizedQuery) {
           const searchTarget = `${person.username} ${person.displayName ?? ""} ${person.mainTheme ?? ""}`.toLowerCase();
@@ -142,7 +192,7 @@ export function PeopleClient({
         
         return true;
       });
-  }, [normalizedQuery, visiblePriorityPeople]);
+  }, [confirmationCustodyIds, normalizedQuery, visiblePriorityPeople]);
 
   const teamPriorityPeople = useMemo(() => {
     if (priorityFilter === "todos") return mainQueuePeople;
@@ -157,6 +207,8 @@ export function PeopleClient({
           return person.status === "respondeu" && !person.hasReferral;
         case "prontas_aviso":
           return person.announcementStatus === "preparado" || person.announcementStatus === "nao_iniciado";
+        case "confirmacao_pendente":
+          return person.announcementStatus === "preparado";
         case "minhas_pendencias":
           return person.responsibleId === currentOperatorId;
         case "pendente_resposta":
@@ -175,7 +227,9 @@ export function PeopleClient({
       }
     });
 
-    return filteredPeople.length > 0 ? filteredPeople : mainQueuePeople;
+    return priorityFilter === "confirmacao_pendente" || filteredPeople.length > 0
+      ? filteredPeople
+      : mainQueuePeople;
   }, [currentOperatorId, mainQueuePeople, operators, priorityFilter]);
 
   const waitingPeople = useMemo(() => {
@@ -303,7 +357,8 @@ export function PeopleClient({
       esperando: esperando.length,
       aEncaminhar: mainQueuePeople.filter(p => p.status === "respondeu" && !p.hasReferral).length,
       naoAbordar: visiblePriorityPeople.filter(p => p.status === "nao_abordar" || p.doNotContactReason).length,
-      prontasAviso: mainQueuePeople.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length
+      prontasAviso: mainQueuePeople.filter(p => p.announcementStatus === "preparado" || p.announcementStatus === "nao_iniciado").length,
+      confirmacoesPendentes: mainQueuePeople.filter(p => p.announcementStatus === "preparado").length,
     };
   }, [currentOperatorId, mainQueuePeople, visiblePriorityPeople]);
 
@@ -606,6 +661,7 @@ export function PeopleClient({
                 { id: "quentes", label: "Urgentes", count: stats.quentes },
                 { id: "sem_responsavel", label: "Sem dono", count: stats.semResponsavel },
                 { id: "prontas_aviso", label: "Preparadas", count: stats.prontasAviso },
+                { id: "confirmacao_pendente", label: "Confirmação pendente", count: stats.confirmacoesPendentes },
               ].map((item) => (
                 <Button
                   key={item.id}
@@ -634,6 +690,7 @@ export function PeopleClient({
               { id: "pendente_resposta", label: "Esperando", value: stats.esperando, tone: "neutral", icon: Clock, filterable: true },
               { id: "sem_encaminhamento", label: "A encaminhar", value: stats.aEncaminhar, tone: stats.aEncaminhar > 0 ? "info" : "neutral", icon: CheckCircle2, filterable: true },
               { id: "prontas_aviso", label: "Prontas p/ Aviso", value: stats.prontasAviso, tone: "neutral", icon: Send, filterable: true },
+              { id: "confirmacao_pendente", label: "Confirmação pendente", value: stats.confirmacoesPendentes, tone: stats.confirmacoesPendentes > 0 ? "warning" : "neutral", icon: AlertCircle, filterable: true },
             ]}
             actions={null}
           />
@@ -736,6 +793,7 @@ export function PeopleClient({
                 onAssume={(id) => handleAssume(id)}
                 isAssuming={isPending}
                 onActionComplete={handleActionComplete}
+                instagramSend={instagramSend}
               />
               {visibleListCount < teamPriorityPeople.length ? (
                 <div className="flex justify-center">
@@ -779,6 +837,7 @@ export function PeopleClient({
               onAssume={(id) => handleAssume(id)}
               isAssuming={isPending}
               onActionComplete={handleActionComplete}
+              instagramSend={instagramSend}
             />
             {visibleListCount < waitingPeople.length ? (
               <div className="flex justify-center">
@@ -858,6 +917,7 @@ export function PeopleClient({
         onNextPerson={handleNextPerson}
         onActionComplete={(personId, options) => handleActionComplete(personId, options)}
         templates={templates}
+        instagramSend={instagramSend}
       />
 
       {/* Governance Banner */}
