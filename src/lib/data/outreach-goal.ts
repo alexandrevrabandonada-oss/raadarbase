@@ -1,10 +1,8 @@
 import { shouldUseMockData } from "@/lib/config";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { PersonStatus } from "@/lib/types";
 import { handleSupabaseReadError } from "./utils";
 
 const TARGET_DATE = new Date(2026, 7, 15);
-const PAGE_SIZE = 1000;
 
 export type OutreachOperatorScore = {
   operatorId: string | null;
@@ -27,50 +25,90 @@ export type OutreachGoalStats = {
   operatorScores: OutreachOperatorScore[];
 };
 
+export type OutreachGoalSnapshot = {
+  total_people: number;
+  do_not_contact: number;
+  sent_by_status: number;
+  sent_today: number;
+  operator_scores: Array<{
+    operator_id: string | null;
+    operator_email: string | null;
+    operator_name: string;
+    total_sent: number;
+    sent_today: number;
+    last_sent_at: string | null;
+  }>;
+};
+
 function daysUntilTarget(now = new Date()) {
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const target = new Date(TARGET_DATE.getFullYear(), TARGET_DATE.getMonth(), TARGET_DATE.getDate()).getTime();
   return Math.max(1, Math.floor((target - start) / (24 * 60 * 60 * 1000)) + 1);
 }
 
-async function countPeopleByStatus(statuses: PersonStatus[]) {
-  const supabase = getSupabaseAdminClient();
-  let total = 0;
-
-  for (const status of statuses) {
-    const { count, error } = await supabase
-      .from("ig_people")
-      .select("*", { count: "exact", head: true })
-      .eq("status", status);
-    if (error) throw error;
-    total += count ?? 0;
-  }
-
-  return total;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function listDmSentAuditLogs() {
-  const supabase = getSupabaseAdminClient();
-  const rows: Array<{
-    entity_id: string | null;
-    actor_id: string | null;
-    actor_email: string | null;
-    created_at: string;
-  }> = [];
+function finiteNumber(value: unknown, field: string) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`Resposta inválida da agregação de alcance: ${field}.`);
+  }
+  return value;
+}
 
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("audit_logs")
-      .select("entity_id, actor_id, actor_email, created_at")
-      .eq("action", "contact.dm_sent")
-      .order("created_at", { ascending: true })
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    rows.push(...(data ?? []));
-    if (!data || data.length < PAGE_SIZE) break;
+export function parseOutreachGoalSnapshot(value: unknown): OutreachGoalSnapshot {
+  if (!isRecord(value) || !Array.isArray(value.operator_scores)) {
+    throw new Error("Resposta inválida da agregação de alcance.");
   }
 
-  return rows;
+  return {
+    total_people: finiteNumber(value.total_people, "total_people"),
+    do_not_contact: finiteNumber(value.do_not_contact, "do_not_contact"),
+    sent_by_status: finiteNumber(value.sent_by_status, "sent_by_status"),
+    sent_today: finiteNumber(value.sent_today, "sent_today"),
+    operator_scores: value.operator_scores.map((score, index) => {
+      if (!isRecord(score) || typeof score.operator_name !== "string") {
+        throw new Error(`Resposta inválida da agregação de alcance: operator_scores[${index}].`);
+      }
+
+      return {
+        operator_id: typeof score.operator_id === "string" ? score.operator_id : null,
+        operator_email: typeof score.operator_email === "string" ? score.operator_email : null,
+        operator_name: score.operator_name,
+        total_sent: finiteNumber(score.total_sent, `operator_scores[${index}].total_sent`),
+        sent_today: finiteNumber(score.sent_today, `operator_scores[${index}].sent_today`),
+        last_sent_at: typeof score.last_sent_at === "string" ? score.last_sent_at : null,
+      };
+    }),
+  };
+}
+
+export function buildOutreachGoalStats(snapshot: OutreachGoalSnapshot, now = new Date()): OutreachGoalStats {
+  const daysRemaining = daysUntilTarget(now);
+  const totalEligible = Math.max(0, snapshot.total_people - snapshot.do_not_contact);
+  const totalSent = Math.min(snapshot.sent_by_status, totalEligible);
+  const totalRemaining = Math.max(0, totalEligible - totalSent);
+  const progressPercent = totalEligible > 0 ? Math.round((totalSent / totalEligible) * 1000) / 10 : 0;
+
+  return {
+    targetDateLabel: "15 de agosto de 2026",
+    totalEligible,
+    totalSent,
+    totalRemaining,
+    progressPercent,
+    daysRemaining,
+    dailyGoal: Math.ceil(totalRemaining / daysRemaining),
+    sentToday: snapshot.sent_today,
+    operatorScores: snapshot.operator_scores.map((score) => ({
+      operatorId: score.operator_id,
+      operatorEmail: score.operator_email,
+      operatorName: score.operator_name,
+      totalSent: score.total_sent,
+      sentToday: score.sent_today,
+      lastSentAt: score.last_sent_at,
+    })),
+  };
 }
 
 export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
@@ -92,87 +130,12 @@ export async function getOutreachGoalStats(): Promise<OutreachGoalStats> {
     const supabase = getSupabaseAdminClient();
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const daysRemaining = daysUntilTarget(now);
+    const { data, error } = await supabase.rpc("get_outreach_goal_stats_snapshot", {
+      p_today_start: todayStart,
+    });
+    if (error) throw error;
 
-    // sentByStatus é a fonte de verdade da barra geral.
-    // O placar por operador, porém, precisa refletir histórico real de envios.
-    const [sentByStatus, doNotContact, logs, operatorsResult] = await Promise.all([
-      countPeopleByStatus(["abordado", "respondeu", "contato_confirmado"]),
-      countPeopleByStatus(["nao_abordar"]),
-      listDmSentAuditLogs(),
-      supabase.from("internal_users").select("id, email, full_name").eq("status", "active"),
-    ]);
-
-    if (operatorsResult.error) throw operatorsResult.error;
-
-    const { count: totalPeople, error: totalError } = await supabase
-      .from("ig_people")
-      .select("*", { count: "exact", head: true });
-    if (totalError) throw totalError;
-
-    const operatorsById = new Map((operatorsResult.data ?? []).map((op) => [op.id, op]));
-    const scores = new Map<string, OutreachOperatorScore>();
-    const sentToday = logs.filter((log) => log.created_at >= todayStart).length;
-
-    // Inicializar scores para todos os operadores ativos
-    for (const operator of operatorsResult.data ?? []) {
-      scores.set(operator.id, {
-        operatorId: operator.id,
-        operatorEmail: operator.email,
-        operatorName: operator.full_name || operator.email || "Operador",
-        totalSent: 0,
-        sentToday: 0,
-        lastSentAt: null,
-      });
-    }
-
-    // Cada pessoa conta uma única vez no mural. O primeiro registro é a melhor
-    // evidência de quem fez o envio; retries não podem inflar o placar.
-    const countedPeople = new Set<string>();
-    for (const log of logs) {
-      if (!log.entity_id || countedPeople.has(log.entity_id)) continue;
-      countedPeople.add(log.entity_id);
-      const key = log.actor_id ?? log.actor_email ?? "sem-operador";
-      const operator = log.actor_id ? operatorsById.get(log.actor_id) : null;
-      const current =
-        scores.get(key) ??
-        {
-          operatorId: log.actor_id,
-          operatorEmail: log.actor_email,
-          operatorName: operator?.full_name || log.actor_email || "Sem operador identificado",
-          totalSent: 0,
-          sentToday: 0,
-          lastSentAt: null,
-        };
-
-      current.totalSent += 1;
-      if (log.created_at >= todayStart) current.sentToday += 1;
-      if (!current.lastSentAt || log.created_at > current.lastSentAt) current.lastSentAt = log.created_at;
-      scores.set(key, current);
-    }
-
-    const totalEligible = Math.max(0, (totalPeople ?? 0) - doNotContact);
-    // Status é a fonte de verdade: pessoas efetivamente abordadas no banco
-    const totalSent = Math.min(sentByStatus, totalEligible);
-    const totalRemaining = Math.max(0, totalEligible - totalSent);
-    const progressPercent = totalEligible > 0 ? Math.round((totalSent / totalEligible) * 1000) / 10 : 0;
-
-    return {
-      targetDateLabel: "15 de agosto de 2026",
-      totalEligible,
-      totalSent,
-      totalRemaining,
-      progressPercent,
-      daysRemaining,
-      dailyGoal: Math.ceil(totalRemaining / daysRemaining),
-      sentToday,
-      operatorScores: Array.from(scores.values())
-        .filter((score) => score.totalSent > 0 || score.sentToday > 0)
-        .sort((left, right) => {
-          if (right.totalSent !== left.totalSent) return right.totalSent - left.totalSent;
-          return right.sentToday - left.sentToday;
-        }),
-    };
+    return buildOutreachGoalStats(parseOutreachGoalSnapshot(data), now);
   } catch (error) {
     handleSupabaseReadError("getOutreachGoalStats", error);
   }

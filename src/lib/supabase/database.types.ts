@@ -3595,6 +3595,10 @@ export type Database = {
           total_profiles: number
         }[]
       }
+      get_outreach_goal_stats_snapshot: {
+        Args: { p_today_start: string }
+        Returns: Json
+      }
       get_radar_entity_facets: { Args: never; Returns: Json }
       get_radar_entity_kpis: {
         Args: never
