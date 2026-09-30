@@ -27,7 +27,7 @@ function plusDays(date: Date, days: number) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-export async function submitClimateProtocolAction(formData: FormData): Promise<Result> {
+export async function submitClimateProtocolAction(_previous: Result | null, formData: FormData): Promise<Result> {
   try {
     await requireRole(["admin", "operador"]);
     const protocolId = id(formData.get("id"));
@@ -64,7 +64,7 @@ export async function submitClimateProtocolAction(formData: FormData): Promise<R
   }
 }
 
-export async function extendClimateProtocolAction(formData: FormData): Promise<Result> {
+export async function extendClimateProtocolAction(_previous: Result | null, formData: FormData): Promise<Result> {
   try {
     await requireRole(["admin", "operador"]);
     const protocolId = id(formData.get("id"));
@@ -102,7 +102,7 @@ export async function extendClimateProtocolAction(formData: FormData): Promise<R
   }
 }
 
-export async function answerClimateProtocolAction(formData: FormData): Promise<Result> {
+export async function answerClimateProtocolAction(_previous: Result | null, formData: FormData): Promise<Result> {
   try {
     await requireRole(["admin", "operador"]);
     const protocolId = id(formData.get("id"));
