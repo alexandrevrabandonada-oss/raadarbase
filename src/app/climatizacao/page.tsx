@@ -7,6 +7,7 @@ import { requireInternalPageSession } from "@/lib/supabase/auth";
 import { listClimateOpsSummary, type ClimateProtocol } from "@/lib/climatizacao/data";
 import { ClimateCopyButton } from "./copy-button";
 import { ClimateProtocolActions } from "./protocol-actions";
+import { ChangeOrgIntegrationForm } from "./change-org-form";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function ClimatizacaoOpsPage() {
   const data = await listClimateOpsSummary();
 
   const openProtocols = data.protocols.filter((item) => item.status === "submitted").length;
+  const changeOrg = data.integrations.find((item) => item.provider === "change_org");
 
   return (
     <AppShell>
@@ -53,14 +55,30 @@ export default async function ClimatizacaoOpsPage() {
         <Button variant="outline" nativeButton={false} render={<a href="https://falabr.cgu.gov.br/web/login" target="_blank" rel="noreferrer" />}>
           Abrir Fala.BR
         </Button>
+        <Button variant="outline" nativeButton={false} render={<a href="https://www.change.org/start-a-petition" target="_blank" rel="noreferrer" />}>
+          Criar petição no Change.org
+        </Button>
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Card><CardHeader><CardTitle>Apoios totais</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.totalSupports}</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Apoios estudantis</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.studentSupports}</p></CardContent></Card>
+        <Card><CardHeader><CardTitle>Assinaturas adultas</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.signatures}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Relatos</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.reports}</p></CardContent></Card>
-        <Card><CardHeader><CardTitle>Escolas com relatos</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.schoolsWithReports}</p></CardContent></Card>
-        <Card><CardHeader><CardTitle>Assinaturas</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.signatures}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Pedidos aguardando</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{openProtocols}</p></CardContent></Card>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Ponte com Change.org</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            O nosso abaixo-assinado continua sendo a fonte principal, inclusive para menores. O Change.org funciona como canal complementar para quem pode usar a plataforma.
+          </p>
+          <ChangeOrgIntegrationForm integration={changeOrg} />
+        </CardContent>
+      </Card>
 
       <div className="space-y-5">
         {data.protocols.map((protocol) => {

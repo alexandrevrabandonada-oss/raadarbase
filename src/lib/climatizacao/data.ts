@@ -21,11 +21,24 @@ export type ClimateProtocol = {
   updated_at: string;
 };
 
+export type ClimateIntegration = {
+  id: string;
+  provider: "change_org";
+  status: "draft" | "active" | "disabled";
+  public_url: string | null;
+  minimum_age: number;
+  public_label: string;
+  updated_at: string;
+};
+
 export type ClimateOpsSummary = {
   reports: number;
   schoolsWithReports: number;
   signatures: number;
+  studentSupports: number;
+  totalSupports: number;
   protocols: ClimateProtocol[];
+  integrations: ClimateIntegration[];
 };
 
 function climateClient() {
@@ -37,25 +50,37 @@ function climateClient() {
 
 export async function listClimateOpsSummary(): Promise<ClimateOpsSummary> {
   const db = climateClient();
-  const [reports, schools, signatures, protocols] = await Promise.all([
+  const [reports, schools, signatures, studentSupports, protocols, integrations] = await Promise.all([
     db.from("clima_reports").select("id", { count: "exact", head: true }),
     db.from("clima_school_stats").select("id").gt("report_count", 0),
     db.from("clima_signatures").select("id", { count: "exact", head: true }),
+    db.from("clima_student_supports").select("id", { count: "exact", head: true }),
     db.from("clima_protocols")
       .select("id,title,recipient,channel,protocol_number,status,submitted_at,due_at,extension_due_at,request_text,legal_basis,tracking_url,public_note,response_url,response_summary,last_checked_at,updated_at")
       .order("created_at", { ascending: true }),
+    db.from("clima_integrations")
+      .select("id,provider,status,public_url,minimum_age,public_label,updated_at")
+      .order("provider", { ascending: true }),
   ]);
 
   if (reports.error) throw new Error(reports.error.message);
   if (schools.error) throw new Error(schools.error.message);
   if (signatures.error) throw new Error(signatures.error.message);
+  if (studentSupports.error) throw new Error(studentSupports.error.message);
   if (protocols.error) throw new Error(protocols.error.message);
+  if (integrations.error) throw new Error(integrations.error.message);
+
+  const adultSignatures = signatures.count ?? 0;
+  const minorSupports = studentSupports.count ?? 0;
 
   return {
     reports: reports.count ?? 0,
     schoolsWithReports: schools.data?.length ?? 0,
-    signatures: signatures.count ?? 0,
+    signatures: adultSignatures,
+    studentSupports: minorSupports,
+    totalSupports: adultSignatures + minorSupports,
     protocols: (protocols.data ?? []) as ClimateProtocol[],
+    integrations: (integrations.data ?? []) as ClimateIntegration[],
   };
 }
 
