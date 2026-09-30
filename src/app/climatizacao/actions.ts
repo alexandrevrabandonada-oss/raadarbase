@@ -135,3 +135,32 @@ export async function answerClimateProtocolAction(_previous: Result | null, form
     return { ok: false, error: error instanceof Error ? error.message : "Falha ao registrar resposta." };
   }
 }
+
+export async function updateChangeOrgIntegrationAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+    const status = text(formData.get("status"), 20);
+    const publicUrl = text(formData.get("public_url"), 500);
+    const publicLabel = text(formData.get("public_label"), 120) || "Assinar também no Change.org";
+
+    if (!["draft", "active", "disabled"].includes(status)) throw new Error("Status inválido.");
+    if (status === "active" && !/^https:\/\/(www\.)?change\.org\//i.test(publicUrl)) {
+      throw new Error("Para ativar, informe uma URL válida do Change.org.");
+    }
+
+    const db = getClimateAdminClient();
+    const { error } = await db.from("clima_integrations").update({
+      status,
+      public_url: publicUrl || null,
+      public_label: publicLabel,
+      minimum_age: 16,
+      updated_at: new Date().toISOString(),
+    }).eq("provider", "change_org");
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: status === "active" ? "Ponte com Change.org ativada no painel público." : "Integração atualizada." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao atualizar integração." };
+  }
+}
