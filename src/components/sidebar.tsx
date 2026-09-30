@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Cable, ChevronDown, MessageSquareText, Route, TrendingUp, Volume2, VolumeX } from "lucide-react";
+import { Cable, ChevronDown, MessageSquareText, Route, ThermometerSun, TrendingUp, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/logout-button";
 import { ConnectionIndicator } from "@/components/connection-indicator";
@@ -54,6 +54,12 @@ const navigation: NavGroup[] = [
         label: "Hub de Inteligência",
         icon: Cable,
         microcopy: "Unificar fontes, entidades, evidências e relações.",
+      },
+      {
+        href: "/climatizacao",
+        label: "Climatização",
+        icon: ThermometerSun,
+        microcopy: "Relatos, LAIs, protocolos, prazos e respostas.",
       },
     ],
   },
