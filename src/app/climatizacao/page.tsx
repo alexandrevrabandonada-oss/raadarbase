@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
-import { listClimateOpsSummary, type ClimateProtocol } from "@/lib/climatizacao/data";
+import { listClimateEvidenceOps, listClimateOpsSummary, type ClimateProtocol } from "@/lib/climatizacao/data";
 import { ClimateCopyButton } from "./copy-button";
 import { ClimateProtocolActions } from "./protocol-actions";
 import { ChangeOrgIntegrationForm } from "./change-org-form";
+import { ClimateEvidenceForm } from "./evidence-form";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ function statusVariant(status: string) {
 
 export default async function ClimatizacaoOpsPage() {
   await requireInternalPageSession("/climatizacao");
-  const data = await listClimateOpsSummary();
+  const [data, evidenceOps] = await Promise.all([listClimateOpsSummary(), listClimateEvidenceOps()]);
 
   const openProtocols = data.protocols.filter((item) => item.status === "submitted").length;
   const changeOrg = data.integrations.find((item) => item.provider === "change_org");
@@ -58,6 +59,12 @@ export default async function ClimatizacaoOpsPage() {
         <Button variant="outline" nativeButton={false} render={<a href="https://www.change.org/start-a-petition" target="_blank" rel="noreferrer" />}>
           Criar petição no Change.org
         </Button>
+        <Button variant="outline" nativeButton={false} render={<a href="https://www.alexandrevrabandonada.online/climatizacao/evidencias" target="_blank" rel="noreferrer" />}>
+          Evidências públicas
+        </Button>
+        <Button variant="outline" nativeButton={false} render={<a href="https://www.alexandrevrabandonada.online/climatizacao/ledger" target="_blank" rel="noreferrer" />}>
+          Ledger público
+        </Button>
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -67,6 +74,51 @@ export default async function ClimatizacaoOpsPage() {
         <Card><CardHeader><CardTitle>Relatos</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.reports}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Pedidos aguardando</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{openProtocols}</p></CardContent></Card>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Evidências e integridade pública</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md border p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Evidências</p>
+              <p className="mt-1 text-3xl font-black">{evidenceOps.evidence.length}</p>
+              <p className="text-xs text-muted-foreground">últimas entradas carregadas</p>
+            </div>
+            <div className="rounded-md border p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Eventos no ledger</p>
+              <p className="mt-1 text-3xl font-black">{evidenceOps.ledgerCount}</p>
+              <p className="text-xs text-muted-foreground">cadeia append-only</p>
+            </div>
+            <div className="rounded-md border p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Head atual</p>
+              <p className="mt-2 break-all font-mono text-xs">{evidenceOps.ledgerHead?.entry_hash ?? "—"}</p>
+              <p className="text-xs text-muted-foreground">{evidenceOps.ledgerHead ? "#" + evidenceOps.ledgerHead.id : "sem eventos"}</p>
+            </div>
+          </div>
+
+          <ClimateEvidenceForm schools={evidenceOps.schools} protocols={data.protocols} />
+
+          {evidenceOps.evidence.length ? (
+            <div className="space-y-2">
+              <p className="text-sm font-bold">Evidências recentes</p>
+              {evidenceOps.evidence.slice(0, 8).map((item) => (
+                <div key={item.id} className="rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <strong>{item.title}</strong>
+                    <Badge variant="outline">{item.verification_status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.source_authority ?? item.source_kind} · {item.evidence_type}
+                  </p>
+                  {item.source_url ? <a className="mt-2 inline-block text-xs font-semibold underline" href={item.source_url} target="_blank" rel="noreferrer">Abrir fonte</a> : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader>
