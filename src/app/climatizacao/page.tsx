@@ -55,6 +55,9 @@ export default async function ClimatizacaoOpsPage() {
         <Button variant="outline" nativeButton={false} render={<a href="https://falabr.cgu.gov.br/web/login" target="_blank" rel="noreferrer" />}>
           Abrir Fala.BR
         </Button>
+        <Button variant="outline" nativeButton={false} render={<a href="https://www.change.org/start-a-petition" target="_blank" rel="noreferrer" />}>
+          Criar petição no Change.org
+        </Button>
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
