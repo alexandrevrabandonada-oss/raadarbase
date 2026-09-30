@@ -164,3 +164,64 @@ export async function updateChangeOrgIntegrationAction(_previous: Result | null,
     return { ok: false, error: error instanceof Error ? error.message : "Falha ao atualizar integração." };
   }
 }
+
+
+export async function addClimateEvidenceAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+
+    const evidenceType = text(formData.get("evidence_type"), 40);
+    const sourceKind = text(formData.get("source_kind"), 40);
+    const title = text(formData.get("title"), 240);
+    const sourceUrl = text(formData.get("source_url"), 500);
+    const sourceAuthority = text(formData.get("source_authority"), 200);
+    const documentDate = text(formData.get("document_date"), 20);
+    const verificationStatus = text(formData.get("verification_status"), 40) || "source_seen";
+    const publicNote = text(formData.get("public_note"), 1600);
+    const contentSha256 = text(formData.get("content_sha256"), 64).toLowerCase();
+    const schoolRaw = text(formData.get("school_id"), 30);
+    const protocolRaw = text(formData.get("protocol_id"), 80);
+
+    const allowedEvidence = new Set([
+      "law","official_document","official_response","contract","maintenance_order",
+      "procurement","technical_note","community_summary","news","other",
+    ]);
+    const allowedSource = new Set(["official","community","media","document","other"]);
+    const allowedStatus = new Set(["source_seen","document_verified","officially_confirmed","disputed","superseded"]);
+
+    if (!allowedEvidence.has(evidenceType)) throw new Error("Tipo de evidência inválido.");
+    if (!allowedSource.has(sourceKind)) throw new Error("Tipo de fonte inválido.");
+    if (!allowedStatus.has(verificationStatus)) throw new Error("Status de verificação inválido.");
+    if (title.length < 3) throw new Error("Informe um título.");
+    if (sourceUrl && !/^https:\/\//i.test(sourceUrl)) throw new Error("A fonte deve usar HTTPS.");
+    if (documentDate && !/^\d{4}-\d{2}-\d{2}$/.test(documentDate)) throw new Error("Data do documento inválida.");
+    if (contentSha256 && !/^[a-f0-9]{64}$/.test(contentSha256)) throw new Error("SHA-256 deve ter 64 caracteres hexadecimais.");
+
+    const schoolId = schoolRaw ? Number(schoolRaw) : null;
+    if (schoolId !== null && (!Number.isInteger(schoolId) || schoolId <= 0)) throw new Error("Escola inválida.");
+
+    const protocolId = protocolRaw || null;
+    if (protocolId && !/^[0-9a-f-]{36}$/i.test(protocolId)) throw new Error("Protocolo inválido.");
+
+    const db = getClimateAdminClient();
+    const { error } = await db.from("clima_evidence").insert({
+      evidence_type: evidenceType,
+      source_kind: sourceKind,
+      title,
+      source_url: sourceUrl || null,
+      source_authority: sourceAuthority || null,
+      document_date: documentDate || null,
+      content_sha256: contentSha256 || null,
+      verification_status: verificationStatus,
+      public_note: publicNote || null,
+      school_id: schoolId,
+      protocol_id: protocolId,
+    });
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: "Evidência registrada e adicionada ao ledger público." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao registrar evidência." };
+  }
+}

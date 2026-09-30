@@ -87,3 +87,65 @@ export async function listClimateOpsSummary(): Promise<ClimateOpsSummary> {
 export function getClimateAdminClient() {
   return climateClient();
 }
+
+
+export type ClimateEvidence = {
+  id: string;
+  school_id: number | null;
+  protocol_id: string | null;
+  evidence_type: string;
+  source_kind: string;
+  title: string;
+  source_url: string | null;
+  source_authority: string | null;
+  document_date: string | null;
+  content_sha256: string | null;
+  verification_status: string;
+  public_note: string | null;
+  created_at: string;
+};
+
+export type ClimateSchoolOption = {
+  id: number;
+  name: string;
+  network: string;
+};
+
+export type ClimateEvidenceOps = {
+  evidence: ClimateEvidence[];
+  schools: ClimateSchoolOption[];
+  ledgerCount: number;
+  ledgerHead: { id: number; entry_hash: string; created_at: string } | null;
+};
+
+export async function listClimateEvidenceOps(): Promise<ClimateEvidenceOps> {
+  const db = climateClient();
+  const [evidence, schools, ledgerCount, ledgerHead] = await Promise.all([
+    db.from("clima_evidence")
+      .select("id,school_id,protocol_id,evidence_type,source_kind,title,source_url,source_authority,document_date,content_sha256,verification_status,public_note,created_at")
+      .order("created_at", { ascending: false })
+      .limit(30),
+    db.from("clima_schools")
+      .select("id,name,network")
+      .eq("active", true)
+      .order("name"),
+    db.from("clima_public_ledger").select("id", { count: "exact", head: true }),
+    db.from("clima_public_ledger")
+      .select("id,entry_hash,created_at")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (evidence.error) throw new Error(evidence.error.message);
+  if (schools.error) throw new Error(schools.error.message);
+  if (ledgerCount.error) throw new Error(ledgerCount.error.message);
+  if (ledgerHead.error) throw new Error(ledgerHead.error.message);
+
+  return {
+    evidence: (evidence.data ?? []) as ClimateEvidence[],
+    schools: (schools.data ?? []) as ClimateSchoolOption[],
+    ledgerCount: ledgerCount.count ?? 0,
+    ledgerHead: ledgerHead.data ?? null,
+  };
+}
