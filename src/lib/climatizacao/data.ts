@@ -149,3 +149,102 @@ export async function listClimateEvidenceOps(): Promise<ClimateEvidenceOps> {
     ledgerHead: ledgerHead.data ?? null,
   };
 }
+
+
+export type ClimateCaseOpsItem = {
+  id: string;
+  school_id: number;
+  school_name: string;
+  school_network: string;
+  issue: string;
+  status: string;
+  report_count: number;
+  opened_at: string;
+  last_report_at: string | null;
+  updated_at: string;
+  resolved_at: string | null;
+  public_note: string | null;
+  evidence_count: number;
+  protocol_count: number;
+};
+
+export type ClimateEvidenceSubmission = {
+  id: string;
+  school_id: number;
+  school_name: string;
+  school_network: string;
+  issue: string | null;
+  title: string;
+  source_url: string;
+  source_kind: string;
+  public_note: string | null;
+  status: "pending" | "accepted" | "rejected";
+  review_note: string | null;
+  resulting_evidence_id: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
+export type ClimateCaseOps = {
+  cases: ClimateCaseOpsItem[];
+  pendingSubmissions: ClimateEvidenceSubmission[];
+};
+
+export async function listClimateCaseOps(): Promise<ClimateCaseOps> {
+  const db = climateClient();
+
+  const [cases, submissions, schools, caseEvidence, caseProtocols] = await Promise.all([
+    db.from("clima_school_cases")
+      .select("id,school_id,issue,status,report_count,opened_at,last_report_at,updated_at,resolved_at,public_note")
+      .order("updated_at", { ascending: false })
+      .limit(200),
+    db.from("clima_evidence_submissions")
+      .select("id,school_id,issue,title,source_url,source_kind,public_note,status,review_note,resulting_evidence_id,created_at,reviewed_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(100),
+    db.from("clima_schools")
+      .select("id,name,network")
+      .eq("active", true),
+    db.from("clima_case_evidence").select("case_id,evidence_id"),
+    db.from("clima_case_protocols").select("case_id,protocol_id"),
+  ]);
+
+  if (cases.error) throw new Error(cases.error.message);
+  if (submissions.error) throw new Error(submissions.error.message);
+  if (schools.error) throw new Error(schools.error.message);
+  if (caseEvidence.error) throw new Error(caseEvidence.error.message);
+  if (caseProtocols.error) throw new Error(caseProtocols.error.message);
+
+  const schoolsById = new Map((schools.data ?? []).map((school) => [Number(school.id), school]));
+  const evidenceCount = new Map<string, number>();
+  const protocolCount = new Map<string, number>();
+
+  for (const row of caseEvidence.data ?? []) {
+    evidenceCount.set(row.case_id, (evidenceCount.get(row.case_id) ?? 0) + 1);
+  }
+  for (const row of caseProtocols.data ?? []) {
+    protocolCount.set(row.case_id, (protocolCount.get(row.case_id) ?? 0) + 1);
+  }
+
+  return {
+    cases: (cases.data ?? []).map((item) => {
+      const school = schoolsById.get(Number(item.school_id));
+      return {
+        ...item,
+        school_name: school?.name ?? "Unidade desconhecida",
+        school_network: school?.network ?? "—",
+        evidence_count: evidenceCount.get(item.id) ?? 0,
+        protocol_count: protocolCount.get(item.id) ?? 0,
+      };
+    }) as ClimateCaseOpsItem[],
+    pendingSubmissions: (submissions.data ?? []).map((item) => {
+      const school = schoolsById.get(Number(item.school_id));
+      return {
+        ...item,
+        school_name: school?.name ?? "Unidade desconhecida",
+        school_network: school?.network ?? "—",
+      };
+    }) as ClimateEvidenceSubmission[],
+  };
+}

@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireInternalPageSession } from "@/lib/supabase/auth";
-import { listClimateEvidenceOps, listClimateOpsSummary, type ClimateProtocol } from "@/lib/climatizacao/data";
+import { listClimateCaseOps, listClimateEvidenceOps, listClimateOpsSummary, type ClimateProtocol } from "@/lib/climatizacao/data";
 import { ClimateCopyButton } from "./copy-button";
 import { ClimateProtocolActions } from "./protocol-actions";
 import { ChangeOrgIntegrationForm } from "./change-org-form";
 import { ClimateEvidenceForm } from "./evidence-form";
+import { ClimateCaseOpsPanel } from "./case-ops";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ function statusVariant(status: string) {
 
 export default async function ClimatizacaoOpsPage() {
   await requireInternalPageSession("/climatizacao");
-  const [data, evidenceOps] = await Promise.all([listClimateOpsSummary(), listClimateEvidenceOps()]);
+  const [data, evidenceOps, caseOps] = await Promise.all([listClimateOpsSummary(), listClimateEvidenceOps(), listClimateCaseOps()]);
 
   const openProtocols = data.protocols.filter((item) => item.status === "submitted").length;
   const changeOrg = data.integrations.find((item) => item.provider === "change_org");
@@ -74,6 +75,15 @@ export default async function ClimatizacaoOpsPage() {
         <Card><CardHeader><CardTitle>Relatos</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{data.reports}</p></CardContent></Card>
         <Card><CardHeader><CardTitle>Pedidos aguardando</CardTitle></CardHeader><CardContent><p className="text-3xl font-black">{openProtocols}</p></CardContent></Card>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Ciclo de resolução e moderação</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ClimateCaseOpsPanel caseOps={caseOps} evidence={evidenceOps.evidence} protocols={data.protocols} />
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader>
