@@ -225,3 +225,194 @@ export async function addClimateEvidenceAction(_previous: Result | null, formDat
     return { ok: false, error: error instanceof Error ? error.message : "Falha ao registrar evidência." };
   }
 }
+
+
+function uuidValue(value: FormDataEntryValue | null, label = "Identificador") {
+  const parsed = String(value ?? "").trim();
+  if (!/^[0-9a-f-]{36}$/i.test(parsed)) throw new Error(label + " inválido.");
+  return parsed;
+}
+
+export async function updateClimateCaseStatusAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+    const caseId = uuidValue(formData.get("case_id"), "Caso");
+    const status = text(formData.get("status"), 40);
+    const note = text(formData.get("public_note"), 1600);
+
+    const allowed = new Set(["reported","documenting","official_request","awaiting_response","answered","resolved","reopened"]);
+    if (!allowed.has(status)) throw new Error("Status inválido.");
+
+    const db = getClimateAdminClient();
+    const { data: current, error: readError } = await db
+      .from("clima_school_cases")
+      .select("status,public_note")
+      .eq("id", caseId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!current) throw new Error("Caso não encontrado.");
+
+    if (status === "resolved") {
+      if (note.length < 8) throw new Error("Para marcar como resolvido, inclua uma nota pública explicando a base da resolução.");
+
+      const [evidenceLinks, protocolLinks] = await Promise.all([
+        db.from("clima_case_evidence").select("case_id", { count: "exact", head: true }).eq("case_id", caseId),
+        db.from("clima_case_protocols").select("case_id", { count: "exact", head: true }).eq("case_id", caseId),
+      ]);
+      if (evidenceLinks.error) throw new Error(evidenceLinks.error.message);
+      if (protocolLinks.error) throw new Error(protocolLinks.error.message);
+      if ((evidenceLinks.count ?? 0) + (protocolLinks.count ?? 0) === 0) {
+        throw new Error("Para resolver um caso, vincule ao menos uma evidência ou protocolo.");
+      }
+    }
+
+    const now = new Date().toISOString();
+    const changes: Record<string, unknown> = {
+      status,
+      updated_at: now,
+      resolved_at: status === "resolved" ? now : null,
+    };
+    if (note) changes.public_note = note;
+
+    const { error } = await db.from("clima_school_cases").update(changes).eq("id", caseId);
+    if (error) throw new Error(error.message);
+
+    if (current.status === status && note) {
+      const { error: noteError } = await db.from("clima_case_events").insert({
+        case_id: caseId,
+        event_type: "note",
+        from_status: status,
+        to_status: status,
+        public_note: note,
+      });
+      if (noteError) throw new Error(noteError.message);
+    }
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: "Caso atualizado." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao atualizar caso." };
+  }
+}
+
+export async function linkClimateCaseEvidenceAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+    const caseId = uuidValue(formData.get("case_id"), "Caso");
+    const evidenceId = uuidValue(formData.get("evidence_id"), "Evidência");
+    const db = getClimateAdminClient();
+
+    const { error } = await db.from("clima_case_evidence").insert({
+      case_id: caseId,
+      evidence_id: evidenceId,
+    });
+    if (error?.code === "23505") return { ok: true, message: "Evidência já estava vinculada." };
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: "Evidência vinculada ao caso." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao vincular evidência." };
+  }
+}
+
+export async function linkClimateCaseProtocolAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+    const caseId = uuidValue(formData.get("case_id"), "Caso");
+    const protocolId = uuidValue(formData.get("protocol_id"), "Protocolo");
+    const db = getClimateAdminClient();
+
+    const { error } = await db.from("clima_case_protocols").insert({
+      case_id: caseId,
+      protocol_id: protocolId,
+    });
+    if (error?.code === "23505") return { ok: true, message: "Protocolo já estava vinculado." };
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: "Protocolo vinculado ao caso." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao vincular protocolo." };
+  }
+}
+
+export async function reviewEvidenceSubmissionAction(_previous: Result | null, formData: FormData): Promise<Result> {
+  try {
+    await requireRole(["admin", "operador"]);
+    const submissionId = uuidValue(formData.get("submission_id"), "Sugestão");
+    const decision = text(formData.get("decision"), 20);
+    const reviewNote = text(formData.get("review_note"), 1200);
+    if (!["accepted","rejected"].includes(decision)) throw new Error("Decisão inválida.");
+
+    const db = getClimateAdminClient();
+    const { data: submission, error: readError } = await db
+      .from("clima_evidence_submissions")
+      .select("id,school_id,issue,title,source_url,source_kind,public_note,status")
+      .eq("id", submissionId)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!submission) throw new Error("Sugestão não encontrada.");
+    if (submission.status !== "pending") return { ok: true, message: "Sugestão já revisada." };
+
+    const now = new Date().toISOString();
+
+    if (decision === "rejected") {
+      const { error } = await db.from("clima_evidence_submissions").update({
+        status: "rejected",
+        review_note: reviewNote || "Não incorporada ao catálogo público.",
+        reviewed_at: now,
+      }).eq("id", submissionId);
+      if (error) throw new Error(error.message);
+
+      revalidatePath("/climatizacao");
+      return { ok: true, message: "Sugestão rejeitada e mantida fora do catálogo público." };
+    }
+
+    const { data: evidence, error: evidenceError } = await db.from("clima_evidence").insert({
+      school_id: submission.school_id,
+      issue: submission.issue || null,
+      evidence_type: submission.source_kind === "official" ? "official_document"
+        : submission.source_kind === "media" ? "news"
+        : submission.source_kind === "document" ? "other"
+        : "other",
+      source_kind: submission.source_kind,
+      title: submission.title,
+      source_url: submission.source_url,
+      verification_status: "source_seen",
+      public_note: submission.public_note || null,
+    }).select("id").single();
+    if (evidenceError) throw new Error(evidenceError.message);
+
+    const { error: updateError } = await db.from("clima_evidence_submissions").update({
+      status: "accepted",
+      review_note: reviewNote || "Fonte incorporada ao catálogo para verificação pública.",
+      resulting_evidence_id: evidence.id,
+      reviewed_at: now,
+    }).eq("id", submissionId);
+    if (updateError) throw new Error(updateError.message);
+
+    if (submission.issue) {
+      const { data: caseRow, error: caseError } = await db
+        .from("clima_school_cases")
+        .select("id")
+        .eq("school_id", submission.school_id)
+        .eq("issue", submission.issue)
+        .maybeSingle();
+      if (caseError) throw new Error(caseError.message);
+
+      if (caseRow) {
+        const { error: linkError } = await db.from("clima_case_evidence").insert({
+          case_id: caseRow.id,
+          evidence_id: evidence.id,
+        });
+        if (linkError && linkError.code !== "23505") throw new Error(linkError.message);
+      }
+    }
+
+    revalidatePath("/climatizacao");
+    return { ok: true, message: "Fonte aceita, publicada como evidência e registrada no ledger." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao revisar sugestão." };
+  }
+}
